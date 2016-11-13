@@ -27,5 +27,5 @@ def prepare_vocal_single_options(path):
     return question_templates
 
 
-def sv_ordered_dict_to_list(sv_od):
+def assoc_array_to_list(sv_od):
     return [item for kvp in list(sv_od.items()) for item in kvp]

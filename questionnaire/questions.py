@@ -1,8 +1,6 @@
 import socket
-import csv
-from collections import OrderedDict
-import tkinter as tk
-import time
+import Tkinter as tk
+from prepare_questions import *
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
@@ -17,39 +15,6 @@ def send_record_flag_udp(sock, flag=True):
 
 def disconnect_from_fs_receiver_udp(sock):
     sock.close()
-
-
-def load_questions(path='data/questions.csv'):
-    """
-    Read questions from csv file at path:
-    Each row is in format "question","answer_1","answer_2","answer_3","answer_4"
-
-    @returns ordered dictionary with questions as keys and dict{options, answer} as value; and a concatenated list
-        of questions and their answers
-    """
-    display_list = []
-    questions = OrderedDict()
-
-    error = "{}: every question must have at least one answer and an index of right answer".format(path)
-
-    with open(path) as out:
-        reader = csv.reader(out)
-
-        header = next(reader, [])
-
-        if len(header) <= 2:
-            print(error)
-            return []
-
-        for row in reader:
-            if len(header) != len(row):
-                print(error)
-                return []
-
-            questions[row[0]] = {"options": row[1:-1], "answer": int(row[-1])}
-            display_list.extend(row[:-1])
-
-    return questions, display_list
 
 
 def set_window_mid_screen():
@@ -89,7 +54,7 @@ def main():
     rect = tk.Canvas(root, width=200, height=100)
     changeRect(root,rect,'green',ws)
     
-    question, q_list = load_questions()
+    q_list = assoc_array_to_list(prepare_vocal_single_options("data/questions_single_options.csv"))
 
     curTime = 1000
     QintervalTime = 1000
