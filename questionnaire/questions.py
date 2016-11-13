@@ -63,19 +63,32 @@ def set_window_mid_screen():
     hs = root.winfo_screenheight()  # height of the screen
     root.overrideredirect(1)
     root.geometry('%dx%d+%d+%d' % (ws, hs, w, h))
-    return root
+    return root,ws,hs
 
 
 def change_label(label, t):
     label.config(text=('%s') % t, fg="green", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
+def changeRect(root,rect,color,ws):
+    rect = tk.Canvas(root, width=ws, height=100)
+    # rect.coords()
+    # rect.pack(side=tk.RIGHT,anchor=tk.NE)
+    rect.pack()
+
+    #w.create_line(0, 0, 200, 100)
+    #w.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
+
+    rect.create_rectangle(0, 0, ws, 100, fill="%s"%color)
 
 def main():
 
-    root = set_window_mid_screen()
+    root,ws,hs = set_window_mid_screen()
     label = tk.Label(root, text="")
     label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
+    
+    rect = tk.Canvas(root, width=200, height=100)
+    changeRect(root,rect,'green',ws)
+    
     question, q_list = load_questions()
 
     curTime = 1000
