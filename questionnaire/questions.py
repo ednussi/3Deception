@@ -71,23 +71,36 @@ def change_label(label, t):
 
 
 def main():
+
     root = set_window_mid_screen()
     label = tk.Label(root, text="")
     label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     question, q_list = load_questions()
 
-    waitTime = 2000
-    intervalTime = 2000
-
+    curTime = 1000
+    QintervalTime = 1000
+    AintervalTime = 1000
+    blankWindowTime = 1000
     for q in range(int(len(q_list) / 5)):
-        root.after(waitTime, change_label, label, q_list[q * 5])
-        waitTime = waitTime + intervalTime
-
+        root.after(curTime,change_label, label, q_list[q*6])
+        curTime = curTime + QintervalTime
+        
         for a in range(4):
-            root.after(waitTime, change_label, label, q_list[q * 5 + a + 1])
-            waitTime = waitTime + intervalTime
-
+            print("size of q_list is: %d"%len(q_list))
+            print("q: %d, a: %d, q*6+a: %d"%(q ,a,q*6+a))
+            root.after(curTime,change_label, label, q_list[q*6+a])
+            curTime = curTime + AintervalTime
+            
+            # Show blank window
+            root.after(curTime,change_label, label, '')
+            curTime = curTime + blankWindowTime
+        
+        #Show Question Again
+        questString = q_list[q*6]
+        root.after(curTime, change_label, label, questString)
+        curTime = curTime + QintervalTime
+    
     root.mainloop()
 
 if __name__ == "__main__":
