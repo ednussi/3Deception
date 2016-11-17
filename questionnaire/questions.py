@@ -54,7 +54,7 @@ def main():
     rect = tk.Canvas(root, width=200, height=100)
     changeRect(root,rect,'green',ws)
     
-    q_list = assoc_array_to_list(prepare_vocal_single_options("data/questions_single_options.csv"))
+    q_list = assoc_array_to_list(prepare_vocal_single_option())
 
     curTime = 1000
     QintervalTime = 1000

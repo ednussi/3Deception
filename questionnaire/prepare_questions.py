@@ -2,7 +2,7 @@ from collections import OrderedDict
 import csv
 
 
-def prepare_vocal_single_options(path):
+def prepare_vocal_single_option(path="data/questions_vocal_single_option.csv"):
     """
     Load questions and answer formats for single-option vocal questions
     :param path: csv file to load from
