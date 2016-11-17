@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import socket
 import tkinter as tk
 from prepare_questions import *
@@ -39,7 +42,7 @@ def changeRect(root, rect, color, ws):
     rect = tk.Canvas(root, width=ws, height=100)
     # rect.coords()
     # rect.pack(side=tk.RIGHT,anchor=tk.NE)
-    rect.pack()
+    rect.grid(row=2,column=3)
 
     # w.create_line(0, 0, 200, 100)
     # w.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
@@ -47,39 +50,52 @@ def changeRect(root, rect, color, ws):
     rect.create_rectangle(0, 0, ws, 100, fill="%s" % color)
 
 
-def nextQ(word, root, label, q_list):
-    for q in range(len(q_list) / 2):
-        # Show question
-        root.after(0, change_label, label, q_list[q * 2])
-        # curTime = curTime + QintervalTime
+def nextQ(root, label, b, q_timeout, a_timeout, q, a):
+    b.place_forget()
+    # Show question
+    root.after(0, change_label, label, q)
+    # curTime = curTime + QintervalTime
 
-        # Show answer format
-        root.after(1000, change_label, label, q_list[q * 2 + 1])
-        # curTime = curTime + AintervalTime
+    # Show answer format
+    root.after(q_timeout, change_label, label, a)
+    # curTime = curTime + AintervalTime
 
-        # Show blank between questions
-        root.after(2000, change_label, label, '')
-        # curTime = curTime + blankWindowTime
+    # Show blank between questions
+    root.after(a_timeout, change_label, label, '')
+    root.after(a_timeout+500, place_button, b)
+    # curTime = curTime + blankWindowTime
 
-        yield 0
+def place_button(b):
+    b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
 
 def simplePrint():
     print('Pressed')
 
 
+def next_question(questions):
+    q = questions[0]
+    questions.pop(0)
+
+    a = questions[0]
+    questions.pop(0)
+    
+    return (q, a)
+
 def main():
+
     root, ws, hs = set_window_mid_screen()
     label = tk.Label(root, text="")
+    # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_single_options.csv"))
+    q_list = assoc_array_to_list(prepare_vocal_single_option())
 
     rect = tk.Canvas(root, width=200, height=100)
     changeRect(root, rect, 'green', ws)
 
-    b = tk.Button(root, text="Next Question", command=lambda: nextQ('hey', root, label, q_list))
-    b.pack()
+    b = tk.Button(root, text="Next Question", command=lambda: nextQ(root, label, b, 1000, 2000, *next_question(q_list)))
+    b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     root.mainloop()
 

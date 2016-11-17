@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from collections import OrderedDict
 import csv
 
@@ -10,7 +13,7 @@ def prepare_vocal_single_option(path="data/questions_vocal_single_option.csv"):
     """
     question_templates = OrderedDict()
 
-    with open(path) as out:
+    with open(path, encoding='utf-8') as out:
         reader = csv.reader(out)
 
         headers = next(reader, [])
