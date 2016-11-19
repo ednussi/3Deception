@@ -13,8 +13,14 @@ def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     return sock
 
 
-def send_record_flag_udp(sock, flag=True):
-    sock.send(str(int(flag)))
+def send_record_flag_udp(sock, flag=2):
+    """
+    flag = 0 - blank
+    flag = 1 - question
+    flag = 2 - answer true
+    flag = 3 - answer false
+    """
+    sock.send(bytes(str(flag), 'utf-8'))
 
 
 def disconnect_from_fs_receiver_udp(sock):
@@ -36,11 +42,11 @@ def set_window_mid_screen():
 
 
 def change_label(label, t):
-    label.config(text=('%s') % t, fg="green", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
+    label.config(text=('%s') % t, fg="black", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
 def changeRect(root, rect, color, ws):
-    rect = tk.Canvas(root, width=ws, height=100)
+    rect = tk.Canvas(root, width=ws, height=300)
     # rect.coords()
     # rect.pack(side=tk.RIGHT,anchor=tk.NE)
     rect.grid(row=2,column=3)
@@ -51,44 +57,58 @@ def changeRect(root, rect, color, ws):
     rect.create_rectangle(0, 0, ws, 100, fill="%s" % color)
 
 
-def nextQ(root, label, b, q_timeout, a_timeout, q, a):
+def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     b.place_forget()
     
+    # Change rect color accordingly
+    rect_color = colors[0]
+    colors.pop(0)
+    # print('\n\n'+rect_color)
+    # changeRect(root, rect, rect_color, root.winfo_screenwidth())
+
     blank_time = 1000
     after_answer_time = 1000
     # Show blank between questions
     root.after(0, change_label, label, '')
+    root.after(0, send_record_flag_udp, sock, 0)
 
     # Show question
     root.after(blank_time, change_label, label, q)
+    root.after(blank_time, send_record_flag_udp, sock, 1)
     # curTime = curTime + QintervalTime
 
     # Show answer format
     root.after(blank_time+q_timeout, change_label, label, a)
+    # if rect_color == 'RED':
+    #     flag = 3
+    # else:
+    #    flag = 2
+    flag = 2
+    root.after(blank_time+q_timeout, send_record_flag_udp, sock, flag)
     # curTime = curTime + AintervalTime
 
     root.after(blank_time+a_timeout+after_answer_time, place_button, b)
     # curTime = curTime + blankWindowTime
 
 def place_button(b):
-    b.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
+    b.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
 
 def simplePrint():
     print('Pressed')
 
 
-def next_question(root,rect, questions, colors):
+def next_question(root, rect, sock, questions, colors):
+    if not len(questions):
+        send_record_flag_udp(sock, 11)
+        exit()
+
     q = questions[0]
     questions.pop(0)
 
     a = questions[0]
     questions.pop(0)
 
-    rect_color = colors[0]
-    colors.pop(0)
-    # print('\n\n'+rect_color)
-    changeRect(root, rect, rect_color, root.winfo_screenwidth())
     return (q, a)
 
 def main():
@@ -104,20 +124,24 @@ def main():
     tq = [q for t in [p for p in tq] for q in t]
 
     colors = [random.choice(('RED', 'GREEN')) for x in tq]
-    
+
+    sock = connect_to_fs_receiver_udp()
     
     rect = tk.Canvas(root, width=200, height=100)
-    changeRect(root, rect, 'green', ws)
+    # changeRect(root, rect, 'green', ws)
 
-    q_timeout = 3000
-    a_timeout = 5000
+    q_timeout = 5000
+    a_timeout = 7000
 
-    b = tk.Button(root, text="Next Question", command=lambda: nextQ(root, label, b, q_timeout, a_timeout, *next_question(root,rect, tq, colors)), height=4, width=50)
+    b = tk.Button(root, text="Next Question", command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(root,rect, sock, tq, colors)), height=4, width=50)
     b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
     # frame.bind('<Button-1>',*next_question(q_list))
     # frame.place(relx=0.5, rely=0.6, anchor=tk.CENTER, height=50, width=100)
+
+    send_record_flag_udp(sock, 10)
+
     root.mainloop()
 
 # curTime = 1000

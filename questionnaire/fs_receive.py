@@ -167,7 +167,7 @@ def fin_handler(signal, frame):
     print("Stop signal received")
 
     fn = "data/output/fs_shapes.{}.csv".format(time.time())
-    with open(fn, "wb") as out:
+    with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
         header = ["record_flag", "timestamp"]
@@ -215,10 +215,9 @@ def read_block(sock, fsr, data_dict):
 def read_record_flag(sock, data_dict):
     try:
         msg = sock.recv(4096)
-        data_dict["record_flag"] = int(msg) == 1
+        data_dict["record_flag"] = int(msg.decode('utf-8'))
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
-            data_dict["record_flag"] = "UNDECIDEABLE"
             return # No flag received but this is "ok"
         raise e
 
@@ -243,14 +242,15 @@ def record():
             read_block(fs_sock, fsr, DATA)
             print("Block received")
 
-    except Exception as msg:
-        print("Exception: " + str(msg))
+    except Exception as e:
 
         if fs_sock is not None:
             fs_sock.close()
 
         if q_sock is not None:
             q_sock.close()
+
+        raise e
 
 
 if __name__ == "__main__":
