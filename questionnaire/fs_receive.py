@@ -166,7 +166,7 @@ DATA = {
 def fin_handler(signal, frame):
     print("Stop signal received")
 
-    fn = "data/fs_shapes.{}.csv".format(time.time())
+    fn = "data/output/fs_shapes.{}.csv".format(time.time())
     with open(fn, "wb") as out:
         wr = csv.writer(out)
 
