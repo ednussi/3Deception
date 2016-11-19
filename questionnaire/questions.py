@@ -3,6 +3,7 @@
 
 import socket
 import tkinter as tk
+import random
 from prepare_questions import *
 
 
@@ -52,51 +53,71 @@ def changeRect(root, rect, color, ws):
 
 def nextQ(root, label, b, q_timeout, a_timeout, q, a):
     b.place_forget()
+    
+    blank_time = 1000
+    after_answer_time = 1000
+    # Show blank between questions
+    root.after(0, change_label, label, '')
+
     # Show question
-    root.after(0, change_label, label, q)
+    root.after(blank_time, change_label, label, q)
     # curTime = curTime + QintervalTime
 
     # Show answer format
-    root.after(q_timeout, change_label, label, a)
+    root.after(blank_time+q_timeout, change_label, label, a)
     # curTime = curTime + AintervalTime
 
-    # Show blank between questions
-    root.after(a_timeout, change_label, label, '')
-    root.after(a_timeout+500, place_button, b)
+    root.after(blank_time+a_timeout+after_answer_time, place_button, b)
     # curTime = curTime + blankWindowTime
 
 def place_button(b):
-    b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    b.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
 
 
 def simplePrint():
     print('Pressed')
 
 
-def next_question(questions):
+def next_question(root,rect, questions, colors):
     q = questions[0]
     questions.pop(0)
 
     a = questions[0]
     questions.pop(0)
-    
+
+    rect_color = colors[0]
+    colors.pop(0)
+    # print('\n\n'+rect_color)
+    changeRect(root, rect, rect_color, root.winfo_screenwidth())
     return (q, a)
 
 def main():
 
     root, ws, hs = set_window_mid_screen()
-    label = tk.Label(root, text="")
+    label = tk.Label(root, text="",wraplength=1500)
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     q_list = assoc_array_to_list(prepare_vocal_single_option())
+    tq = list(zip(q_list[::2], q_list[1::2]))
+    random.shuffle(tq)
+    tq = [q for t in [p for p in tq] for q in t]
 
+    colors = [random.choice(('RED', 'GREEN')) for x in tq]
+    
+    
     rect = tk.Canvas(root, width=200, height=100)
     changeRect(root, rect, 'green', ws)
 
-    b = tk.Button(root, text="Next Question", command=lambda: nextQ(root, label, b, 1000, 2000, *next_question(q_list)))
+    q_timeout = 3000
+    a_timeout = 5000
+
+    b = tk.Button(root, text="Next Question", command=lambda: nextQ(root, label, b, q_timeout, a_timeout, *next_question(root,rect, tq, colors)), height=4, width=50)
     b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
+    # frame = tk.Frame(root)
+    # frame.bind('<Button-1>',*next_question(q_list))
+    # frame.place(relx=0.5, rely=0.6, anchor=tk.CENTER, height=50, width=100)
     root.mainloop()
 
 # curTime = 1000
