@@ -4,6 +4,8 @@
 import socket
 import tkinter as tk
 import random
+import subprocess
+import signal
 from prepare_questions import *
 
 
@@ -66,7 +68,7 @@ def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     # print('\n\n'+rect_color)
     # changeRect(root, rect, rect_color, root.winfo_screenwidth())
 
-    blank_time = 1000
+    blank_time = 500
     after_answer_time = 1000
     # Show blank between questions
     root.after(0, change_label, label, '')
@@ -78,29 +80,35 @@ def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     # curTime = curTime + QintervalTime
 
     # Show answer format
-    root.after(blank_time+q_timeout, change_label, label, a)
+    root.after(blank_time + q_timeout, change_label, label, '')
+    root.after(blank_time + q_timeout + blank_time, change_label, label, a)
     # if rect_color == 'RED':
     #     flag = 3
     # else:
     #    flag = 2
     flag = 2
-    root.after(blank_time+q_timeout, send_record_flag_udp, sock, flag)
+    root.after(blank_time + q_timeout + blank_time, send_record_flag_udp, sock, flag)
     # curTime = curTime + AintervalTime
 
-    root.after(blank_time+a_timeout+after_answer_time, place_button, b)
+    root.after(blank_time + a_timeout + blank_time + after_answer_time, place_button, b)
     # curTime = curTime + blankWindowTime
 
 def place_button(b):
-    b.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
+    b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
 
 def simplePrint():
     print('Pressed')
 
 
-def next_question(root, rect, sock, questions, colors):
+def next_question(receiver, root, rect, sock, questions, colors):
     if not len(questions):
         send_record_flag_udp(sock, 11)
+
+        # wait for receiver to save data
+        receiver.wait()
+
+        # finish
         exit()
 
     q = questions[0]
@@ -114,17 +122,18 @@ def next_question(root, rect, sock, questions, colors):
 def main():
 
     root, ws, hs = set_window_mid_screen()
-    label = tk.Label(root, text="",wraplength=1500)
+    label = tk.Label(root, text="",wraplength=1200)
     # label.grid(row=1,column=2)
-    label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    label.place(relx=0.5, rely=0, anchor=tk.N)
 
-    q_list = assoc_array_to_list(prepare_vocal_single_option())
+    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_vocal_single_option_test.csv"))
     tq = list(zip(q_list[::2], q_list[1::2]))
     random.shuffle(tq)
     tq = [q for t in [p for p in tq] for q in t]
 
     colors = [random.choice(('RED', 'GREEN')) for x in tq]
 
+    receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
     
     rect = tk.Canvas(root, width=200, height=100)
@@ -133,8 +142,9 @@ def main():
     q_timeout = 5000
     a_timeout = 7000
 
-    b = tk.Button(root, text="Next Question", command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(root,rect, sock, tq, colors)), height=4, width=50)
-    b.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey', \
+                  command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(receiver, root,rect, sock, tq, colors)))
+    b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
     # frame.bind('<Button-1>',*next_question(q_list))

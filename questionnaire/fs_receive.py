@@ -164,6 +164,10 @@ DATA = {
 
 
 def fin_handler(signal, frame):
+    save_and_exit()
+
+
+def save_and_exit():
     print("Stop signal received")
 
     fn = "data/output/fs_shapes.{}.csv".format(time.time())
@@ -215,6 +219,10 @@ def read_block(sock, fsr, data_dict):
 def read_record_flag(sock, data_dict):
     try:
         msg = sock.recv(4096)
+
+        if int(msg.decode('utf-8')) == 11:
+            save_and_exit()
+
         data_dict["record_flag"] = int(msg.decode('utf-8'))
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
