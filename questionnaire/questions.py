@@ -120,13 +120,21 @@ def next_question(receiver, root, rect, sock, questions, colors):
     return (q, a)
 
 def main():
+    #TEST_TYPE = 'SINGLE_OPTION' or TEST_TYPE = 'MULTIPLE_OPTION'
+    TEST_TYPE = 'SINGLE_OPTION'
 
+    # Creates the full screen and puts empty first label at top
     root, ws, hs = set_window_mid_screen()
     label = tk.Label(root, text="",wraplength=1200)
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
-    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_vocal_single_option.csv"))
+    # Chose q_list path according
+    if TEST_TYPE == 'SINGLE_OPTION':
+        csv_path = "data/questions_vocal_single_option.csv"
+    else:
+        csv_path = "data/questions_vocal_multiple_option.csv"
+    q_list = assoc_array_to_list(prepare_vocal_single_option(csv_path))
     tq = list(zip(q_list[::2], q_list[1::2]))
     random.shuffle(tq)
     tq = [q for t in [p for p in tq] for q in t]
