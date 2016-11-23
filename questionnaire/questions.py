@@ -7,7 +7,7 @@ import random
 import subprocess
 import signal
 from prepare_questions import *
-
+from prepare_questions_multiple import *
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -121,7 +121,7 @@ def next_question(receiver, root, rect, sock, questions, colors):
 
 def main():
     #TEST_TYPE = 'SINGLE_OPTION' or TEST_TYPE = 'MULTIPLE_OPTION'
-    TEST_TYPE = 'SINGLE_OPTION'
+    TEST_TYPE = 'MULTIPLE_OPTION'
 
     # Creates the full screen and puts empty first label at top
     root, ws, hs = set_window_mid_screen()
@@ -132,9 +132,13 @@ def main():
     # Chose q_list path according
     if TEST_TYPE == 'SINGLE_OPTION':
         csv_path = "data/questions_vocal_single_option.csv"
-    else:
+        parse_csv_func = prepare_vocal_single_option
+    elif TEST_TYPE == 'MULTIPLE_OPTION':
         csv_path = "data/questions_vocal_multiple_option.csv"
-    q_list = assoc_array_to_list(prepare_vocal_single_option(csv_path))
+        parse_csv_func = prepare_vocal_multiple_option
+    
+    q_list = assoc_array_to_list(parse_csv_func(csv_path))
+
     tq = list(zip(q_list[::2], q_list[1::2]))
     random.shuffle(tq)
     tq = [q for t in [p for p in tq] for q in t]
