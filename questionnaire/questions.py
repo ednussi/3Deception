@@ -93,6 +93,46 @@ def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     root.after(blank_time + a_timeout + blank_time + after_answer_time, place_button, b)
     # curTime = curTime + blankWindowTime
 
+def nextQMultiple(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
+    b.place_forget()
+    
+    # Change rect color accordingly
+    rect_color = colors[0]
+    colors.pop(0)
+    # print('\n\n'+rect_color)
+    # changeRect(root, rect, rect_color, root.winfo_screenwidth())
+
+    blank_time = 500
+    after_answer_time = 1000
+    # Show blank between questions
+    root.after(0, change_label, label, '')
+    root.after(0, send_record_flag_udp, sock, 0)
+
+    # Show question
+    root.after(blank_time, change_label, label, q)
+    root.after(blank_time, send_record_flag_udp, sock, 1)
+    # curTime = curTime + QintervalTime
+
+    # Show answer format
+    ans_interval = 0
+    ans_time = 3000
+
+    #runs and shows all answers
+    for ans in a:
+        root.after(blank_time + q_timeout + ans_interval, change_label, label, '')
+        root.after(blank_time + q_timeout + blank_time + ans_interval, change_label, label, ans)
+        ans_interval += ans_interval + ans_time
+    # if rect_color == 'RED':
+    #     flag = 3
+    # else:
+    #    flag = 2
+    flag = 2
+    root.after(blank_time + q_timeout + blank_time+ans_interval, send_record_flag_udp, sock, flag)
+    # curTime = curTime + AintervalTime
+
+    root.after(blank_time + a_timeout + blank_time + after_answer_time+ans_interval, place_button, b)
+    # curTime = curTime + blankWindowTime
+
 def place_button(b):
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
@@ -133,9 +173,11 @@ def main():
     if TEST_TYPE == 'SINGLE_OPTION':
         csv_path = "data/questions_vocal_single_option.csv"
         parse_csv_func = prepare_vocal_single_option
+        nextQ_func = nextQ
     elif TEST_TYPE == 'MULTIPLE_OPTION':
         csv_path = "data/questions_vocal_multiple_option.csv"
         parse_csv_func = prepare_vocal_multiple_option
+        nextQ_func = nextQMultiple
     
     q_list = assoc_array_to_list(parse_csv_func(csv_path))
 
@@ -155,7 +197,7 @@ def main():
     a_timeout = 7000
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey', \
-                  command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(receiver, root,rect, sock, tq, colors)))
+                  command=lambda: nextQ_func(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(receiver, root,rect, sock, tq, colors)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
