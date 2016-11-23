@@ -126,7 +126,7 @@ def main():
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
-    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_vocal_single_option_test.csv"))
+    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_vocal_single_option.csv"))
     tq = list(zip(q_list[::2], q_list[1::2]))
     random.shuffle(tq)
     tq = [q for t in [p for p in tq] for q in t]
