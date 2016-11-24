@@ -7,7 +7,6 @@ import random
 import subprocess
 import signal
 from prepare_questions import *
-from prepare_questions_multiple import *
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -168,18 +167,8 @@ def main():
     label = tk.Label(root, text="",wraplength=1200)
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
-
-    # Chose q_list path according
-    if TEST_TYPE == 'SINGLE_OPTION':
-        csv_path = "data/questions_vocal_single_option.csv"
-        parse_csv_func = prepare_vocal_single_option
-        nextQ_func = nextQ
-    elif TEST_TYPE == 'MULTIPLE_OPTION':
-        csv_path = "data/questions_vocal_multiple_option.csv"
-        parse_csv_func = prepare_vocal_multiple_option
-        nextQ_func = nextQMultiple
     
-    q_list = assoc_array_to_list(parse_csv_func(csv_path))
+    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_slt.csv"))
 
     tq = list(zip(q_list[::2], q_list[1::2]))
     random.shuffle(tq)
@@ -197,7 +186,7 @@ def main():
     a_timeout = 7000
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey', \
-                  command=lambda: nextQ_func(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(receiver, root,rect, sock, tq, colors)))
+                  command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, *next_question(receiver, root,rect, sock, tq, colors)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)

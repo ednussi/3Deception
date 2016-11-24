@@ -19,11 +19,11 @@ def prepare_vocal_single_option(path="data/questions_vocal_single_option.csv"):
         headers = next(reader, [])
 
         if len(headers) != 2 or headers[0] != "question" or headers[1] != "answer_format":
-            raise Exception("prepare_vocal_single_options: Bad csv format")
+            raise Exception("prepare_vocal_single_options: Bad csv format1")
 
         for row in reader:
             if len(row) != 2:
-                raise Exception("prepare_vocal_single_options: Bad csv format")
+                raise Exception("prepare_vocal_single_options: Bad csv format2")
 
             question_templates[row[0]] = row[1]
 
