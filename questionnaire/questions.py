@@ -75,7 +75,7 @@ def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
 
     # Show question
     root.after(blank_time, change_label, label, q)
-    root.after(blank_time, send_record_flag_udp, sock, 1)
+    root.after(blank_time , send_record_flag_udp, sock, 1)
     # curTime = curTime + QintervalTime
 
     # Show answer format
