@@ -4,6 +4,35 @@
 from collections import OrderedDict
 import csv
 
+CATCH_ITEMS_FREQ = 3
+CATCH_ITEMS_QUESTION = "נא להשיב כן לשאלה הזאת?"
+
+
+def prepare_slt(path="data/questions_slt.csv"):
+    question_templates = OrderedDict()
+
+    with open(path, encoding='utf-8') as out:
+        reader = csv.reader(out)
+
+        headers = next(reader, [])
+
+        if len(headers) != 3 or headers[0] != "question" or headers[1] != "answer_format" \
+           or headers[2] != "answer":
+            raise Exception("prepare_slt: Bad csv format - bad headers")
+
+        num_row = 1
+        for row in reader:
+            if len(row) != 3:
+                raise Exception("prepare_slt: Bad csv format in row {}".format(row))
+
+            if num_row % CATCH_ITEMS_FREQ == 0:
+                question_templates["catch_item"] = CATCH_ITEMS_QUESTION
+
+            # Format truthful and deceptive answers
+            question_templates[row[0]] = row[1].format(row[2])
+
+    return question_templates
+
 
 def prepare_vocal_single_option(path="data/questions_vocal_single_option.csv"):
     """

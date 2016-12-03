@@ -1,12 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import socket
-import tkinter as tk
 import random
+import socket
 import subprocess
-import signal
+import tkinter as tk
+
 from prepare_questions import *
+
+# Record flags
+RECORD_FLAG_PAUSE = 0
+RECORD_FLAG_QUESTION_TRUE = 1
+RECORD_FLAG_QUESTION_FALSE = 2
+RECORD_FLAG_ANSWER_TRUE = 3
+RECORD_FLAG_ANSWER_FALSE = 4
+RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
+RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
+RECORD_FLAG_END_SESSION = 7
+
+COLOR_TRUE = 'YELLOW'
+COLOR_FALSE = 'BLUE'
+
+TIME_BLANK = 500
+TIME_QUESTION = 4000
+TIME_ANSWER = 5000
+TIME_CONTROL_SHAPE = 2000
+
+REPEAT_TIMES = 1
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
@@ -15,13 +35,7 @@ def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     return sock
 
 
-def send_record_flag_udp(sock, flag=2):
-    """
-    flag = 0 - blank
-    flag = 1 - question
-    flag = 2 - answer true
-    flag = 3 - answer false
-    """
+def send_record_flag_udp(sock, flag=RECORD_FLAG_PAUSE):
     sock.send(bytes(str(flag), 'utf-8'))
 
 
@@ -47,19 +61,7 @@ def change_label(label, t):
     label.config(text='%s' % t, fg="black", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
-def changeRect(root, rect, color, ws):
-    rect = tk.Canvas(root, width=ws, height=300)
-    # rect.coords()
-    # rect.pack(side=tk.RIGHT,anchor=tk.NE)
-    rect.grid(row=2, column=3)
-
-    # w.create_line(0, 0, 200, 100)
-    # w.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
-
-    rect.create_rectangle(0, 0, ws, 100, fill="%s" % color)
-
-
-def show_control_shape(root, flag='RED', time=1000):
+def show_control_shape(root, flag=COLOR_FALSE, time=1000):
     canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
     canvas.grid(row=1, column=1)
     cw = canvas.winfo_screenwidth()
@@ -67,13 +69,13 @@ def show_control_shape(root, flag='RED', time=1000):
 
     radius = min(cw / 4, ch / 4)
 
-    x0 = int((cw/2)-radius)
-    x1 = int((cw/2)+radius)
+    x0 = int((cw / 2) - radius)
+    x1 = int((cw / 2) + radius)
 
-    y0 = int((ch/2)-radius)
-    y1 = int((ch/2)+radius)
+    y0 = int((ch / 2) - radius)
+    y1 = int((ch / 2) + radius)
 
-    if flag == 'RED':
+    if flag == COLOR_FALSE:
         canvas.create_oval(x0, y0, x1, y1, fill=flag)
     else:
         canvas.create_rectangle(x0, y0, x1, y1, fill=flag)
@@ -81,40 +83,36 @@ def show_control_shape(root, flag='RED', time=1000):
     root.after(time, canvas.grid_forget)
 
 
-def nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout, q, a):
+def nextQ(colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     b.place_forget()
 
     shape_color = colors[0]
     colors.pop(0)
 
-    blank_time = 500
-    after_answer_time = 1000
-    control_shape_time = 2000
+    # Show control shape
+    root.after(TIME_BLANK, show_control_shape, root, shape_color, TIME_CONTROL_SHAPE)
+    root.after(TIME_BLANK, send_record_flag_udp, sock,
+               RECORD_FLAG_CONTROL_SHAPE_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_CONTROL_SHAPE_FALSE)
 
-    show_control_shape(root, shape_color, control_shape_time)
-
-    # Show blank between questions
-    root.after(control_shape_time, change_label, label, '')
-    root.after(control_shape_time, send_record_flag_udp, sock, 0)
+    # Show blank
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(control_shape_time + blank_time, change_label, label, q)
-    root.after(control_shape_time + blank_time, send_record_flag_udp, sock, 1)
-    # curTime = curTime + QintervalTime
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, a)
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
+               RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
 
-    # Show answer format
-    root.after(control_shape_time + blank_time + q_timeout, change_label, label, '')
-    root.after(control_shape_time + blank_time + q_timeout + blank_time, change_label, label, a)
-    # if rect_color == 'RED':
-    #     flag = 3
-    # else:
-    #    flag = 2
-    flag = 2
-    root.after(control_shape_time + blank_time + q_timeout + blank_time, send_record_flag_udp, sock, flag)
-    # curTime = curTime + AintervalTime
-
-    root.after(control_shape_time + blank_time + a_timeout + blank_time + after_answer_time, place_button, b)
-    # curTime = curTime + blankWindowTime
+    # # Show blank
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, change_label, label, '')
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
+    #
+    # # Show answer format
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, change_label, label, answer)
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, send_record_flag_udp, sock,
+    #            RECORD_FLAG_ANSWER_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_ANSWER_FALSE)
+    #
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
 
 
 def place_button(b):
@@ -125,14 +123,16 @@ def simplePrint():
     print('Pressed')
 
 
-def next_question(receiver, root, rect, sock, questions, colors):
+def next_question(receiver, sock, questions):
     if not len(questions):
-        send_record_flag_udp(sock, 11)
+        # End of questions
 
-        # wait for receiver to save data
+        send_record_flag_udp(sock, RECORD_FLAG_END_SESSION)
+
+        # Wait for receiver to save data
         receiver.wait()
 
-        # finish
+        # Finish
         exit()
 
     q = questions[0]
@@ -141,7 +141,7 @@ def next_question(receiver, root, rect, sock, questions, colors):
     a = questions[0]
     questions.pop(0)
 
-    return (q, a)
+    return q, a
 
 
 def main():
@@ -153,36 +153,31 @@ def main():
 
     # Get twice as much questions (half for true half for lies)
     # and sets colors to be tag for lie\truth
-    q_list = assoc_array_to_list(prepare_vocal_single_option("data/questions_slt.csv"))
+    q_list = assoc_array_to_list(prepare_slt())
     q_amount = int(len(q_list) / 2)
     truth_lies_multiplyer = 2
-    q_list = q_list * truth_lies_multiplyer  # get questions twice
-    colors = ['RED'] * q_amount + ['GREEN'] * q_amount  # get equal amount of true\lie amounts
+    q_list *= truth_lies_multiplyer  # get questions twice
+    colors = [COLOR_FALSE] * q_amount + [COLOR_TRUE] * q_amount  # get equal amount of true\lie amounts
 
     # Times for repetation of questions:
-    rep = 4
-    colors = colors * rep
-    q_list = q_list * rep
+    colors *= REPEAT_TIMES
+    q_list *= REPEAT_TIMES
 
     tq = list(zip(q_list[::2], q_list[1::2], colors))
     random.shuffle(tq)
     colors = [q[-1] for q in tq]  # get colors out
     tq = [q[:2] for q in tq]  # return tq to tupples of 2
     tq = [q for t in [p for p in tq] for q in t]
-    print(colors)
 
     receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
-    rect = tk.Canvas(root, width=200, height=100)
-    # changeRect(root, rect, 'green', ws)
+    q_timeout = TIME_QUESTION
+    a_timeout = TIME_ANSWER
 
-    q_timeout = 5000
-    a_timeout = 7000
-
-    b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey', \
-                  command=lambda: nextQ(rect, colors, sock, root, label, b, q_timeout, a_timeout,
-                                        *next_question(receiver, root, rect, sock, tq, colors)))
+    b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
+                  command=lambda: nextQ(colors, sock, root, label, b, q_timeout, a_timeout,
+                                        *next_question(receiver, sock, tq)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)

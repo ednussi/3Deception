@@ -4,6 +4,15 @@ import csv
 import time
 import struct
 
+RECORD_FLAG_PAUSE = 0
+RECORD_FLAG_QUESTION_TRUE = 1
+RECORD_FLAG_QUESTION_FALSE = 2
+RECORD_FLAG_ANSWER_TRUE = 3
+RECORD_FLAG_ANSWER_FALSE = 4
+RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
+RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
+RECORD_FLAG_END_SESSION = 7
+
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
 
 # These are the names of the FaceShift control channels
@@ -61,7 +70,8 @@ blend_shape_names = [
 class FaceShiftReceiver:
     """This is the receiving Thread listening for FaceShift UDP messages on some port."""
 
-    def decode_faceshift_datastream(self, data_dict, data):
+    @staticmethod
+    def decode_faceshift_datastream(data_dict, data):
         """ Takes as input the bytes of a binary DataStream received via network.
 
          If it is a Tracking State block (ID 33433) then extract some data (info, blendshapes, markers, ...).
@@ -78,7 +88,7 @@ class FaceShiftReceiver:
 
         offset += 8
 
-        if (block_id == BLOCK_ID_TRACKING_STATE):
+        if block_id == BLOCK_ID_TRACKING_STATE:
             n_blocks, = struct.unpack_from("H", data, offset)
             # print("n_blocks = " + str(n_blocks))
             offset += 2
@@ -90,14 +100,14 @@ class FaceShiftReceiver:
             markers_position = []  # Will be a list of mathutils.Vector
 
             curr_block = 0
-            while (curr_block < n_blocks):
+            while curr_block < n_blocks:
                 block_id, version, block_size = struct.unpack_from("HHI", data, offset)
                 # print("ID, v, size = " + str(block_id) + "," + str(version) + "," + str(block_size) )
 
                 # put the offset at the beginning of the block
                 offset += 8
 
-                if (block_id == 101):  # Frame Information blobk (timestamp and tracking status)
+                if block_id == 101:  # Frame Information blobk (timestamp and tracking status)
                     ts, track_ok = struct.unpack_from("dB", data, offset)
                     # print("timestamp, track_ok " + str(ts) + ", " + str(track_ok) )
                     # offset += 9
@@ -109,7 +119,7 @@ class FaceShiftReceiver:
                     # print("Blend shapes count="+ str(n_coefficients) )
                     i = 0
                     # coeff_list = ""
-                    while (i < n_coefficients):
+                    while i < n_coefficients:
                         # Offset of the block, plus the 4 bytes for int n_coefficients, plus 4 bytes per float
                         val, = struct.unpack_from("f", data, offset + 4 + (i * 4))
                         blend_shape_values.append(val)
@@ -135,24 +145,25 @@ class FaceShiftReceiver:
             # end -- while on blocks. Track State scan complete
 
             # Handle HEAD ROTATION
-            if (track_ok == 1):
-                if (head_rotation_quat != None):
+            if track_ok == 1:
+                if head_rotation_quat is not None:
                     # HeadRot2Rig(target_object, head_rotation_quat)
                     print("Head rotation")
 
             #
             # Handle BLEND SHAPES
             # print(str(track_ok) + " - " + str(len(blend_shape_values)))
-            if (track_ok == 1):
+            if track_ok == 1:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
                 data_dict["blend_shapes"]["values"].append((ts, data_dict["record_flag"], blend_shape_values))
-            #
-            # Handle EYES
-            # print(str(track_ok) + " - " + str(len(blend_shape_values)))
-            # if (track_ok == 1):
+                #
+                # Handle EYES
+                # print(str(track_ok) + " - " + str(len(blend_shape_values)))
+                # if (track_ok == 1):
                 # EyesRot2Skeleton(target_object, leye_theta, leye_phi, reye_theta, reye_phi)
                 # print("Eyes")
+
 
 DATA = {
     "blend_shapes": {
@@ -188,9 +199,9 @@ def save_and_exit():
     exit()
 
 
-def connect_to_questions_udp(binding_addr = "127.0.0.1", listening_port = 33444):
+def connect_to_questions_udp(binding_addr="127.0.0.1", listening_port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setblocking(0) # Non-blocking socket, no flag data - your problem
+    sock.setblocking(0)  # Non-blocking socket, no flag data - your problem
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1500)  # No buffer. We take the latest, if present, or nothing.
 
     print("Connecting to questions...")
@@ -200,7 +211,7 @@ def connect_to_questions_udp(binding_addr = "127.0.0.1", listening_port = 33444)
     return sock
 
 
-def connect_to_fs_udp(binding_addr = "127.0.0.1", listening_port = 33433):
+def connect_to_fs_udp(binding_addr="127.0.0.1", listening_port=33433):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1500)  # No buffer. We take the latest, if present, or nothing.
 
@@ -220,13 +231,13 @@ def read_record_flag(sock, data_dict):
     try:
         msg = sock.recv(4096)
 
-        if int(msg.decode('utf-8')) == 11:
+        if int(msg.decode('utf-8')) == RECORD_FLAG_END_SESSION:
             save_and_exit()
 
         data_dict["record_flag"] = int(msg.decode('utf-8'))
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
-            return # No flag received but this is "ok"
+            return  # No flag received but this is "ok"
         raise e
 
 
