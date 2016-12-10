@@ -20,8 +20,8 @@ RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
 RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
 RECORD_FLAG_END_SESSION = 7
 
-COLOR_TRUE = 'YELLOW'
-COLOR_FALSE = 'BLUE'
+COLOR_TRUE = 'GREEN'
+COLOR_FALSE = 'RED'
 
 TIME_BLANK = 500
 TIME_QUESTION = 4000
@@ -32,10 +32,10 @@ REPEAT_TIMES = 4
 
 AUDIO_SEX = 'male'
 AUDIO_FALSE_OPTIONS = {
-    'first_name': 'ariel',
+    'first_name': 'daniel',
     'surname': 'fridman',
     'mother_name': 'abigail',
-    'birth_country': 'aus',
+    'birth_country': 'ita',
     'birth_month': 'sep'
 }
 SUBJECT_ID = None
@@ -125,9 +125,10 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
     root.after(time, canvas.grid_forget)
 
 
-def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
+def show_next_question(colors, audio_flags, sock, root, label, b, q_timeout, q_type, q):
     """
     Display next question
+    :param audio_flags:
     :param colors: array of shape colors
     :param sock: fs_receiver socket
     :param root: tk window root
@@ -143,6 +144,9 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
     shape_color = colors[0]
     colors.pop(0)
 
+    audio_flag = audio_flags[0]
+    audio_flags.pop(0)
+
     # Show control shape
     root.after(TIME_BLANK, show_control_shape, root, shape_color, TIME_CONTROL_SHAPE)
     # Send shape control flag
@@ -156,13 +160,13 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
 
     # Show question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label,
-               q['true'] if shape_color == COLOR_TRUE else q['false'])
+               q['true'] if audio_flag == COLOR_TRUE else q['false'])
     # Send question control flag
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
     # Read question out loud
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
-               read_question, q_type, shape_color == COLOR_TRUE)
+               read_question, q_type, audio_flag == COLOR_TRUE)
 
     # Show button_next_question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
@@ -232,30 +236,46 @@ def main():
     # Get twice as much questions (half for true half for lies)
     # and sets colors to be tag for lie\truth
     q_list = assoc_array_to_list(prepare_slt(path='data/{}/questions_slt.csv'.format(SUBJECT_ID)))
-    q_amount = int(len(q_list) / 2)
 
     truth_lies_multiplier = 2
     q_list *= truth_lies_multiplier  # get questions twice
 
-    colors = [COLOR_FALSE] * q_amount + [COLOR_TRUE] * q_amount  # get equal amount of true\lie amounts
+    q_amount = int(len(q_list) / 2)
+
+    colors = [COLOR_FALSE] * int(q_amount/2) + [COLOR_TRUE] * int(q_amount/2)  # get equal amount of true\lie amounts
+
+    q_list.extend(q_list)
+
+    audio_flags = colors.copy()
+    audio_flags.extend(audio_flags)
+
+    colors.extend([COLOR_TRUE if i == COLOR_FALSE else COLOR_FALSE for i in colors])
 
     # Times for repetition of questions:
     colors *= REPEAT_TIMES
     q_list *= REPEAT_TIMES
+    audio_flags *= REPEAT_TIMES
 
-    tq = list(zip(q_list[::2], q_list[1::2], colors))
+    tq = list(zip(q_list[::2], q_list[1::2], colors, audio_flags))
     random.shuffle(tq)
-    colors = [q[-1] for q in tq]  # get colors out
-    tq = [q[:2] for q in tq]  # return tq to tupples of 2
+    colors = [q[-2] for q in tq]  # get colors out
+    audio_flags = [q[-1] for q in tq]  # get audio flags out
+    tq = [q[:2] for q in tq]  # return tq to tuples of 2
     tq = [q for t in [p for p in tq] for q in t]
+
+    for q, w, e in zip(q_list, colors, audio_flags):
+        print('{}\t{}\t{}'.format(q,w,e))
 
     receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
     q_timeout = TIME_QUESTION
 
+    for q,w,e in zip(q_list,colors,audio_flags):
+        print('{}\t{}\t{}'.format(q,w,e))
+
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(colors, sock, root, label, b, q_timeout,
+                  command=lambda: show_next_question(colors, audio_flags, sock, root, label, b, q_timeout,
                                                      *get_next_question(receiver, sock, tq)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
