@@ -16,20 +16,23 @@ def prepare_slt(path="data/questions_slt.csv"):
 
         headers = next(reader, [])
 
-        if len(headers) != 3 or headers[0] != "question" or headers[1] != "answer_format" \
-           or headers[2] != "answer":
+        if len(headers) != 4 or headers[0] != "question" or headers[1] != "answer_format" \
+           or headers[2] != "true_answer" or headers[3] != "false_answer":
             raise Exception("prepare_slt: Bad csv format - bad headers")
 
         num_row = 1
         for row in reader:
-            if len(row) != 3:
+            if len(row) != 4:
                 raise Exception("prepare_slt: Bad csv format in row {}".format(row))
 
             if num_row % CATCH_ITEMS_FREQ == 0:
                 question_templates["catch_item"] = CATCH_ITEMS_QUESTION
 
             # Format truthful and deceptive answers
-            question_templates[row[0]] = row[1].format(row[2])
+            question_templates[row[0]] = {
+                'true': row[1].format(row[2]),
+                'false': row[1].format(row[3])
+            }
 
     return question_templates
 

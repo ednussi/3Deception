@@ -5,7 +5,6 @@ import random
 import socket
 import subprocess
 import tkinter as tk
-
 import winsound
 
 from prepare_questions import *
@@ -125,7 +124,7 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
     :param b: button_next_question
     :param q_timeout: time to display the question
     :param q: the question to display
-    :return:
+    :return: None
     """
     b.place_forget()
 
@@ -134,20 +133,25 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
 
     # Show control shape
     root.after(TIME_BLANK, show_control_shape, root, shape_color, TIME_CONTROL_SHAPE)
+    # Send shape control flag
     root.after(TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_CONTROL_SHAPE_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_CONTROL_SHAPE_FALSE)
 
     # Show blank
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
+    # Send blank control flag
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, q)
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label,
+               q['true'] if shape_color == COLOR_TRUE else q['false'])
+    # Send question control flag
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
     # Read question out loud
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
-               winsound.PlaySound, 'voice/{}.wav'.format(q_type), winsound.SND_FILENAME | winsound.SND_ASYNC)
+               winsound.PlaySound, 'voice/{}_{}.wav'.format(q_type, shape_color == COLOR_TRUE),
+               winsound.SND_FILENAME | winsound.SND_ASYNC)
 
     # Show button_next_question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
@@ -219,10 +223,10 @@ def main():
     sock = connect_to_fs_receiver_udp()
 
     q_timeout = TIME_QUESTION
-    a_timeout = TIME_ANSWER
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(colors, sock, root, label, b, q_timeout, *get_next_question(receiver, sock, tq)))
+                  command=lambda: show_next_question(colors, sock, root, label, b, q_timeout,
+                                                     *get_next_question(receiver, sock, tq)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
