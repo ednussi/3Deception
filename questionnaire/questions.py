@@ -5,8 +5,8 @@ import random
 import socket
 import subprocess
 import tkinter as tk
-import winsound
 import argparse
+import pygame
 
 from prepare_questions import *
 
@@ -38,6 +38,7 @@ AUDIO_FALSE_OPTIONS = {
     'birth_country': 'aus',
     'birth_month': 'sep'
 }
+SUBJECT_ID = None
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
@@ -174,9 +175,12 @@ def read_question(q_type, truth):
     :param truth:
     :return: None
     """
-    print('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]))
-    winsound.PlaySound('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]),
-                       winsound.SND_FILENAME | winsound.SND_ASYNC)
+    if not truth:
+        pygame.mixer.music.load('voice/{}/{}_{}_{}.mp3'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]))
+        pygame.mixer.music.play()
+    else:
+        pygame.mixer.music.load('data/{}/voice/{}.mp3'.format(SUBJECT_ID, q_type))
+        pygame.mixer.music.play()
 
 
 def place_button(b):
@@ -223,9 +227,11 @@ def main():
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
+    pygame.mixer.init()
+
     # Get twice as much questions (half for true half for lies)
     # and sets colors to be tag for lie\truth
-    q_list = assoc_array_to_list(prepare_slt())
+    q_list = assoc_array_to_list(prepare_slt(path='data/{}/questions_slt.csv'.format(SUBJECT_ID)))
     q_amount = int(len(q_list) / 2)
 
     truth_lies_multiplier = 2
@@ -275,7 +281,11 @@ if __name__ == "__main__":
 
     parser.add_argument('-R', '--repeat', dest='repeat', type=int)
 
+    parser.add_argument('-I', '--id', dest='subject_id', required=True)
+
     args = parser.parse_args()
+
+    SUBJECT_ID = args.subject_id
 
     if args.repeat is not None:
         REPEAT_TIMES = args.repeat
