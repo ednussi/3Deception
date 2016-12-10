@@ -6,6 +6,8 @@ import socket
 import subprocess
 import tkinter as tk
 
+import winsound
+
 from prepare_questions import *
 
 # Record flags
@@ -30,20 +32,41 @@ REPEAT_TIMES = 1
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
+    """
+    Connect to FaceShift receiver via UDP
+    :param ip:
+    :param port:
+    :return: connected socket
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.connect((ip, port))
     return sock
 
 
 def send_record_flag_udp(sock, flag=RECORD_FLAG_PAUSE):
+    """
+    Send control flag to fs_receiver via given socket
+    :param sock:
+    :param flag:
+    :return: None
+    """
     sock.send(bytes(str(flag), 'utf-8'))
 
 
 def disconnect_from_fs_receiver_udp(sock):
+    """
+    Disconnect from fs_receiver
+    :param sock:
+    :return:
+    """
     sock.close()
 
 
 def set_window_mid_screen():
+    """
+    Create fullscreen tkinter window
+    :return: tk root, width and height of new window
+    """
     root = tk.Tk()  # create a Tk root window
 
     w = 0  # width for the Tk root
@@ -58,10 +81,19 @@ def set_window_mid_screen():
 
 
 def change_label(label, t):
+    """
+    Update question label text
+    :param label:
+    :param t:
+    :return:
+    """
     label.config(text='%s' % t, fg="black", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
 def show_control_shape(root, flag=COLOR_FALSE, time=1000):
+    """
+    Display control shape
+    """
     canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
     canvas.grid(row=1, column=1)
     cw = canvas.winfo_screenwidth()
@@ -83,7 +115,18 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
     root.after(time, canvas.grid_forget)
 
 
-def nextQ(colors, sock, root, label, b, q_timeout, a_timeout, q, a):
+def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
+    """
+    Display next question
+    :param colors: array of shape colors
+    :param sock: fs_receiver socket
+    :param root: tk window root
+    :param label: question label
+    :param b: button_next_question
+    :param q_timeout: time to display the question
+    :param q: the question to display
+    :return:
+    """
     b.place_forget()
 
     shape_color = colors[0]
@@ -99,31 +142,34 @@ def nextQ(colors, sock, root, label, b, q_timeout, a_timeout, q, a):
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, a)
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, q)
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
+    # Read question out loud
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
+               winsound.PlaySound, 'voice/{}.wav'.format(q_type), winsound.SND_FILENAME | winsound.SND_ASYNC)
 
-    # # Show blank
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, change_label, label, '')
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
-    #
-    # # Show answer format
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, change_label, label, answer)
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, send_record_flag_udp, sock,
-    #            RECORD_FLAG_ANSWER_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_ANSWER_FALSE)
-    #
+    # Show button_next_question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
 
 
 def place_button(b):
-    b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
+    """
+    Display button_next_question
+    :param b: button handle
+    """
+    b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
 
 
-def simplePrint():
-    print('Pressed')
-
-
-def next_question(receiver, sock, questions):
+def get_next_question(receiver, sock, questions):
+    """
+    Get next question from question list
+    If no more questions left, send stop flag and exit
+    :param receiver:
+    :param sock:
+    :param questions:
+    :return:
+    """
     if not len(questions):
         # End of questions
 
@@ -135,13 +181,13 @@ def next_question(receiver, sock, questions):
         # Finish
         exit()
 
+    q_type = questions[0]
+    questions.pop(0)
+
     q = questions[0]
     questions.pop(0)
 
-    a = questions[0]
-    questions.pop(0)
-
-    return q, a
+    return q_type, q
 
 
 def main():
@@ -176,8 +222,7 @@ def main():
     a_timeout = TIME_ANSWER
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: nextQ(colors, sock, root, label, b, q_timeout, a_timeout,
-                                        *next_question(receiver, sock, tq)))
+                  command=lambda: show_next_question(colors, sock, root, label, b, q_timeout, *get_next_question(receiver, sock, tq)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
