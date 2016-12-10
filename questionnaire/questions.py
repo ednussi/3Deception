@@ -6,6 +6,7 @@ import socket
 import subprocess
 import tkinter as tk
 import winsound
+import argparse
 
 from prepare_questions import *
 
@@ -27,7 +28,16 @@ TIME_QUESTION = 4000
 TIME_ANSWER = 5000
 TIME_CONTROL_SHAPE = 2000
 
-REPEAT_TIMES = 1
+REPEAT_TIMES = 4
+
+AUDIO_SEX = 'male'
+AUDIO_FALSE_OPTIONS = {
+    'first_name': 'ariel',
+    'surname': 'fridman',
+    'mother_name': 'abigail',
+    'birth_country': 'aus',
+    'birth_month': 'sep'
+}
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
@@ -151,11 +161,22 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
                RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
     # Read question out loud
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
-               winsound.PlaySound, 'voice/{}_{}.wav'.format(q_type, shape_color == COLOR_TRUE),
-               winsound.SND_FILENAME | winsound.SND_ASYNC)
+               read_question, q_type, shape_color == COLOR_TRUE)
 
     # Show button_next_question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
+
+
+def read_question(q_type, truth):
+    """
+    Read question out loud from wave file
+    :param q_type: predefined question type
+    :param truth:
+    :return: None
+    """
+    print('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]))
+    winsound.PlaySound('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]),
+                       winsound.SND_FILENAME | winsound.SND_ASYNC)
 
 
 def place_button(b):
@@ -206,11 +227,13 @@ def main():
     # and sets colors to be tag for lie\truth
     q_list = assoc_array_to_list(prepare_slt())
     q_amount = int(len(q_list) / 2)
-    truth_lies_multiplyer = 2
-    q_list *= truth_lies_multiplyer  # get questions twice
+
+    truth_lies_multiplier = 2
+    q_list *= truth_lies_multiplier  # get questions twice
+
     colors = [COLOR_FALSE] * q_amount + [COLOR_TRUE] * q_amount  # get equal amount of true\lie amounts
 
-    # Times for repetation of questions:
+    # Times for repetition of questions:
     colors *= REPEAT_TIMES
     q_list *= REPEAT_TIMES
 
@@ -240,4 +263,34 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-f', '--first-name', dest='first_name', choices=['ariel', 'daniel'])
+    parser.add_argument('-s', '--surname', dest='surname', choices=['fridman', 'shpigel'])
+    parser.add_argument('-m', '--mother-name', dest='mother_name', choices=['abigail', 'tamar'])
+    parser.add_argument('-c', '--birth-country', dest='birth_country', choices=['aus', 'ita'])
+    parser.add_argument('-b', '--birth-month', dest='birth_month', choices=['sep', 'apr'])
+
+    parser.add_argument('-v', '--voice-sex', dest='sex', choices=['male', 'female'])
+
+    parser.add_argument('-R', '--repeat', dest='repeat', type=int)
+
+    args = parser.parse_args()
+
+    if args.repeat is not None:
+        REPEAT_TIMES = args.repeat
+    if args.sex is not None:
+        AUDIO_SEX = args.sex
+
+    if args.first_name is not None:
+        AUDIO_FALSE_OPTIONS['first_name'] = args.first_name
+    if args.surname is not None:
+        AUDIO_FALSE_OPTIONS['surname'] = args.surname
+    if args.mother_name is not None:
+        AUDIO_FALSE_OPTIONS['mother_name'] = args.mother_name
+    if args.birth_country is not None:
+        AUDIO_FALSE_OPTIONS['birth_country'] = args.birth_country
+    if args.birth_month is not None:
+        AUDIO_FALSE_OPTIONS['birth_month'] = args.birth_month
+
     main()
