@@ -5,6 +5,8 @@ import random
 import socket
 import subprocess
 import tkinter as tk
+import winsound
+import argparse
 
 from prepare_questions import *
 
@@ -26,24 +28,54 @@ TIME_QUESTION = 4000
 TIME_ANSWER = 5000
 TIME_CONTROL_SHAPE = 2000
 
-REPEAT_TIMES = 1
+REPEAT_TIMES = 4
+
+AUDIO_SEX = 'male'
+AUDIO_FALSE_OPTIONS = {
+    'first_name': 'ariel',
+    'surname': 'fridman',
+    'mother_name': 'abigail',
+    'birth_country': 'aus',
+    'birth_month': 'sep'
+}
 
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
+    """
+    Connect to FaceShift receiver via UDP
+    :param ip:
+    :param port:
+    :return: connected socket
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.connect((ip, port))
     return sock
 
 
 def send_record_flag_udp(sock, flag=RECORD_FLAG_PAUSE):
+    """
+    Send control flag to fs_receiver via given socket
+    :param sock:
+    :param flag:
+    :return: None
+    """
     sock.send(bytes(str(flag), 'utf-8'))
 
 
 def disconnect_from_fs_receiver_udp(sock):
+    """
+    Disconnect from fs_receiver
+    :param sock:
+    :return:
+    """
     sock.close()
 
 
 def set_window_mid_screen():
+    """
+    Create fullscreen tkinter window
+    :return: tk root, width and height of new window
+    """
     root = tk.Tk()  # create a Tk root window
 
     w = 0  # width for the Tk root
@@ -58,10 +90,19 @@ def set_window_mid_screen():
 
 
 def change_label(label, t):
+    """
+    Update question label text
+    :param label:
+    :param t:
+    :return:
+    """
     label.config(text='%s' % t, fg="black", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
 def show_control_shape(root, flag=COLOR_FALSE, time=1000):
+    """
+    Display control shape
+    """
     canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
     canvas.grid(row=1, column=1)
     cw = canvas.winfo_screenwidth()
@@ -83,7 +124,19 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
     root.after(time, canvas.grid_forget)
 
 
-def nextQ(colors, sock, root, label, b, q_timeout, a_timeout, q, a):
+def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
+    """
+    Display next question
+    :param colors: array of shape colors
+    :param sock: fs_receiver socket
+    :param root: tk window root
+    :param label: question label
+    :param b: button_next_question
+    :param q_timeout: time to display the question
+    :param q_type: type of question
+    :param q: the question to display
+    :return: None
+    """
     b.place_forget()
 
     shape_color = colors[0]
@@ -91,39 +144,58 @@ def nextQ(colors, sock, root, label, b, q_timeout, a_timeout, q, a):
 
     # Show control shape
     root.after(TIME_BLANK, show_control_shape, root, shape_color, TIME_CONTROL_SHAPE)
+    # Send shape control flag
     root.after(TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_CONTROL_SHAPE_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_CONTROL_SHAPE_FALSE)
 
     # Show blank
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
+    # Send blank control flag
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, a)
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label,
+               q['true'] if shape_color == COLOR_TRUE else q['false'])
+    # Send question control flag
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
                RECORD_FLAG_QUESTION_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_QUESTION_FALSE)
+    # Read question out loud
+    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
+               read_question, q_type, shape_color == COLOR_TRUE)
 
-    # # Show blank
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, change_label, label, '')
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
-    #
-    # # Show answer format
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, change_label, label, answer)
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout + TIME_BLANK, send_record_flag_udp, sock,
-    #            RECORD_FLAG_ANSWER_TRUE if shape_color == COLOR_TRUE else RECORD_FLAG_ANSWER_FALSE)
-    #
+    # Show button_next_question
     root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + q_timeout, place_button, b)
 
 
+def read_question(q_type, truth):
+    """
+    Read question out loud from wave file
+    :param q_type: predefined question type
+    :param truth:
+    :return: None
+    """
+    print('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]))
+    winsound.PlaySound('voice/{}/{}_{}_{}.wav'.format(AUDIO_SEX, q_type, truth, AUDIO_FALSE_OPTIONS[q_type]),
+                       winsound.SND_FILENAME | winsound.SND_ASYNC)
+
+
 def place_button(b):
-    b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
+    """
+    Display button_next_question
+    :param b: button handle
+    """
+    b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
 
 
-def simplePrint():
-    print('Pressed')
-
-
-def next_question(receiver, sock, questions):
+def get_next_question(receiver, sock, questions):
+    """
+    Get next question from question list
+    If no more questions left, send stop flag and exit
+    :param receiver:
+    :param sock:
+    :param questions:
+    :return:
+    """
     if not len(questions):
         # End of questions
 
@@ -135,13 +207,13 @@ def next_question(receiver, sock, questions):
         # Finish
         exit()
 
+    q_type = questions[0]
+    questions.pop(0)
+
     q = questions[0]
     questions.pop(0)
 
-    a = questions[0]
-    questions.pop(0)
-
-    return q, a
+    return q_type, q
 
 
 def main():
@@ -155,11 +227,13 @@ def main():
     # and sets colors to be tag for lie\truth
     q_list = assoc_array_to_list(prepare_slt())
     q_amount = int(len(q_list) / 2)
-    truth_lies_multiplyer = 2
-    q_list *= truth_lies_multiplyer  # get questions twice
+
+    truth_lies_multiplier = 2
+    q_list *= truth_lies_multiplier  # get questions twice
+
     colors = [COLOR_FALSE] * q_amount + [COLOR_TRUE] * q_amount  # get equal amount of true\lie amounts
 
-    # Times for repetation of questions:
+    # Times for repetition of questions:
     colors *= REPEAT_TIMES
     q_list *= REPEAT_TIMES
 
@@ -173,11 +247,10 @@ def main():
     sock = connect_to_fs_receiver_udp()
 
     q_timeout = TIME_QUESTION
-    a_timeout = TIME_ANSWER
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: nextQ(colors, sock, root, label, b, q_timeout, a_timeout,
-                                        *next_question(receiver, sock, tq)))
+                  command=lambda: show_next_question(colors, sock, root, label, b, q_timeout,
+                                                     *get_next_question(receiver, sock, tq)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     # frame = tk.Frame(root)
@@ -190,4 +263,34 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-f', '--first-name', dest='first_name', choices=['ariel', 'daniel'])
+    parser.add_argument('-s', '--surname', dest='surname', choices=['fridman', 'shpigel'])
+    parser.add_argument('-m', '--mother-name', dest='mother_name', choices=['abigail', 'tamar'])
+    parser.add_argument('-c', '--birth-country', dest='birth_country', choices=['aus', 'ita'])
+    parser.add_argument('-b', '--birth-month', dest='birth_month', choices=['sep', 'apr'])
+
+    parser.add_argument('-v', '--voice-sex', dest='sex', choices=['male', 'female'])
+
+    parser.add_argument('-R', '--repeat', dest='repeat', type=int)
+
+    args = parser.parse_args()
+
+    if args.repeat is not None:
+        REPEAT_TIMES = args.repeat
+    if args.sex is not None:
+        AUDIO_SEX = args.sex
+
+    if args.first_name is not None:
+        AUDIO_FALSE_OPTIONS['first_name'] = args.first_name
+    if args.surname is not None:
+        AUDIO_FALSE_OPTIONS['surname'] = args.surname
+    if args.mother_name is not None:
+        AUDIO_FALSE_OPTIONS['mother_name'] = args.mother_name
+    if args.birth_country is not None:
+        AUDIO_FALSE_OPTIONS['birth_country'] = args.birth_country
+    if args.birth_month is not None:
+        AUDIO_FALSE_OPTIONS['birth_month'] = args.birth_month
+
     main()
