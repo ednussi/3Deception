@@ -123,6 +123,7 @@ def show_next_question(colors, sock, root, label, b, q_timeout, q_type, q):
     :param label: question label
     :param b: button_next_question
     :param q_timeout: time to display the question
+    :param q_type: type of question
     :param q: the question to display
     :return: None
     """

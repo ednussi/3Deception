@@ -9,6 +9,12 @@ CATCH_ITEMS_QUESTION = "נא להשיב כן לשאלה הזאת?"
 
 
 def prepare_slt(path="data/questions_slt.csv"):
+    """
+    Load questions and answer formats for single-option vocal questions - SLT
+    :param path: csv file to load from
+    :return: ordered dictionary where keys are question type and values are
+    dicts with 'true' and 'false' questions.
+    """
     question_templates = OrderedDict()
 
     with open(path, encoding='utf-8') as out:
@@ -37,9 +43,9 @@ def prepare_slt(path="data/questions_slt.csv"):
     return question_templates
 
 
-def prepare_vocal_single_option(path="data/questions_vocal_single_option.csv"):
+def prepare_cit(path="data/questions_vocal_single_option.csv"):
     """
-    Load questions and answer formats for single-option vocal questions
+    Load questions and answer formats for single-option vocal questions - CIT
     :param path: csv file to load from
     :return: ordered dictionary where keys are questions and values are answer format that the subject must say out loud
     """
