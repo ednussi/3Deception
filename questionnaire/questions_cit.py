@@ -8,18 +8,8 @@ import tkinter as tk
 import argparse
 import pygame
 
+from fs_receive import RecordFlags
 from prepare_questions import *
-
-# Record flags
-RECORD_FLAG_PAUSE = 0
-RECORD_FLAG_QUESTION_TRUE = 1
-RECORD_FLAG_QUESTION_FALSE = 2
-RECORD_FLAG_ANSWER_TRUE = 3
-RECORD_FLAG_ANSWER_FALSE = 4
-RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
-RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
-RECORD_FLAG_END_SESSION = 7
-RECORD_FLAG_START_SESSION = 8
 
 COLOR_TRUE = 'GREEN'
 COLOR_FALSE = 'RED'
@@ -41,6 +31,9 @@ AUDIO_FALSE_OPTIONS = {
 }
 SUBJECT_ID = None
 
+IDX_AUDIO = IDX_QUESTION_TYPE = 0
+IDX_TEXT = IDX_QUESTION_DATA = 1
+
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     """
@@ -54,7 +47,7 @@ def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     return sock
 
 
-def send_record_flag_udp(sock, flag=RECORD_FLAG_PAUSE):
+def send_record_flag_udp(sock, flag=RecordFlags.RECORD_FLAG_PAUSE):
     """
     Send control flag to fs_receiver via given socket
     :param sock:
@@ -126,54 +119,78 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
     root.after(time, canvas.grid_forget)
 
 
-def show_next_question(audio_flags, sock, root, label, b, q_type, q):
+def show_next_question(sock, root, label, b, q):
     """
     Display next question
-    :param audio_flags:
     :param sock: fs_receiver socket
     :param root: tk window root
     :param label: question label
     :param b: button_next_question
-    :param q_type: type of question
-    :param q: the question to display
+    :param q: the question and its answers
     :return: None
     """
     b.place_forget()
 
-    audio_flag = audio_flags[0]
-    audio_flags.pop(0)
-
     # Show blank
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
+    root.after(TIME_BLANK, change_label, label, '')
     # Send blank control flag
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
+    root.after(TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, q)
+    root.after(TIME_BLANK + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
-               RECORD_FLAG_QUESTION_TRUE if q_type.endswith('true') else RECORD_FLAG_QUESTION_FALSE)
+    root.after(TIME_BLANK + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
     # Read question out loud
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
-               read_question, audio_flag, q_type.endswith('true'))
+    root.after(TIME_BLANK + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+
+    # Show answers in random order
+    answers = q[IDX_QUESTION_DATA]['false'] + q[IDX_QUESTION_DATA]['true']
+    random.shuffle(answers)
+
+    for i, a in enumerate(answers):
+        # Show answer
+        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                   change_label, label, a[IDX_TEXT])
+        # Send answer control flag
+        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_ANSWER_FALSE)
+        # Read answer out loud
+        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                   read_question, a[IDX_AUDIO])
 
     # Show button_next_question
-    root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + TIME_QUESTION, place_button, b)
+    root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
+               place_button, b)
 
 
-def read_question(audio_flag, truth):
+    #
+    # # Show blank
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
+    # # Send blank control flag
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
+    #
+    # # Show question
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, q)
+    # # Send question control flag
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
+    #            RECORD_FLAG_QUESTION_TRUE if q_type.endswith('true') else RECORD_FLAG_QUESTION_FALSE)
+    # # Read question out loud
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
+    #            read_question, audio_flag, q_type.endswith('true'))
+    #
+    # # Show button_next_question
+    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + TIME_QUESTION, place_button, b)
+
+
+def read_question(audio_flag):
     """
     Read question out loud from wave file
-    :param audio_flag: predefined question type
-    :param truth:
+    :param audio_flag: predefined audio path
     :return: None
     """
-    if not truth:
-        pygame.mixer.music.load('voice/{}/{}.mp3'.format(AUDIO_SEX, audio_flag))
-        pygame.mixer.music.play()
-    else:
-        pygame.mixer.music.load('data/{}/voice/{}.mp3'.format(SUBJECT_ID, audio_flag))
-        pygame.mixer.music.play()
+    # pygame.mixer.music.load('voice/{}/{}.mp3'.format(AUDIO_SEX, audio_flag))
+    # pygame.mixer.music.play()
+    pass
 
 
 def place_button(b):
@@ -196,7 +213,7 @@ def get_next_question(receiver, sock, questions):
     if not len(questions):
         # End of questions
 
-        send_record_flag_udp(sock, RECORD_FLAG_END_SESSION)
+        send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_END_SESSION)
 
         # Wait for receiver to save data
         receiver.wait()
@@ -204,13 +221,10 @@ def get_next_question(receiver, sock, questions):
         # Finish
         exit()
 
-    q_type = questions[0]
+    question_holder = questions[0]
     questions.pop(0)
 
-    q = questions[0]
-    questions.pop(0)
-
-    return q_type, q
+    return question_holder
 
 
 def main():
@@ -224,32 +238,20 @@ def main():
 
     # Get twice as much questions (half for true half for lies)
     # and sets colors to be tag for lie\truth
-    q_list = assoc_array_to_list(prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID)))
+    qlist = [item for item in prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID)).items()]
 
-    audio_flags = []
+    qlist *= REPEAT_TIMES
 
-    for qtype, ans in zip(q_list[::2], q_list[1::2]):
-        audio_flag = '_'.join(qtype.split('_')[:2]) + '/' + ans[0]
-        audio_flags.append(audio_flag)
-
-    q_list *= REPEAT_TIMES
-    audio_flags *= REPEAT_TIMES
-
-    tq = list(zip(q_list[::2], q_list[1::2], audio_flags))
-    random.shuffle(tq)
-    audio_flags = [q[-1] for q in tq]  # get audio flags out
-    tq = [(q[0], q[1][1]) for q in tq]  # return tq to tuples of 2
-    tq = [q for t in [p for p in tq] for q in t]
+    random.shuffle(qlist)
 
     receiver = None  # subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(audio_flags, sock, root, label, b,
-                                                     *get_next_question(receiver, sock, tq)))
+                  command=lambda: show_next_question(sock, root, label, b, *get_next_question(receiver, sock, qlist)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
-    send_record_flag_udp(sock, RECORD_FLAG_START_SESSION)
+    send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
 
     root.mainloop()
 
