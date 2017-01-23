@@ -47,7 +47,7 @@ def send_record_flag_udp(sock, flag=RecordFlags.RECORD_FLAG_PAUSE):
     :param flag:
     :return: None
     """
-    sock.send(bytes(str(flag), 'utf-8'))
+    sock.send(bytes(str(int(flag)), 'utf-8'))
 
 
 def disconnect_from_fs_receiver_udp(sock):
@@ -162,9 +162,9 @@ def read_question(audio_flag):
     :param audio_flag: predefined audio path
     :return: None
     """
-    pygame.mixer.music.load('voice/{}/{}.mp3'.format(AUDIO_SEX, audio_flag))
-    pygame.mixer.music.play()
-    pass
+    if audio_flag != 'no_audio':
+        pygame.mixer.music.load(audio_flag)
+        pygame.mixer.music.play()
 
 
 def place_button(b):
@@ -212,13 +212,13 @@ def main():
 
     # Get twice as much questions (half for true half for lies)
     # and sets colors to be tag for lie\truth
-    qlist = [item for item in prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID)).items()]
+    qlist = [item for item in prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID), male=AUDIO_SEX == 'male').items()]
 
     qlist *= REPEAT_TIMES
 
     random.shuffle(qlist)
 
-    receiver = None  # subprocess.Popen(['python', 'fs_receive.py'])
+    receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',

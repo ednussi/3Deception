@@ -3,18 +3,18 @@ import socket
 import csv
 import time
 import struct
-from enum import Enum
+from enum import IntEnum
 
 
-class RecordFlags(Enum):
-    RECORD_FLAG_PAUSE = 0
-    RECORD_FLAG_QUESTION = 1
-    RECORD_FLAG_ANSWER_TRUE = 2
-    RECORD_FLAG_ANSWER_FALSE = 3
-    RECORD_FLAG_CONTROL_SHAPE_TRUE = 4
-    RECORD_FLAG_CONTROL_SHAPE_FALSE = 5
-    RECORD_FLAG_START_SESSION = 6
-    RECORD_FLAG_END_SESSION = 7
+class RecordFlags(IntEnum):
+    RECORD_FLAG_PAUSE = 1
+    RECORD_FLAG_QUESTION = 2
+    RECORD_FLAG_ANSWER_TRUE = 3
+    RECORD_FLAG_ANSWER_FALSE = 4
+    RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
+    RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
+    RECORD_FLAG_START_SESSION = 7
+    RECORD_FLAG_END_SESSION = 8
 
 
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
@@ -235,7 +235,7 @@ def read_record_flag(sock, data_dict):
     try:
         msg = sock.recv(4096)
 
-        if int(msg.decode('utf-8')) == RECORD_FLAG_END_SESSION:
+        if int(msg.decode('utf-8')) == RecordFlags.RECORD_FLAG_END_SESSION:
             save_and_exit()
 
         data_dict["record_flag"] = int(msg.decode('utf-8'))
