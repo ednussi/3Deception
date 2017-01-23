@@ -16,19 +16,12 @@ COLOR_FALSE = 'RED'
 
 TIME_BLANK = 500
 TIME_QUESTION = 4000
-TIME_ANSWER = 5000
+TIME_ANSWER = 2000
 TIME_CONTROL_SHAPE = 2000
 
 REPEAT_TIMES = 4
 
 AUDIO_SEX = 'male'
-AUDIO_FALSE_OPTIONS = {
-    'first_name': 'daniel',
-    'surname': 'fridman',
-    'mother_name': 'abigail',
-    'birth_country': 'ita',
-    'birth_month': 'sep'
-}
 SUBJECT_ID = None
 
 IDX_AUDIO = IDX_QUESTION_TYPE = 0
@@ -144,7 +137,7 @@ def show_next_question(sock, root, label, b, q):
     root.after(TIME_BLANK + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # Show answers in random order
-    answers = q[IDX_QUESTION_DATA]['false'] + q[IDX_QUESTION_DATA]['true']
+    answers = q[IDX_QUESTION_DATA]['false'] + [q[IDX_QUESTION_DATA]['true']]
     random.shuffle(answers)
 
     for i, a in enumerate(answers):
@@ -163,33 +156,14 @@ def show_next_question(sock, root, label, b, q):
                place_button, b)
 
 
-    #
-    # # Show blank
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE, change_label, label, '')
-    # # Send blank control flag
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE, send_record_flag_udp, sock, RECORD_FLAG_PAUSE)
-    #
-    # # Show question
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, change_label, label, q)
-    # # Send question control flag
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK, send_record_flag_udp, sock,
-    #            RECORD_FLAG_QUESTION_TRUE if q_type.endswith('true') else RECORD_FLAG_QUESTION_FALSE)
-    # # Read question out loud
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK,
-    #            read_question, audio_flag, q_type.endswith('true'))
-    #
-    # # Show button_next_question
-    # root.after(TIME_BLANK + TIME_CONTROL_SHAPE + TIME_BLANK + TIME_QUESTION, place_button, b)
-
-
 def read_question(audio_flag):
     """
     Read question out loud from wave file
     :param audio_flag: predefined audio path
     :return: None
     """
-    # pygame.mixer.music.load('voice/{}/{}.mp3'.format(AUDIO_SEX, audio_flag))
-    # pygame.mixer.music.play()
+    pygame.mixer.music.load('voice/{}/{}.mp3'.format(AUDIO_SEX, audio_flag))
+    pygame.mixer.music.play()
     pass
 
 
@@ -248,7 +222,7 @@ def main():
     sock = connect_to_fs_receiver_udp()
 
     b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(sock, root, label, b, *get_next_question(receiver, sock, qlist)))
+                  command=lambda: show_next_question(sock, root, label, b, get_next_question(receiver, sock, qlist)))
     b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
 
     send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
