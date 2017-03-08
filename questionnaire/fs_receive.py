@@ -160,7 +160,8 @@ class FaceShiftReceiver:
             if track_ok == 1:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
-                data_dict["blend_shapes"]["values"].append((ts, data_dict["record_flag"], blend_shape_values))
+                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"],
+                                                            data_dict["record_flag"], blend_shape_values))
                 #
                 # Handle EYES
                 # print(str(track_ok) + " - " + str(len(blend_shape_values)))
@@ -174,7 +175,8 @@ DATA = {
         "names": blend_shape_names,
         "values": []  # tuples (timestamp, record_flag, [values])
     },
-    "record_flag": False
+    "record_flag": False,
+    "question": 0
 }
 
 
@@ -189,7 +191,7 @@ def save_and_exit():
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
-        header = ["record_flag", "timestamp"]
+        header = ["question", "record_flag", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
         wr.writerow(header)
 
@@ -239,6 +241,10 @@ def read_record_flag(sock, data_dict):
             save_and_exit()
 
         data_dict["record_flag"] = int(msg.decode('utf-8'))
+        if data_dict["record_flag"] == 1:
+            # if got RECORD_FLAG_PAUSE, increment question number
+            data_dict["question"] += 1
+
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
             return  # No flag received but this is "ok"
