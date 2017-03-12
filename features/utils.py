@@ -1,15 +1,17 @@
 import itertools
 from sklearn import cluster as sk_cluster
-import pandas as pd
 import numpy as np
+
+
+DROP_COLUMNS = ['question', 'record_flag', 'record_idx']
+SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
 def split_df_to_questions(df):
     """
     Split raw data frame by questions
     """
-    return [t[1].drop(['question', 'record_flag'], axis=1)
-            for t in df.drop(['timestamp'], axis=1).groupby(['question'])]
+    return [t[1] for t in df.drop(['timestamp'], axis=1).groupby(DROP_COLUMNS)]
 
 
 def scale(val):

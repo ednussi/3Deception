@@ -1,6 +1,7 @@
 from collections import Counter, OrderedDict
 import numpy as np
 import pandas as pd
+from features.utils import SKIP_COLUMNS
 
 
 def transition_features(transition_matrix):
@@ -34,10 +35,15 @@ def dynamic(question_quantized_dfs):
         a data frame (shape=(#questions, #AUs*3) where index is question number,
             columns are AU_change_ratio,AU_slow_change_ratio, AU_fast_change_ratio for each au
     """
-    all_transitions = []
+    all_transitions = {}
 
-    for q in question_quantized_dfs:
-        all_transitions.append(OrderedDict())
+    for qdf in question_quantized_dfs:
+        q = qdf.iloc[:, SKIP_COLUMNS:]
+
+        skipped = qdf.iloc[:, :SKIP_COLUMNS]
+        # key is 2D tuple of values of all skipped columns
+        # e.g. (('question', 'record_flag', 'record_idx'), (1, 1, 1))
+        all_transitions[(tuple(skipped.index), tuple(skipped.values))] = OrderedDict()
 
         for au in q:
             all_transitions[-1][au] = np.zeros((4, 4))
@@ -48,10 +54,10 @@ def dynamic(question_quantized_dfs):
     # Concatenate all AU triples right, then all question down
     question_dynamic_features = pd.concat([
         pd.concat([
-            pd.DataFrame(list(transition_features(trans)),
-                         index=[au + '_change_ratio', au + '_slow_change_ratio', au + '_fast_change_ratio']).T
+            pd.DataFrame(list(k[1]) + list(transition_features(trans)),
+                         index=list(k[0]) + [au + '_change_ratio', au + '_slow_change_ratio', au + '_fast_change_ratio']).T
             for au, trans in q_transitions.items()], axis=1)
-        for q_transitions in all_transitions], axis=0)
+        for k, q_transitions in all_transitions.items()], axis=0)
 
     # Fix index
     question_dynamic_features.index = range(len(question_quantized_dfs))
