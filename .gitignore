@@ -1,3 +1,4 @@
-questionnaire/.idea/*
+.idea/*
+*/.idea/*
 questionnaire/data/output/*
 *.pyc
