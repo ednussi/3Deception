@@ -127,11 +127,13 @@ def show_next_question(sock, root, label, b, q):
     # Show blank
     root.after(TIME_BLANK, change_label, label, '')
     # Send blank control flag
+    root.after(TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
     # Show question
     root.after(TIME_BLANK + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
+    root.after(TIME_BLANK + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(TIME_BLANK + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
     # Read question out loud
     root.after(TIME_BLANK + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
@@ -145,6 +147,8 @@ def show_next_question(sock, root, label, b, q):
         root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    change_label, label, a[IDX_TEXT])
         # Send answer control flag
+        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_ANSWER_FALSE)
         # Read answer out loud
