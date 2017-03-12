@@ -28,7 +28,7 @@ def discrete_states(question_quantized_dfs):
         # Activation mean length
         lengths = []
         for col in q:
-            lengths.append(np.array(utils.runs_of_ones_list(q[col])).mean())
+            lengths.append(np.array(utils.runs_of_ones_list(q[col] > 1)).mean())
         question_lengths.append(pd.Series(lengths, index=[col + '_avg_length' for col in cols]))
 
         # AU average volume
