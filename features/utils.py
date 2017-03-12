@@ -1,13 +1,15 @@
+import itertools
 from sklearn import cluster as sk_cluster
 import pandas as pd
 import numpy as np
 
 
-def split_df_to_questions(df: pd.DataFrame) -> list(pd.DataFrame):
+def split_df_to_questions(df):
     """
     Split raw data frame by questions
     """
-    return [t[1] for t in df.drop(['timestamp'], axis=1).groupby(['question'])]
+    return [t[1].drop(['question', 'record_flag'], axis=1)
+            for t in df.drop(['timestamp'], axis=1).groupby(['question'])]
 
 
 def scale(val):
@@ -22,7 +24,16 @@ def scale(val):
     return ((val - min(val)) / (max(val)-min(val))) * (top-bot) + bot
 
 
-def quantize(question_dfs: list(pd.DataFrame), n_quant: int) -> list(pd.DataFrame):
+def quantize(question_dfs, n_quant):
+    """
+    Quantize values in data frames using K-means
+    Args:
+        question_dfs: data frames, note that first two columns are not quantized
+        n_quant: number of clusters
+
+    Returns:
+        list of quantized data frames
+    """
     question_quantized_dfs = []
 
     for q_df in question_dfs:
@@ -34,3 +45,15 @@ def quantize(question_dfs: list(pd.DataFrame), n_quant: int) -> list(pd.DataFram
         question_quantized_dfs.append(q)
 
     return question_quantized_dfs
+
+
+def runs_of_ones_list(bits):
+    """
+    Calculate lengths of continuous sequences of ones in binary iterable
+    Args:
+        bits: binary iterable
+
+    Returns:
+        array of lengths
+    """
+    return [sum(g) for b, g in itertools.groupby(bits) if b]
