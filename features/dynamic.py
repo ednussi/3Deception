@@ -43,8 +43,9 @@ def dynamic(question_quantized_dfs):
             all_transitions[-1][au] = np.zeros((4, 4))
 
             for (x, y), c in Counter(zip(q[au], q[au][1:])).items():
-                all_transitions[-1][au][x - 1, y - 1] += c
+                all_transitions[-1][au][x - 1, y - 1] += c  # TODO some warning about non-integer index
 
+    # Concatenate all AU triples right, then all question down
     question_dynamic_features = pd.concat([
         pd.concat([
             pd.DataFrame(list(transition_features(trans)),
@@ -52,6 +53,7 @@ def dynamic(question_quantized_dfs):
             for au, trans in q_transitions.items()], axis=1)
         for q_transitions in all_transitions], axis=0)
 
+    # Fix index
     question_dynamic_features.index = range(len(question_quantized_dfs))
 
     return question_dynamic_features
