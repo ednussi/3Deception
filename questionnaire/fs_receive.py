@@ -161,8 +161,8 @@ class FaceShiftReceiver:
             if track_ok == 1:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
-                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_idx"],
-                                                            data_dict["record_flag"], blend_shape_values))
+                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_flag"],
+                                                            data_dict["record_index"], blend_shape_values))
                 #
                 # Handle EYES
                 # print(str(track_ok) + " - " + str(len(blend_shape_values)))
@@ -193,13 +193,13 @@ def save_and_exit():
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
-        header = ["question", "record_flag", "record_idx", "timestamp"]
+        header = ["question", "record_flag", "record_index", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
         wr.writerow(header)
 
         for block in DATA["blend_shapes"]["values"]:
-            row = [block[1], block[0]]
-            row.extend(map(lambda x: str(x), block[2]))
+            row = [block[1], block[2], block[3], block[0]]
+            row.extend(map(lambda x: str(x), block[4]))
 
             wr.writerow(row)
 
@@ -246,11 +246,11 @@ def read_record_flag(sock, data_dict):
 
         # if got RECORD_FLAG_PAUSE, increment question number and reset idx
         if data_dict["record_flag"] == RecordFlags.RECORD_FLAG_PAUSE:
-            data_dict["record_idx"] = 0
+            data_dict["record_index"] = 0
             data_dict["question"] += 1
         # if got RECORD_FLAG_CHANGE, increment idx
         elif data_dict["record_flag"] == RecordFlags.RECORD_FLAG_CHANGE:
-            data_dict["record_idx"] += 1
+            data_dict["record_index"] += 1
 
 
     except socket.error as e:
