@@ -5,7 +5,6 @@ from features.utils import SKIP_COLUMNS
 
 
 def transition_features(transition_matrix):
-    side = transition_matrix.shape[0]
     s1 = [0, 1, 2]
     s2 = [1, 2, 3]
     slow_y = s1 + s2
@@ -29,7 +28,7 @@ def dynamic(question_quantized_dfs):
     """
     Calculate transition matrix of quantized AUs and count transitions between different clusters
     Args:
-        question_dfs: list of quantized question data frames
+        question_quantized_dfs: list of quantized question data frames
 
     Returns:
         a data frame (shape=(#questions, #AUs*3) where index is question number,
@@ -37,27 +36,30 @@ def dynamic(question_quantized_dfs):
     """
     all_transitions = {}
 
-    for qdf in question_quantized_dfs:
+    for i, qdf in enumerate(question_quantized_dfs):
         q = qdf.iloc[:, SKIP_COLUMNS:]
 
-        skipped = qdf.iloc[:, :SKIP_COLUMNS]
-        # key is 2D tuple of values of all skipped columns
-        # e.g. (('question', 'record_flag', 'record_idx'), (1, 1, 1))
-        all_transitions[(tuple(skipped.index), tuple(skipped.values))] = OrderedDict()
+        all_transitions[i] = OrderedDict()
 
         for au in q:
-            all_transitions[-1][au] = np.zeros((4, 4))
+            all_transitions[i][au] = np.zeros((4, 4))
 
             for (x, y), c in Counter(zip(q[au], q[au][1:])).items():
-                all_transitions[-1][au][x - 1, y - 1] += c  # TODO some warning about non-integer index
+                all_transitions[i][au][x - 1, y - 1] += c  # TODO some warning about non-integer index
 
     # Concatenate all AU triples right, then all question down
-    question_dynamic_features = pd.concat([
-        pd.concat([
-            pd.DataFrame(list(k[1]) + list(transition_features(trans)),
-                         index=list(k[0]) + [au + '_change_ratio', au + '_slow_change_ratio', au + '_fast_change_ratio']).T
-            for au, trans in q_transitions.items()], axis=1)
-        for k, q_transitions in all_transitions.items()], axis=0)
+    temp1 = []
+    for k, q_transitions in all_transitions.items():
+        temp2 = []
+
+        for au, trans in q_transitions.items():
+            trans_features = list(transition_features(trans))
+            trans_index = [au + '_change_ratio', au + '_slow_change_ratio', au + '_fast_change_ratio']
+
+            temp2.append(pd.DataFrame(trans_features, index=trans_index).T)
+        temp1.append(pd.concat(temp2, axis=1))
+
+    question_dynamic_features = pd.concat(temp1, axis=0)
 
     # Fix index
     question_dynamic_features.index = range(len(question_quantized_dfs))

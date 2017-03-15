@@ -3,7 +3,7 @@ from sklearn import cluster as sk_cluster
 import numpy as np
 
 
-DROP_COLUMNS = ['question', 'record_flag', 'record_idx']
+DROP_COLUMNS = ['question', 'record_flag', 'record_index']
 SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
