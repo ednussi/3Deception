@@ -111,6 +111,28 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
 
     root.after(time, canvas.grid_forget)
 
+def show_fixation_cross(root, time=5000):
+    """
+    Displays fixation cross in the mid screen for focus
+    """
+
+    canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
+    canvas.grid(row=1, column=1)
+    cw = canvas.winfo_screenwidth()
+    ch = canvas.winfo_screenheight()
+
+    line_length = 100
+    x = cw / 2
+    y = ch / 10
+    radius = min(cw / 4, ch / 4)
+
+    canvas.create_line(x-line_length, y, x+line_length, y, width=5.0)
+    canvas.create_line(x, y-line_length, x, y+line_length, width=5.0)
+
+    root.after(time, canvas.grid_forget)
+
+
+
 
 def show_next_question(sock, root, label, b, q):
     """
@@ -208,6 +230,7 @@ def get_next_question(receiver, sock, questions):
 def main():
     # Creates the full screen and puts empty first label at top
     root, ws, hs = set_window_mid_screen()
+
     label = tk.Label(root, text="", wraplength=1200)
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
@@ -225,12 +248,12 @@ def main():
     receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
-    b = tk.Button(root, text="לחץ לשאלה הבאה", height=1, width=30, font=("Helvetica", 72), foreground='grey',
+    b = tk.Button(root,bd=0, text="+", height=1, width=30, font=("Helvetica", 72), foreground='grey',
                   command=lambda: show_next_question(sock, root, label, b, get_next_question(receiver, sock, qlist)))
-    b.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
+    b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
     send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
-
+    #show_fixation_cross()
     root.mainloop()
 
 
