@@ -79,6 +79,9 @@ AUDIO_FLAGS = {
     'שוורץ': 'voice/cit/lastname_a/shwartz.mp3',
     'טל': 'voice/cit/lastname_a/tal.mp3',
     'תורג\'מן': 'voice/cit/lastname_a/torgeman.mp3',
+    'נוסינוביץ': 'voice/cit/lastname_a/nussinovitch.mp3',
+    'קצלניק': 'voice/cit/lastname_a/kazelnik.mp3',
+    'פסטרנק': 'voice/cit/lastname_a/pasternak.mp3',
 
     'עדי': 'voice/cit/male_a/adi.mp3',
     'אלון': 'voice/cit/male_a/alon.mp3',
@@ -96,6 +99,7 @@ AUDIO_FLAGS = {
     'מוטי': 'voice/cit/male_a/moti.mp3',
     'עודד': 'voice/cit/male_a/oded.mp3',
     'רועי': 'voice/cit/male_a/roi.mp3',
+    'עמרי': 'voice/cit/male_a/omri.mp3',
     'רותם': 'voice/cit/male_a/rotem.mp3',
     'תומר': 'voice/cit/male_a/tomer.mp3',
     'יהודה': 'voice/cit/male_a/yehuda.mp3',
