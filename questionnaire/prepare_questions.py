@@ -187,8 +187,10 @@ def prepare_cit(path="data/questions_cit.csv", male=True):
                 question_templates["catch_item"] = CATCH_ITEMS_QUESTION
 
             # Format truthful and deceptive answers
+            rowname = row[0][:-1] if row[0].endswith('\u200f') else row[0]
             question_templates[row[0]] = {
-                "question": (AUDIO_FLAGS.get(row[0]+'_male', 'no_audio') if male else AUDIO_FLAGS.get(row[0]+'_female', 'no_audio'), row[1]),
+                "question": (AUDIO_FLAGS.get(rowname+'_male', 'no_audio')
+                             if male else AUDIO_FLAGS.get(rowname+'_female', 'no_audio'), row[1]),
                 "true": (AUDIO_FLAGS.get(row[2][:-1], 'no_audio'), row[2]),
                 "false": [(AUDIO_FLAGS.get(row[i][:-1], 'no_audio'), row[i]) for i in range(3, 8)]
             }
