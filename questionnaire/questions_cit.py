@@ -30,6 +30,7 @@ IDX_TEXT = IDX_QUESTION_DATA = 1
 RUN_EXAMPLE = True
 
 QUESTION_NUMBER = 0
+IMAGE_COUNTER = 0
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     """
@@ -137,15 +138,14 @@ def show_fixation_cross(root, time=5000):
 
 
 def get_random_image():
-    val = random.uniform(0., 1.)
-
-    if val < 0.2:
+    global IMAGE_COUNTER
+    if IMAGE_COUNTER % 5 == 0:
         img = ImageTk.PhotoImage(Image.open('img/tortoise.png'))
-    elif val < 0.4:
+    elif IMAGE_COUNTER % 5 == 1:
         img = ImageTk.PhotoImage(Image.open('img/elephant.png'))
-    elif val < 0.6:
+    elif IMAGE_COUNTER % 5 == 2:
         img = ImageTk.PhotoImage(Image.open('img/dog.png'))
-    elif val < 0.8:
+    elif IMAGE_COUNTER % 5 == 3:
         img = ImageTk.PhotoImage(Image.open('img/cat.png'))
     else:
         img = ImageTk.PhotoImage(Image.open('img/bird.png'))
@@ -153,21 +153,26 @@ def get_random_image():
     return img
 
 
-def show_catch_item(root, time=TIME_CATCH_ITEM):
+def show_catch_item(sock, root, label, receiver, qlist, b, time=TIME_CATCH_ITEM):
     global img
+    global cb
     img = get_random_image()
 
-    canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
-    canvas.grid(row=1, column=1)
-    cw = canvas.winfo_screenwidth()
-    ch = canvas.winfo_screenheight()
+    cb = tk.Button(root, bd=0, command=lambda: handle_catch_button_click(sock, root, label, b, receiver, qlist))
+    cb.config(image=img)
+
+    cw = root.winfo_screenwidth()
+    ch = root.winfo_screenheight()
 
     x = random.randint(img.width(), cw - img.width())
     y = random.randint(img.height(), ch - img.height())
 
-    canvas.create_image(x, y, image=img)
+    cb.place(x=x, y=y, anchor=tk.CENTER)
 
-    root.after(time, canvas.grid_forget)
+
+def handle_catch_button_click(sock, root, label, b, receiver, qlist):
+    cb.place_forget()
+    show_next_question(sock, root, label, b, get_next_question(root, receiver, sock, qlist), receiver, qlist)
 
 
 def show_example_q(sock, root, label, b, q, b_q):
@@ -186,15 +191,21 @@ def show_example_q(sock, root, label, b, q, b_q):
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION)
     # Read question out loud
     root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # Show answers in random order
-    answers = q[IDX_QUESTION_DATA]['false'] + [q[IDX_QUESTION_DATA]['true']]
+    answers = q[IDX_QUESTION_DATA]['false']
     random.shuffle(answers)
 
+    # true answer is never first
+    true_idx = random.randint(1, len(answers) - 1)
+    answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
+
     for i, a in enumerate(answers):
+        flag = RecordFlags.RECORD_FLAG_EXAMPLE_ANSWER_TRUE \
+            if i == true_idx else RecordFlags.RECORD_FLAG_EXAMPLE_ANSWER_FALSE
         # Show answer
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    change_label, label, a[IDX_TEXT])
@@ -202,7 +213,7 @@ def show_example_q(sock, root, label, b, q, b_q):
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_ANSWER_FALSE)
+                   send_record_flag_udp, sock, flag)
         # Read answer out loud
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    read_question, a[IDX_AUDIO])
@@ -211,7 +222,8 @@ def show_example_q(sock, root, label, b, q, b_q):
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
                lambda: b_q.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
 
-def show_next_question(sock, root, label, b, q):
+
+def show_next_question(sock, root, label, b, q, receiver, qlist):
     """
     Display next question
     :param sock: fs_receiver socket
@@ -228,15 +240,16 @@ def show_next_question(sock, root, label, b, q):
 
     tb = TIME_BLANK
 
-    if (QUESTION_NUMBER) % 4 == 0:
-        root.after(tb, show_catch_item, root, TIME_CATCH_ITEM)
-        tb += TIME_CATCH_ITEM
-
     # Show blank
     root.after(tb, change_label, label, '')
     # Send blank control flag
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
+
+    if (QUESTION_NUMBER) % 4 == 0:
+        qlist.insert(0, q)  # put question back to queue
+        root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
+        return
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
@@ -251,9 +264,12 @@ def show_next_question(sock, root, label, b, q):
     random.shuffle(answers)
 
     # true answer is never first
-    answers.insert(random.randint(1, len(answers) - 1), q[IDX_QUESTION_DATA]['true'])
+    true_idx = random.randint(1, len(answers) - 1)
+    answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
 
     for i, a in enumerate(answers):
+        flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if i == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
+
         # Show answer
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    change_label, label, a[IDX_TEXT])
@@ -261,7 +277,7 @@ def show_next_question(sock, root, label, b, q):
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_ANSWER_FALSE)
+                   send_record_flag_udp, sock, flag)
         # Read answer out loud
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    read_question, a[IDX_AUDIO])
@@ -289,6 +305,7 @@ def place_button(b):
     """
     b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
     b['text'] = 'לחץ לשאלה הבאה'
+    b['bd'] = 1
 
 
 def get_next_question(root, receiver, sock, questions):
@@ -302,8 +319,8 @@ def get_next_question(root, receiver, sock, questions):
     """
     if not len(questions):
 
+        global RUN_EXAMPLE
         if (RUN_EXAMPLE):
-            global RUN_EXAMPLE
             RUN_EXAMPLE = False
             run_qs(root, sock, receiver)
 
@@ -337,11 +354,6 @@ def run_example_qs(root, sock, receiver, b_q, label):
                   command=lambda: show_example_q(sock, root, label, b, get_next_question(root, receiver, sock, qlist), b_q))
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
-    # TODO Example Flag
-    #send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
-
-
-
 
 def main():
     # Creates the full screen and puts empty first label at top
@@ -363,12 +375,13 @@ def main():
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
     b = tk.Button(root,bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(sock, root, label, b, get_next_question(root, receiver, sock, qlist)))
+                  command=lambda: show_next_question(sock, root, label, b,
+                                                     get_next_question(root, receiver, sock, qlist), receiver, qlist))
 
     if (RUN_EXAMPLE):
         run_example_qs(root, sock, receiver, b, label)
     else:
-        run_qs(root, sock, receiver, b, label)
+        run_qs(root, sock, receiver, b)
 
     #show_fixation_cross()
     root.mainloop()
@@ -383,6 +396,10 @@ if __name__ == "__main__":
 
     parser.add_argument('-I', '--id', dest='subject_id', required=True)
 
+    parser.add_argument('-D', '--devmode', dest='devmode', action='store_true')
+
+    parser.set_defaults(devmode=False, sex='male', repeat=4)
+
     args = parser.parse_args()
 
     SUBJECT_ID = args.subject_id
@@ -391,5 +408,12 @@ if __name__ == "__main__":
         REPEAT_TIMES = args.repeat
     if args.sex is not None:
         AUDIO_SEX = args.sex
+
+    if args.devmode:
+        TIME_BLANK = 50
+        TIME_QUESTION = 400
+        TIME_ANSWER = 200
+        TIME_CONTROL_SHAPE = 200
+        TIME_CATCH_ITEM = 400
 
     main()
