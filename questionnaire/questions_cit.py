@@ -27,6 +27,7 @@ SUBJECT_ID = None
 IDX_AUDIO = IDX_QUESTION_TYPE = 0
 IDX_TEXT = IDX_QUESTION_DATA = 1
 
+QUESTION_NUMBER = 0
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     """
@@ -177,11 +178,14 @@ def show_next_question(sock, root, label, b, q):
     :param q: the question and its answers
     :return: None
     """
+    global QUESTION_NUMBER
+    QUESTION_NUMBER += 1
+
     b.place_forget()
 
     tb = TIME_BLANK
 
-    if (random.uniform(0., 1.) < .2):
+    if (QUESTION_NUMBER) % 4 == 0:
         root.after(tb, show_catch_item, root, TIME_CATCH_ITEM)
         tb += TIME_CATCH_ITEM
 
@@ -204,7 +208,7 @@ def show_next_question(sock, root, label, b, q):
     random.shuffle(answers)
 
     # true answer is never first
-    answers.insert(random.randint(1, len(answers) - 1, q[IDX_QUESTION_DATA]['true']))
+    answers.insert(random.randint(1, len(answers) - 1), q[IDX_QUESTION_DATA]['true'])
 
     for i, a in enumerate(answers):
         # Show answer
