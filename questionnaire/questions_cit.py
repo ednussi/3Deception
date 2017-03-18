@@ -151,24 +151,29 @@ def get_random_image():
     return img
 
 
-def show_catch_item(root, time=TIME_CATCH_ITEM):
+def show_catch_item(sock, root, label, receiver, qlist, b, time=TIME_CATCH_ITEM):
     global img
+    global cb
     img = get_random_image()
 
-    canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
-    canvas.grid(row=1, column=1)
-    cw = canvas.winfo_screenwidth()
-    ch = canvas.winfo_screenheight()
+    cb = tk.Button(root, bd=0, command=lambda: handle_catch_button_click(sock, root, label, b, receiver, qlist))
+    cb.config(image=img)
+
+    cw = root.winfo_screenwidth()
+    ch = root.winfo_screenheight()
 
     x = random.randint(img.width(), cw - img.width())
     y = random.randint(img.height(), ch - img.height())
 
-    canvas.create_image(x, y, image=img)
-
-    root.after(time, canvas.grid_forget)
+    cb.place(x=x, y=y, anchor=tk.CENTER)
 
 
-def show_next_question(sock, root, label, b, q):
+def handle_catch_button_click(sock, root, label, b, receiver, qlist):
+    cb.place_forget()
+    show_next_question(sock, root, label, b, get_next_question(receiver, sock, qlist), receiver, qlist)
+
+
+def show_next_question(sock, root, label, b, q, receiver, qlist):
     """
     Display next question
     :param sock: fs_receiver socket
@@ -185,15 +190,16 @@ def show_next_question(sock, root, label, b, q):
 
     tb = TIME_BLANK
 
-    if (QUESTION_NUMBER) % 4 == 0:
-        root.after(tb, show_catch_item, root, TIME_CATCH_ITEM)
-        tb += TIME_CATCH_ITEM
-
     # Show blank
     root.after(tb, change_label, label, '')
     # Send blank control flag
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
+
+    if (QUESTION_NUMBER) % 2 == 0:
+        qlist.insert(0, q)
+        root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
+        return
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
@@ -246,6 +252,7 @@ def place_button(b):
     """
     b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
     b['text'] = 'לחץ לשאלה הבאה'
+    b['bd'] = 1
 
 
 def get_next_question(receiver, sock, questions):
@@ -296,7 +303,8 @@ def main():
     sock = connect_to_fs_receiver_udp()
 
     b = tk.Button(root,bd=0, text="+", height=1, width=30, font=("Helvetica", 72), foreground='grey',
-                  command=lambda: show_next_question(sock, root, label, b, get_next_question(receiver, sock, qlist)))
+                  command=lambda: show_next_question(sock, root, label, b,
+                                                     get_next_question(receiver, sock, qlist), receiver, qlist))
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
     send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)

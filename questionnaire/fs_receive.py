@@ -17,6 +17,8 @@ class RecordFlags(IntEnum):
     RECORD_FLAG_END_SESSION = 8
     RECORD_FLAG_CHANGE = 9
 
+q_sock = None
+fs_sock = None
 
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
 
@@ -204,6 +206,16 @@ def save_and_exit():
             wr.writerow(row)
 
     print("Data saved to " + fn)
+
+    global q_sock
+    global fs_sock
+
+    if fs_sock is not None:
+        fs_sock.close()
+
+    if q_sock is not None:
+        q_sock.close()
+
     exit()
 
 
@@ -256,14 +268,25 @@ def read_record_flag(sock, data_dict):
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
             return  # No flag received but this is "ok"
+
+        global q_sock
+        global fs_sock
+
+        if fs_sock is not None:
+            fs_sock.close()
+
+        if q_sock is not None:
+            q_sock.close()
+
         raise e
 
 
 def record():
     signal.signal(signal.SIGINT, fin_handler)
 
-    q_sock = None
-    fs_sock = None
+    global q_sock
+    global fs_sock
+
     try:
         q_sock = connect_to_questions_udp()
         fs_sock = connect_to_fs_udp()
@@ -286,8 +309,6 @@ def record():
 
         if q_sock is not None:
             q_sock.close()
-
-        raise e
 
 
 if __name__ == "__main__":
