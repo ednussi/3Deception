@@ -8,6 +8,8 @@ import tkinter as tk
 import argparse
 import pygame
 
+from PIL import ImageTk, Image
+
 from fs_receive import RecordFlags
 from prepare_questions import *
 
@@ -18,6 +20,7 @@ TIME_BLANK = 500
 TIME_QUESTION = 4000
 TIME_ANSWER = 2000
 TIME_CONTROL_SHAPE = 2000
+TIME_CATCH_ITEM = 4000
 
 REPEAT_TIMES = 4
 
@@ -111,6 +114,7 @@ def show_control_shape(root, flag=COLOR_FALSE, time=1000):
 
     root.after(time, canvas.grid_forget)
 
+
 def show_fixation_cross(root, time=5000):
     """
     Displays fixation cross in the mid screen for focus
@@ -132,6 +136,38 @@ def show_fixation_cross(root, time=5000):
     root.after(time, canvas.grid_forget)
 
 
+def get_random_image():
+    val = random.uniform(0., 1.)
+
+    if val < 0.2:
+        img = ImageTk.PhotoImage(Image.open('img/tortoise.png'))
+    elif val < 0.4:
+        img = ImageTk.PhotoImage(Image.open('img/elephant.png'))
+    elif val < 0.6:
+        img = ImageTk.PhotoImage(Image.open('img/dog.png'))
+    elif val < 0.8:
+        img = ImageTk.PhotoImage(Image.open('img/cat.png'))
+    else:
+        img = ImageTk.PhotoImage(Image.open('img/bird.png'))
+
+    return img
+
+
+def show_catch_item(root, time=TIME_CATCH_ITEM):
+    global img
+    img = get_random_image()
+
+    canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
+    canvas.grid(row=1, column=1)
+    cw = canvas.winfo_screenwidth()
+    ch = canvas.winfo_screenheight()
+
+    x = random.randint(img.width(), cw - img.width())
+    y = random.randint(img.height(), ch - img.height())
+
+    canvas.create_image(x, y, image=img)
+
+    root.after(time, canvas.grid_forget)
 
 
 def show_next_question(sock, root, label, b, q):
@@ -146,19 +182,25 @@ def show_next_question(sock, root, label, b, q):
     """
     b.place_forget()
 
+    tb = TIME_BLANK
+
+    if (random.uniform(0., 1.) < .2):
+        root.after(tb, show_catch_item, root, TIME_CATCH_ITEM)
+        tb += TIME_CATCH_ITEM
+
     # Show blank
-    root.after(TIME_BLANK, change_label, label, '')
+    root.after(tb, change_label, label, '')
     # Send blank control flag
-    root.after(TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
+    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
     # Show question
-    root.after(TIME_BLANK + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
+    root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
-    root.after(TIME_BLANK + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(TIME_BLANK + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
     # Read question out loud
-    root.after(TIME_BLANK + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # Show answers in random order
     answers = q[IDX_QUESTION_DATA]['false'] + [q[IDX_QUESTION_DATA]['true']]
@@ -166,19 +208,19 @@ def show_next_question(sock, root, label, b, q):
 
     for i, a in enumerate(answers):
         # Show answer
-        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    change_label, label, a[IDX_TEXT])
         # Send answer control flag
-        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_ANSWER_FALSE)
         # Read answer out loud
-        root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    read_question, a[IDX_AUDIO])
 
     # Show button_next_question
-    root.after(TIME_BLANK + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
+    root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
                place_button, b)
 
 
@@ -199,6 +241,7 @@ def place_button(b):
     :param b: button handle
     """
     b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
+    b['text'] = 'לחץ לשאלה הבאה'
 
 
 def get_next_question(receiver, sock, questions):
