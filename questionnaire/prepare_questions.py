@@ -68,7 +68,7 @@ AUDIO_FLAGS = {
     'דביר': 'voice/cit/lastname_a/dvir.mp3',
     'פריד': 'voice/cit/lastname_a/frid.mp3',
     'גל': 'voice/cit/lastname_a/gal.mp3',
-    'גרוסנן': 'voice/cit/lastname_a/grosman.mp3',
+    'גרוסמן': 'voice/cit/lastname_a/grosman.mp3',
     'גרוס': 'voice/cit/lastname_a/gross.mp3',
     'יעקובוביץ': 'voice/cit/lastname_a/jakobovitz.mp3',
     'קרו': 'voice/cit/lastname_a/karu.mp3',

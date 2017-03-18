@@ -69,6 +69,7 @@ def set_window_mid_screen():
     :return: tk root, width and height of new window
     """
     root = tk.Tk()  # create a Tk root window
+    root.configure(background='black')
 
     w = 0  # width for the Tk root
     h = 0  # height for the Tk root
@@ -88,7 +89,7 @@ def change_label(label, t):
     :param t:
     :return:
     """
-    label.config(text='%s' % t, fg="black", font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
+    label.config(text='%s' % t, fg="grey", bg='black', font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
 def show_control_shape(root, flag=COLOR_FALSE, time=1000):
@@ -129,7 +130,6 @@ def show_fixation_cross(root, time=5000):
     line_length = 100
     x = cw / 2
     y = ch / 10
-    radius = min(cw / 4, ch / 4)
 
     canvas.create_line(x-line_length, y, x+line_length, y, width=5.0)
     canvas.create_line(x, y-line_length, x, y+line_length, width=5.0)
@@ -150,6 +150,7 @@ def get_random_image():
     else:
         img = ImageTk.PhotoImage(Image.open('img/bird.png'))
 
+    IMAGE_COUNTER += 1
     return img
 
 
@@ -196,7 +197,7 @@ def show_example_q(sock, root, label, b, q, b_q):
     root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # Show answers in random order
-    answers = q[IDX_QUESTION_DATA]['false']
+    answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
     # true answer is never first
@@ -260,7 +261,7 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # Show answers in random order
-    answers = q[IDX_QUESTION_DATA]['false']
+    answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
     # true answer is never first
@@ -305,7 +306,6 @@ def place_button(b):
     """
     b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
     b['text'] = 'לחץ לשאלה הבאה'
-    b['bd'] = 1
 
 
 def get_next_question(root, receiver, sock, questions):
@@ -350,7 +350,8 @@ def run_example_qs(root, sock, receiver, b_q, label):
 
     qlist = [item for item in prepare_cit(path='data/example_questions_cit.csv', male=AUDIO_SEX == 'male').items()]
 
-    b = tk.Button(root,bd=0, text="לחץ להתחיל שאלת דוגמא", height=1, width=30, font=("Helvetica", 72), foreground='grey',
+    b = tk.Button(root,bd=0, text="לחץ להתחיל שאלת דוגמא", height=1, width=30, font=("Helvetica", 72),
+                  fg='gray', bg='black', activebackground='black', activeforeground='gray',
                   command=lambda: show_example_q(sock, root, label, b, get_next_question(root, receiver, sock, qlist), b_q))
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
@@ -370,11 +371,12 @@ def main():
     receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
 
-    label = tk.Label(root, text="", wraplength=1200)
+    label = tk.Label(root, text="", wraplength=1200, bg='black')
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
-    b = tk.Button(root,bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72), foreground='grey',
+    b = tk.Button(root, bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72),
+                  fg='grey', bg='black', activebackground='black', activeforeground='gray',
                   command=lambda: show_next_question(sock, root, label, b,
                                                      get_next_question(root, receiver, sock, qlist), receiver, qlist))
 
