@@ -3,7 +3,9 @@ import socket
 import csv
 import time
 import struct
+import shutil
 from enum import IntEnum
+from AVrecordeR import *
 
 
 class RecordFlags(IntEnum):
@@ -195,7 +197,14 @@ def fin_handler(signal, frame):
 def save_and_exit():
     print("Stop signal received")
 
-    fn = "data/output/fs_shapes.{}.csv".format(time.time())
+    stop_AVrecording('output')
+
+    fn_token = time.time()
+
+    fn = "data/output/fs_shapes.{}.csv".format(fn_token)
+    audio_fn = "data/output/audio.{}.wav".format(fn_token)
+    video_fn = "data/output/video.{}.avi".format(fn_token)
+
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
@@ -209,7 +218,12 @@ def save_and_exit():
 
             wr.writerow(row)
 
-    print("Data saved to " + fn)
+    shutil.move("temp_audio.wav", audio_fn)
+    shutil.move("output.avi", video_fn)
+
+    print("FS blendshapes output saved to " + fn)
+    print("Audio output saved to " + audio_fn)
+    print("Video output saved to " + video_fn)
 
     global q_sock
     global fs_sock
@@ -297,6 +311,8 @@ def record():
 
         fsr = FaceShiftReceiver()
 
+        start_AVrecording('output')
+
         while True:
             print("Waiting for record flag... ")
             read_record_flag(q_sock, DATA)
@@ -307,6 +323,8 @@ def record():
             print("Block received")
 
     except Exception as e:
+
+		stop_AVrecording('output')
 
         if fs_sock is not None:
             fs_sock.close()
