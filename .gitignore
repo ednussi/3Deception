@@ -2,3 +2,4 @@
 */.idea/*
 questionnaire/data/output/*
 *.pyc
+*.exe

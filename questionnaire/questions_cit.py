@@ -7,8 +7,8 @@ import tkinter as tk
 import argparse
 import pygame
 from PIL import ImageTk, Image
-from questionnaire.fs_receive import RecordFlags
-from questionnaire.prepare_questions import *
+from fs_receive import RecordFlags
+from prepare_questions import *
 
 COLOR_TRUE = 'GREEN'
 COLOR_FALSE = 'RED'
