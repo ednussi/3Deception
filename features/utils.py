@@ -1,9 +1,11 @@
 import itertools
 import numpy as np
 from sklearn import cluster as sk_cluster
+from questionnaire.fs_receive import RecordFlags
 
 
 DROP_COLUMNS = ['question', 'record_flag', 'record_index']
+ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
@@ -11,7 +13,8 @@ def split_df_to_questions(df):
     """
     Split raw data frame by questions
     """
-    return [t[1] for t in df.drop(['timestamp'], axis=1).groupby(DROP_COLUMNS)]
+    answers_df = df[df.record_flag.isin(ANSWER_FLAGS)]
+    return [t[1] for t in answers_df.drop(['timestamp'], axis=1).groupby(DROP_COLUMNS)]
 
 
 def scale(val):
