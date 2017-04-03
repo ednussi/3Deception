@@ -7,6 +7,7 @@ from enum import IntEnum
 
 
 class RecordFlags(IntEnum):
+    RECORD_FLAG_EMPTY = 0
     RECORD_FLAG_PAUSE = 1
     RECORD_FLAG_QUESTION = 2
     RECORD_FLAG_ANSWER_TRUE = 3
@@ -182,7 +183,7 @@ DATA = {
         "names": blend_shape_names,
         "values": []  # tuples (timestamp, record_flag, [values])
     },
-    "record_flag": False,
+    "record_flag": RecordFlags.RECORD_FLAG_EMPTY,
     "record_index": 0,
     "question": 0
 }

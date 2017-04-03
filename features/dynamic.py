@@ -1,7 +1,7 @@
 from collections import Counter, OrderedDict
 import numpy as np
 import pandas as pd
-from features.utils import SKIP_COLUMNS
+from . import utils
 
 
 def transition_features(transition_matrix):
@@ -37,7 +37,7 @@ def dynamic(question_quantized_dfs):
     all_transitions = {}
 
     for i, qdf in enumerate(question_quantized_dfs):
-        q = qdf.iloc[:, SKIP_COLUMNS:]
+        q = qdf.iloc[:, utils.SKIP_COLUMNS:]
 
         all_transitions[i] = OrderedDict()
 

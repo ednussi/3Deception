@@ -3,3 +3,5 @@
 questionnaire/data/output/*
 *.pyc
 *.exe
+*.png
+*.dot

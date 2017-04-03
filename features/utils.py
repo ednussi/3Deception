@@ -1,6 +1,6 @@
 import itertools
-from sklearn import cluster as sk_cluster
 import numpy as np
+from sklearn import cluster as sk_cluster
 
 
 DROP_COLUMNS = ['question', 'record_flag', 'record_index']
@@ -133,5 +133,7 @@ def find_peaks(v, delta=0.1, x = None):
     # return np.array(maxtab), np.array(mintab)
     return np.array(maxtab)
 
+
 def count_peaks(v, delta=0.1, x = None):
     return len(find_peaks(v, delta, x))
+

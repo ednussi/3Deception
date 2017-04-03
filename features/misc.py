@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import count_peaks
+from . import utils
 
 
 def misc(question_dfs):
@@ -21,13 +21,13 @@ def misc(question_dfs):
         th = 0.75  # smile maximum threshold
         # Smiles
         # TODO Maybe separate to left-right-center smile
-        num_smiles.append(max(count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=th),
-                              count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=th)))
+        num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=th),
+                              utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=th)))
 
         # Blinks
         # TODO Maybe separate to left-right blinks
-        num_blinks.append(max(count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
-                              count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
+        num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
+                              utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
 
     df = pd.DataFrame({'smiles': num_smiles, 'blinks': num_blinks})
     return df
