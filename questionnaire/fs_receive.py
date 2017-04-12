@@ -2,7 +2,6 @@ import signal
 import socket
 import csv
 import struct
-import shutil
 from enum import IntEnum
 
 

@@ -3,7 +3,7 @@ import subprocess
 import random
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
-dt = DecisionTreeClassifier(min_samples_split=1, max_depth=4, random_state=347)
+dt = DecisionTreeClassifier(min_samples_split=1, random_state=347)
 
 raw = pd.read_csv('grisha_features.csv')
 raw_true = raw[raw.record_flag == 3]
