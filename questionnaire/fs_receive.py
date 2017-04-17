@@ -2,6 +2,7 @@ import signal
 import socket
 import csv
 import struct
+import time
 from enum import IntEnum
 import pyaudio
 import audioop
@@ -32,7 +33,22 @@ class RecordFlags(IntEnum):
 
 q_sock = None
 fs_sock = None
+
+
+def audio_callback(in_data, frame_count, time_info, status):
+    if STOP_SIGNAL_RECEIVED:
+        return (frame_count, pyaudio.paComplete)
+    else:
+        FRAMES.extend(in_data)
+        return (frame_count, pyaudio.paContinue)
+
+
 p = pyaudio.PyAudio()
+audio_stream = p.open(format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK)
 
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
 
@@ -178,26 +194,9 @@ class FaceShiftReceiver:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
 
-                # Get mean volume for current frame
-                # Note there may be a delay between FS frame and getting here in code
-                frames = []
-
-                stream = p.open(format=FORMAT,
-                                channels=CHANNELS,
-                                rate=RATE,
-                                input=True,
-                                frames_per_buffer=CHUNK)
-
-                for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-                    data = stream.read(CHUNK)
-                    frames.append(data)
-
-                stream.stop_stream()
-                stream.close()
-
                 data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_flag"],
                                                             data_dict["record_index"], blend_shape_values, 
-                                                            audioop.rms(b''.join(frames), 2)))
+                                                            audioop.rms(audio_stream.read(CHUNK), 2)))
                 #
                 # Handle EYES
                 # print(str(track_ok) + " - " + str(len(blend_shape_values)))
@@ -216,12 +215,18 @@ DATA = {
     "question": 0
 }
 
+FRAMES = []
+STOP_SIGNAL_RECEIVED = False
+
 
 def fin_handler(signal, frame):
     save_and_exit()
 
 
 def save_and_exit():
+    global STOP_SIGNAL_RECEIVED
+    STOP_SIGNAL_RECEIVED = True
+
     print("Stop signal received")
 
     # stop_AVrecording('output')
@@ -258,7 +263,10 @@ def save_and_exit():
     global fs_sock
 
     global p
+    global audio_stream
     p.terminate()
+    audio_stream.stop_stream()
+    audio_stream.close()
 
     if fs_sock is not None:
         fs_sock.close()
@@ -336,12 +344,15 @@ def record():
 
     global q_sock
     global fs_sock
+    global audio_stream
 
     try:
         q_sock = connect_to_questions_udp()
         fs_sock = connect_to_fs_udp()
 
         fsr = FaceShiftReceiver()
+
+        audio_stream.start_stream()
 
         # start_AVrecording('output')
 
@@ -361,6 +372,15 @@ def record():
 
         if q_sock is not None:
             q_sock.close()
+
+        if audio_stream is not None:
+            audio_stream.stop_stream()
+            audio_stream.close()
+
+        if p is not None:
+            p.terminate()
+
+        raise e
 
 
 if __name__ == "__main__":

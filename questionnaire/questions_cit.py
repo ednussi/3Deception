@@ -319,32 +319,28 @@ def get_next_question(root, receiver, sock, questions):
     """
     if not len(questions):
 
-        global RUN_EXAMPLE
-        if (RUN_EXAMPLE):
-            RUN_EXAMPLE = False
-            run_qs(root, sock, receiver)
+        # End of questions
 
-        else:
-            # End of questions
+        send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_END_SESSION)
 
-            send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_END_SESSION)
+        # Wait for receiver to save data
+        receiver.wait()
 
-            # Wait for receiver to save data
-            receiver.wait()
+        # Finish
+        exit()
+    else:
+        question_holder = questions[0]
+        questions.pop(0)
 
-            # Finish
-            exit()
+        return question_holder
 
-    question_holder = questions[0]
-    questions.pop(0)
-
-    return question_holder
 
 def run_qs(root, sock, receiver, b):
 
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
     send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
+
 
 def run_example_qs(root, sock, receiver, b_q, label):
 
@@ -379,6 +375,9 @@ def main():
                   fg='grey', bg='black', activebackground='black', activeforeground='gray',
                   command=lambda: show_next_question(sock, root, label, b,
                                                      get_next_question(root, receiver, sock, qlist), receiver, qlist))
+
+    global main_button
+    main_button = b
 
     if (RUN_EXAMPLE):
         run_example_qs(root, sock, receiver, b, label)
@@ -417,5 +416,7 @@ if __name__ == "__main__":
         TIME_ANSWER = 200
         TIME_CONTROL_SHAPE = 200
         TIME_CATCH_ITEM = 400
+
+    main_button = None
 
     main()
