@@ -3,6 +3,15 @@ import socket
 import csv
 import struct
 from enum import IntEnum
+import pyaudio
+import audioop
+
+
+CHUNK = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 2
+RATE = 44100
+RECORD_SECONDS = 1/30
 
 
 class RecordFlags(IntEnum):
@@ -23,6 +32,7 @@ class RecordFlags(IntEnum):
 
 q_sock = None
 fs_sock = None
+p = pyaudio.PyAudio()
 
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
 
@@ -167,8 +177,27 @@ class FaceShiftReceiver:
             if track_ok == 1:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
+
+                # Get mean volume for current frame
+                # Note there may be a delay between FS frame and getting here in code
+                frames = []
+
+                stream = p.open(format=FORMAT,
+                                channels=CHANNELS,
+                                rate=RATE,
+                                input=True,
+                                frames_per_buffer=CHUNK)
+
+                for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+                    data = stream.read(CHUNK)
+                    frames.append(data)
+
+                stream.stop_stream()
+                stream.close()
+
                 data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_flag"],
-                                                            data_dict["record_index"], blend_shape_values))
+                                                            data_dict["record_index"], blend_shape_values, 
+                                                            audioop.rms(b''.join(frames), 2)))
                 #
                 # Handle EYES
                 # print(str(track_ok) + " - " + str(len(blend_shape_values)))
@@ -208,11 +237,13 @@ def save_and_exit():
 
         header = ["question", "record_flag", "record_index", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
+        header.append("audio_rms")
         wr.writerow(header)
 
         for block in DATA["blend_shapes"]["values"]:
             row = [block[1], block[2], block[3], block[0]]
             row.extend(map(lambda x: str(x), block[4]))
+            row.append(block[5])
 
             wr.writerow(row)
 
@@ -225,6 +256,9 @@ def save_and_exit():
 
     global q_sock
     global fs_sock
+
+    global p
+    p.terminate()
 
     if fs_sock is not None:
         fs_sock.close()
