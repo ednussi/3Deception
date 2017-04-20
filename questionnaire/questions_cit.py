@@ -12,8 +12,10 @@ from prepare_questions import *
 
 
 #####################
-# Run command line:
+# Run command line: questions_cit.py -d -i griffonn@gmail.com -r 1 -a 3
 #####################
+
+
 COLOR_TRUE = 'GREEN'
 COLOR_FALSE = 'RED'
 
