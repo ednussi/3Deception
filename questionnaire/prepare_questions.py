@@ -190,7 +190,7 @@ def prepare_cit(path="data/questions_cit.csv", male=True):
 
         num_row = 1
         for row in reader:
-            if len(row) != 8:
+            if len(row) != :
                 raise Exception("prepare_cit: Bad csv format in row {}".format(row))
 
             if num_row % CATCH_ITEMS_FREQ == 0:

@@ -1,6 +1,22 @@
 import pandas as pd
 from . import utils, moments, discrete_states, dynamic, misc
+from sklearn.decomposition import PCA
 
+
+def PCA_that_vec(Panda_Data, Dim):
+
+    # Turn data into np array without the ordering columns
+    NP_Data = Panda_Data.iloc[:, 3:].values
+
+    # Run PCA
+    pca = PCA(n_components=Dim, copy=True, whiten=True)
+    pca.fit(NP_Data)
+    shrinked_data = pca.components_
+
+    # Return to Pandas of proper size
+    PCA_Panda_Data = pd.concat([Panda_Data.iloc[:, :3], pd.DataFrame(shrinked_data)],axis=1)
+
+    return PCA_Panda_Data
 
 def get_all_features(raw_df):
     question_idx_dfs = utils.split_df_to_questions(raw_df)

@@ -10,6 +10,10 @@ from PIL import ImageTk, Image
 from fs_receive import RecordFlags
 from prepare_questions import *
 
+
+#####################
+# Run command line:
+#####################
 COLOR_TRUE = 'GREEN'
 COLOR_FALSE = 'RED'
 
