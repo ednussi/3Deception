@@ -1,5 +1,6 @@
 import signal
 import socket
+import select
 import csv
 import struct
 import time
@@ -280,6 +281,7 @@ def save_and_exit():
 def connect_to_questions_udp(binding_addr="127.0.0.1", listening_port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setblocking(0)  # Non-blocking socket, no flag data - your problem
+
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1500)  # No buffer. We take the latest, if present, or nothing.
 
     print("Connecting to questions...")
@@ -291,6 +293,7 @@ def connect_to_questions_udp(binding_addr="127.0.0.1", listening_port=33444):
 
 def connect_to_fs_udp(binding_addr="127.0.0.1", listening_port=33433):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1500)  # No buffer. We take the latest, if present, or nothing.
 
     print("Connecting to fs...")
@@ -301,7 +304,12 @@ def connect_to_fs_udp(binding_addr="127.0.0.1", listening_port=33433):
 
 
 def read_block(sock, fsr, data_dict):
-    msg = sock.recv(4096)
+    ready_to_read = select.select([sock], [], [], 3)  # if no data arrives within 3 seconds, abort everything
+    if ready_to_read[0]:
+        msg = sock.recv(4096)
+    else:
+        raise Exception("No data block received for 3 seconds, shutting down...")
+        # TODO: need to notify questionnaire?
     fsr.decode_faceshift_datastream(data_dict, msg)
 
 
@@ -367,6 +375,8 @@ def record():
 
     except Exception as e:
 
+        print(e)
+
         if fs_sock is not None:
             fs_sock.close()
 
@@ -379,8 +389,6 @@ def record():
 
         if p is not None:
             p.terminate()
-
-        raise e
 
 
 if __name__ == "__main__":

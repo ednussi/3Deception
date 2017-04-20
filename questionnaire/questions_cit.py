@@ -196,12 +196,15 @@ def show_example_q(sock, root, label, b, q, b_q):
     # Read question out loud
     root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
-    # Show answers in random order
+    # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
+    # get two false answers
+    answers = answers[:2]
+
     # true answer is never first
-    true_idx = random.randint(1, len(answers) - 1)
+    true_idx = random.randint(1, len(answers))
     answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
 
     for i, a in enumerate(answers):
@@ -260,12 +263,15 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # Read question out loud
     root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
-    # Show answers in random order
+    # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
+    # get two false answers
+    answers = answers[:2]
+
     # true answer is never first
-    true_idx = random.randint(1, len(answers) - 1)
+    true_idx = random.randint(1, len(answers))
     answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
 
     for i, a in enumerate(answers):
@@ -393,13 +399,15 @@ if __name__ == "__main__":
 
     parser.add_argument('-v', '--voice-sex', dest='sex', choices=['male', 'female'])
 
-    parser.add_argument('-R', '--repeat', dest='repeat', type=int)
+    parser.add_argument('-r', '--repeat', dest='repeat', type=int)
 
-    parser.add_argument('-I', '--id', dest='subject_id', required=True)
+    parser.add_argument('-i', '--id', dest='subject_id', required=True)
 
-    parser.add_argument('-D', '--devmode', dest='devmode', action='store_true')
+    parser.add_argument('-d', '--devmode', dest='devmode', action='store_true')
 
-    parser.set_defaults(devmode=False, sex='male', repeat=4)
+    parser.add_argument('-a', '--numanswers', dest='numanswers', type=int, choices=[3, 4, 5, 6])
+
+    parser.set_defaults(devmode=False, sex='male', repeat=4, numanswers=3)
 
     args = parser.parse_args()
 
