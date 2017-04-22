@@ -278,6 +278,7 @@ def save_and_exit():
     exit()
 
 
+# TODO: check that FLAG_CHANGE is received! maybe switch to TCP
 def connect_to_questions_udp(binding_addr="127.0.0.1", listening_port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setblocking(0)  # Non-blocking socket, no flag data - your problem

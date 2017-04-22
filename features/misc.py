@@ -2,6 +2,10 @@ import pandas as pd
 from . import utils
 
 
+PEAK_THRESHOLD = 0.75
+ROLLING_WINDOW = 30
+
+
 def misc(question_dfs):
     # Calculated by taking the maximum of the amount of peaks in the
     # signals of both lip corners, where peak is defined as a local minimum which is higher by at
@@ -13,34 +17,38 @@ def misc(question_dfs):
     num_blinks = []
 
     # Mean volume level
-    mean_audio_rms = []
+    audio_rms_mean = []
 
     # Maximal volume level
-    max_audio_rms = []
+    audio_rms_max = []
 
     # Time delay till first continuous window with high volume
     # The audio signal is first smoothed to remove narrow peaks
     audio_rms_delay = []
 
     for ans in question_dfs:
-        th = 0.75  # smile maximum threshold
         # Smiles
         # TODO Maybe separate to left-right-center smile
-        num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=th),
-                              utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=th)))
+        num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
+                              utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
 
         # Blinks
         # TODO Maybe separate to left-right blinks
         num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
                               utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
 
-        # Mean volume
-        mean_audio_rms.append(ans.loc['audio_rms'].mean())
+        audio_rms_mean.append(ans.loc[:, 'audio_rms'].mean())
+        audio_rms_max.append(ans.loc[:, 'audio_rms'].max())
 
-        # Max volume
-        max_audio_rms.append(ans.loc['audio_rms'].max())
+        rolling = ans.loc[:, 'audio_rms'].rolling(window=ROLLING_WINDOW, center=False, min_periods=1).mean()
+        audio_rms_delay.append(rolling[rolling > rolling.mean() + (2*rolling.std())].index[0])
 
+    df = pd.DataFrame({
+        'smiles': num_smiles, 
+        'blinks': num_blinks, 
+        'audio_rms_mean': audio_rms_mean, 
+        'audio_rms_max': audio_rms_max,
+        'response_delay': audio_rms_delay
+    })
 
-
-    df = pd.DataFrame({'smiles': num_smiles, 'blinks': num_blinks})
     return df

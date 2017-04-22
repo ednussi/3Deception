@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import sys
 from sklearn import cluster as sk_cluster
 from questionnaire.fs_receive import RecordFlags
 
@@ -11,10 +12,11 @@ SKIP_COLUMNS = len(DROP_COLUMNS)
 
 def split_df_to_questions(df):
     """
-    Split raw data frame by questions
+    Split raw data frame by answers, skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.isin(ANSWER_FLAGS)]
-    return [t[1] for t in answers_df.drop(['timestamp'], axis=1).groupby(DROP_COLUMNS)]
+
+    return [t[1] for t in answers_df.drop(['timestamp'], axis=1)[answers_df.record_index != 2].groupby(DROP_COLUMNS)]
 
 
 def scale(val):
@@ -43,7 +45,7 @@ def quantize(question_dfs, n_quant):
 
     for q_df in question_dfs:
         q = q_df.copy()
-        for au in q.iloc[:, SKIP_COLUMNS:]:
+        for au in q.iloc[:, SKIP_COLUMNS:-1]:  # don't quantize audio_rms column
             q.loc[:, au] = sk_cluster.KMeans(n_clusters=n_quant, random_state=1)\
                 .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
