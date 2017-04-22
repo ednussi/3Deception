@@ -7,6 +7,9 @@ import time
 from enum import IntEnum
 import pyaudio
 import audioop
+# from PIL import ImageGrab
+# import numpy as np
+# import cv2
 
 
 CHUNK = 1024
@@ -50,6 +53,9 @@ audio_stream = p.open(format=FORMAT,
                 rate=RATE,
                 input=True,
                 frames_per_buffer=CHUNK)
+
+# fourcc = cv2.VideoWriter_fourcc(*'XVID')
+# video_out = cv2.VideoWriter('output.avi', fourcc, 30.0, (640, 480))
 
 BLOCK_ID_TRACKING_STATE = 33433  # According to faceshift docs
 
@@ -198,6 +204,10 @@ class FaceShiftReceiver:
                 data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_flag"],
                                                             data_dict["record_index"], blend_shape_values, 
                                                             audioop.rms(audio_stream.read(CHUNK), 2)))
+
+                # screenshot = ImageGrab.grab().getdata()
+                # video_out.write(np.array(screenshot, dtype='uint8').reshape(screenshot.size[1], screenshot.size[0], 3))
+
                 #
                 # Handle EYES
                 # print(str(track_ok) + " - " + str(len(blend_shape_values)))
@@ -235,8 +245,10 @@ def save_and_exit():
     fn_token = time.time()
 
     fn = "data/output/fs_shapes.{}.csv".format(fn_token)
-    # audio_fn = "data/output/audio.{}.wav".format(fn_token)
-    # video_fn = "data/output/video.{}.avi".format(fn_token)
+    video_fn = "data/output/video.{}.wav".format(fn_token)
+
+    # video_out.release()
+    # cv2.destroyAllWindows()
 
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
@@ -253,11 +265,9 @@ def save_and_exit():
 
             wr.writerow(row)
 
-    # shutil.move("temp_audio.wav", audio_fn)
-    # shutil.move("output.avi", video_fn)
+
 
     print("FS blendshapes output saved to " + fn)
-    # print("Audio output saved to " + audio_fn)
     # print("Video output saved to " + video_fn)
 
     global q_sock
@@ -390,6 +400,8 @@ def record():
 
         if p is not None:
             p.terminate()
+
+        raise e
 
 
 if __name__ == "__main__":

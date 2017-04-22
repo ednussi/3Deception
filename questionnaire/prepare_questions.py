@@ -49,6 +49,7 @@ AUDIO_FLAGS = {
     'שרה': 'voice/cit/female_a/sara.mp3',
     'שושנה': 'voice/cit/female_a/shushana.mp3',
     'סיון': 'voice/cit/female_a/sivan.mp3',
+    'סיוון': 'voice/cit/female_a/sivan.mp3',
     'סופיה': 'voice/cit/female_a/sofia.mp3',
     'יערה': 'voice/cit/female_a/yaara.mp3',
     'יעל': 'voice/cit/female_a/yael.mp3',
