@@ -55,6 +55,7 @@ AUDIO_FLAGS = {
     'ירדן': 'voice/cit/female_a/yarden.mp3',
     'יוליה': 'voice/cit/female_a/yulia.mp3',
     'יובל': 'voice/cit/female_a/yuval.mp3',
+    'סיגלית': 'voice/cit/female_a/sigalit.mp3',
 
     'birth_country_female': 'voice/cit/female_q/birth_country.mp3',
     'birth_month_female': 'voice/cit/female_q/birth_month.mp3',
@@ -84,6 +85,7 @@ AUDIO_FLAGS = {
     'נוסינוביץ': 'voice/cit/lastname_a/nussinovitch.mp3',
     'קצלניק': 'voice/cit/lastname_a/kazelnik.mp3',
     'פסטרנק': 'voice/cit/lastname_a/pasternak.mp3',
+    'אורנשטין': 'voice/cit/lastname_a/orenstein.mp3',
 
 #    'עדי': 'voice/cit/male_a/adi.mp3',
     'אלון': 'voice/cit/male_a/alon.mp3',
@@ -112,6 +114,7 @@ AUDIO_FLAGS = {
     'גרגורי': 'voice/cit/male_a/gregory.mp3',
     'רפאל': 'voice/cit/male_a/refael.mp3',
     'יפים': 'voice/cit/male_a/yafim.mp3',
+    'יואב': 'voice/cit/male_a/yoav.mp3',
 
     'birth_country_male': 'voice/cit/male_q/birth_country.mp3',
     'birth_month_male': 'voice/cit/male_q/birth_month.mp3',
