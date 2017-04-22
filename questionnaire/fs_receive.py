@@ -211,7 +211,7 @@ DATA = {
         "names": blend_shape_names,
         "values": []  # tuples (timestamp, record_flag, [values])
     },
-    "record_flag": RecordFlags.RECORD_FLAG_EMPTY,
+    "record_flag": 0,
     "record_index": 0,
     "question": 0
 }

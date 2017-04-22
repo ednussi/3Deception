@@ -41,7 +41,7 @@ def misc(question_dfs):
         audio_rms_max.append(ans.loc[:, 'audio_rms'].max())
 
         rolling = ans.loc[:, 'audio_rms'].rolling(window=ROLLING_WINDOW, center=False, min_periods=1).mean()
-        audio_rms_delay.append(rolling[rolling > rolling.mean() + (2*rolling.std())].index[0])
+        audio_rms_delay.append(rolling[rolling > rolling.mean() + rolling.std()].index[0])
 
     df = pd.DataFrame({
         'smiles': num_smiles, 

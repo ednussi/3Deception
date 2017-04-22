@@ -14,7 +14,7 @@ def split_df_to_questions(df):
     """
     Split raw data frame by answers, skip first answer for every question (buffer item)
     """
-    answers_df = df[df.record_flag.isin(ANSWER_FLAGS)]
+    answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
 
     return [t[1] for t in answers_df.drop(['timestamp'], axis=1)[answers_df.record_index != 2].groupby(DROP_COLUMNS)]
 
