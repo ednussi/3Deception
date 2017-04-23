@@ -5,7 +5,7 @@ import features
 
 
 def extract_features(raw_path, with_pca):
-    features_path = "features_" + raw_path
+    features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
@@ -17,10 +17,11 @@ def extract_features(raw_path, with_pca):
     all_features.to_csv(features_path)
 
     if with_pca is not None:
+        pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
         print("Running PCA...")
         pca_features = features.utils.pca_3d(all_features, with_pca)
-        print("Saving PCA features to pca_{}...".format(features_path), end="")
-        pca_features.to_csv("pca_" + features_path)
+        print("Saving PCA features to {}...".format(pca_path), end="")
+        pca_features.to_csv(pca_path)
 
     print("Done.")
 
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i', '--input', dest='raw_path')
-    parser.add_argument('-p', '--with_pca', dest='with_pca', type=int, default=None)
+    parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
 
     args = parser.parse_args()
 
@@ -37,4 +38,4 @@ if __name__ == "__main__":
         print(r"Input csv doesn't exist: {}".format(args.raw_path))
         exit()
 
-    extract_features(args.raw_path, args.with_pca)
+    extract_features(args.raw_path, args.pca)
