@@ -156,4 +156,7 @@ def pca_3d(df, dim):
     pca.fit(data)
 
     # return to DataFrame of proper size
-    return pd.concat([df.iloc[:, :3], pd.DataFrame(pca.components_.T)], axis=1)
+    reduced = pd.concat([df.iloc[:, :3], pd.DataFrame(pca.components_.T)], axis=1)
+    reduced.index = data.index
+
+    return reduced

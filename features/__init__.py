@@ -34,4 +34,6 @@ def get_all_features(raw_df):
         all_misc
     ], axis=1)
 
+    all_features.index = all_moments.index
+
     return all_features
