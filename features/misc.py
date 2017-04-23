@@ -51,7 +51,7 @@ def misc(question_dfs):
 
         # delay is the length of silent segment before last noisy one
         # intuition: the last noisy segment is
-        idx = len(sequences) - 2 - [*map(lambda x: x[0], sequences)][::-1].index(1)
+        idx = len(sequences) - 2 - [*map(lambda x: x[0], sequences)][::-1].index(True)
 
         # in case there is only one noisy segment (the subject says NO in the time of recording), ignore
         if idx >= 0:
