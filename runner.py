@@ -4,7 +4,7 @@ import os.path as path
 import features
 
 
-def main(raw_path, features_path, get_pca, with_pca):
+def extract_features(raw_path, features_path, get_pca, with_pca):
 
     if get_pca:
         print("Reading {}...".format(raw_path))
@@ -40,13 +40,13 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--input', dest='raw_path')
     parser.add_argument('-o', '--output', dest='features_path')
-    parser.add_argument('-p', '--pca', dest='get_pca', default=False, type=bool)
-    parser.add_argument('-P', '--with_pca', dest='with_pca', default=False, type=bool)
+    parser.add_argument('-p', '--pca', dest='get_pca', action='store_true')
+    parser.add_argument('-P', '--with_pca', dest='with_pca', action='store_true')
 
     args = parser.parse_args()
 
     if args.raw_path is None or not path.isfile(args.raw_path):
-        print(r"Raw data csv doesn't exist: {}".format(args.raw_path))
+        print(r"Input csv doesn't exist: {}".format(args.raw_path))
         exit()
 
-    main(args.raw_path, args.features_path, args.get_pca, args.with_pca)
+    extract_features(args.raw_path, args.features_path, args.get_pca, args.with_pca)
