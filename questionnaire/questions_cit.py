@@ -20,12 +20,16 @@ COLOR_TRUE = 'GREEN'
 COLOR_FALSE = 'RED'
 
 TIME_BLANK = 500
+TIME_BREAK = 120000
 TIME_QUESTION = 4000
 TIME_ANSWER = 2000
 TIME_CONTROL_SHAPE = 2000
 TIME_CATCH_ITEM = 4000
 
 REPEAT_TIMES = 4
+BREAKS = 1
+BREAK_LIST = []
+
 
 AUDIO_SEX = 'male'
 SUBJECT_ID = None
@@ -243,6 +247,7 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     :param q: the question and its answers
     :return: None
     """
+    global BREAK_LIST
     global QUESTION_NUMBER
     QUESTION_NUMBER += 1
 
@@ -256,10 +261,18 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
+    # TOTAL Q'S BY HOW MANY BREAKS
+    if QUESTION_NUMBER in BREAK_LIST:
+        qlist.insert(0, q)  # put question back to queue
+        root.after(tb, change_label, label, 'BREAK')
+        root.after(tb + TIME_BREAK, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
+        return
+
     if (QUESTION_NUMBER) % 4 == 0:
         qlist.insert(0, q)  # put question back to queue
         root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
         return
+
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
@@ -405,6 +418,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-v', '--voice-sex', dest='sex', choices=['male', 'female'])
 
+    parser.add_argument('-b', '--breaks', dest='breaks', type=int, choices=[0, 1, 2, 3, 4])
+
     parser.add_argument('-r', '--repeat', dest='repeat', type=int)
 
     parser.add_argument('-i', '--id', dest='subject_id', required=True)
@@ -426,11 +441,23 @@ if __name__ == "__main__":
 
     if args.devmode:
         TIME_BLANK = 50
+        TIME_BREAK = 1000
         TIME_QUESTION = 400
         TIME_ANSWER = 200
         TIME_CONTROL_SHAPE = 200
         TIME_CATCH_ITEM = 400
 
     main_button = None
+
+    # CREATE BREAK LIST for breaks
+    TOTAL_QUESTIONS = 5 * REPEAT_TIMES
+    BREAKS = args.breaks
+    total_q = 5*REPEAT_TIMES
+    jump = int(total_q / BREAKS)
+    i = int(1)
+    while i < BREAKS+1:
+        print('jump * i', jump * i)
+        BREAK_LIST.append(jump * i)
+        i = i+1
 
     main()
