@@ -24,7 +24,6 @@ def get_all_features(raw_df):
 
     print("Quantizing... ", end="")
     quantized_question_idx_dfs = utils.quantize(question_idx_dfs, n_quant=4)
-    quantized_question_idx_dfs.to_csv('quantized.csv')
     print("Done.")
 
     print("Moments... ", end="")

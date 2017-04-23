@@ -46,7 +46,8 @@ def quantize(question_dfs, n_quant):
     for q_df in question_dfs:
         q = q_df.copy()
         for au in q.iloc[:, SKIP_COLUMNS:-1]:  # don't quantize audio_rms column
-            q.loc[:, au] = sk_cluster.KMeans(n_clusters=n_quant, random_state=1)\
+            q.loc[:, au] = sk_cluster\
+                .KMeans(n_clusters=n_quant, random_state=1)\
                 .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
         question_quantized_dfs.append(q)
