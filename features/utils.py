@@ -157,6 +157,6 @@ def pca_3d(df, dim):
 
     # return to DataFrame of proper size
     reduced = pd.concat([df.iloc[:, :3], pd.DataFrame(pca.components_.T)], axis=1)
-    reduced.index = data.index
+    reduced.index = df.index
 
     return reduced
