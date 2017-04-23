@@ -13,7 +13,7 @@ def discrete_states(question_quantized_dfs):
 
     # for each question df
     for qdf in question_quantized_dfs:
-        q = qdf.iloc[:, utils.SKIP_COLUMNS:]
+        q = qdf.iloc[:, utils.SKIP_COLUMNS:-1]  # don't work on audio_rms column
 
         # for each AU in the question
 
