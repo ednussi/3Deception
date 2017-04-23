@@ -3,6 +3,8 @@ import numpy as np
 import sys
 from sklearn import cluster as sk_cluster
 from questionnaire.fs_receive import RecordFlags
+from sklearn.decomposition import PCA
+import pandas as pd
 
 
 DROP_COLUMNS = ['question', 'record_flag', 'record_index']
@@ -143,3 +145,15 @@ def find_peaks(v, delta=0.1, x = None):
 def count_peaks(v, delta=0.1, x = None):
     return len(find_peaks(v, delta, x))
 
+
+def pca_3d(df, dim):
+
+    # turn data into np array without the ordering columns
+    data = df.iloc[:, 3:].values.T
+
+    # run PCA
+    pca = PCA(n_components=dim, copy=True, whiten=True)
+    pca.fit(data)
+
+    # return to DataFrame of proper size
+    return pd.concat([df.iloc[:, :3], pd.DataFrame(pca.components_.T)], axis=1)

@@ -1,20 +1,5 @@
 import pandas as pd
 from . import utils, moments, discrete_states, dynamic, misc
-from sklearn.decomposition import PCA
-
-
-def pca_3d(df, dim):
-
-    # turn data into np array without the ordering columns
-    NP_Data = df.iloc[:, 3:].values
-
-    # run PCA
-    pca = PCA(n_components=dim, copy=True, whiten=True)
-    pca.fit(NP_Data)
-    shrinked_data = pca.components_
-
-    # return to DataFrame of proper size
-    return pd.concat([df.iloc[:, :3], pd.DataFrame(shrinked_data)], axis=1)
 
 
 def get_all_features(raw_df):
