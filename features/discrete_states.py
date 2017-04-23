@@ -9,7 +9,7 @@ def discrete_states(question_quantized_dfs):
     question_lengths = []
     question_average_volumes = []
 
-    cols = question_quantized_dfs[0].iloc[:, utils.SKIP_COLUMNS:].columns
+    cols = question_quantized_dfs[0].iloc[:, utils.SKIP_COLUMNS:-1].columns
 
     # for each question df
     for qdf in question_quantized_dfs:
