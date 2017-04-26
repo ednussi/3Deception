@@ -1,8 +1,10 @@
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
 import pandas as pd
 import numpy as np
 from features.utils import SKIP_COLUMNS
 from questionnaire.fs_receive import RecordFlags
+from time import time
+from scipy.stats import randint as sp_randint
 
 
 def prepare_data(data_path, test_size):
@@ -22,29 +24,25 @@ def cross_validate_roc_auc(classifier, data, target, folds):
     return scores
 
 
-def train_svm(classifier, data_path):
-    train, test, train_labels, test_labels = prepare_data(data_path, 0.25)
+def find_params(clf, param_dist, data, target):
+    # run randomized search
+    n_iter_search = 20
+    random_search = RandomizedSearchCV(clf, param_distributions=param_dist, n_iter=n_iter_search)
 
-    classifier.fit(train, train_labels)
-    predicted = classifier.predict(test)
-
-    accuracy = 1. * sum(abs(predicted.astype(int) - test_labels.astype(int))) / len(test_labels)
-    print('Accuracy: {}'.format(accuracy))
-
-
-def try_svms():
-    train, test, train_labels, test_labels = prepare_data(data_path, 0.25)
-    n_features = train.shape[1]
+    start = time()
+    random_search.fit(data, target)
+    print("RandomizedSearchCV took %.2f seconds for %d candidates parameter settings."
+          % ((time() - start), n_iter_search))
+    report(random_search.cv_results_)
 
 
-
-    for kernel in ['linear', 'poly', 'rdb', 'sigmoid', 'precomputed']:
-        if kernel == 'poly':
-            for degree in range(1,10):
-
-        if kernel == 'poly' or kernel == 'rbf' or kernel == 'sigmoid':
-            for gamma in np.linspace(n_features,1,10):
-
-        if 
-
-
+def report(results, n_top=3):
+    for i in range(1, n_top + 1):
+        candidates = np.flatnonzero(results['rank_test_score'] == i)
+        for candidate in candidates:
+            print("Model with rank: {0}".format(i))
+            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
+                results['mean_test_score'][candidate],
+                results['std_test_score'][candidate]))
+            print("Parameters: {0}".format(results['params'][candidate]))
+            print("")
