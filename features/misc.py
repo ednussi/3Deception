@@ -25,21 +25,20 @@ def misc(question_dfs):
     audio_rms_delay = []
 
     for ans in question_dfs:
-        # Smiles
-        # TODO Maybe separate to left-right-center smile
+        # ================== Smiles ==================
         num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
                               utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
 
         num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
         num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD))
 
-        # Blinks
-        # TODO Maybe separate to left-right blinks
+        # ================== Blinks ==================
         num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
                               utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
         num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
         num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
 
+        # ================== Response delay ==================
         audio = ans.loc[:, 'audio_rms']
         threshold_audio = (audio > 1).values.tolist()
 
@@ -68,6 +67,10 @@ def misc(question_dfs):
         else:
             audio_rms_delay.append(0)
 
+        # ================== Respone duration ==================
+        idx = len(sequences) - 1 - [*map(lambda x: x[0], sequences)][::-1].index(True)
+        response_dur = sequences[idx][2]
+
     df = pd.DataFrame({
         'smiles': num_smiles,
         'smiles_right': num_smiles_right,
@@ -75,7 +78,8 @@ def misc(question_dfs):
         'blinks': num_blinks,
         'blinks_right': num_blinks_right,
         'blinks_left':num_blinks_left,
-        'response_delay': audio_rms_delay
+        'response_delay': audio_rms_delay,
+        'response_duration': response_dur
     })
 
     return df
