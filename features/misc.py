@@ -11,10 +11,14 @@ def misc(question_dfs):
     # signals of both lip corners, where peak is defined as a local minimum which is higher by at
     # least 0.75 as compared to its surrounding points.
     num_smiles = []
+    num_smiles_right = []
+    num_smiles_left = []
 
     # The amount of blinks was calculated in a
     # similar manner, with a threshold of 0.2.
     num_blinks = []
+    num_blinks_right = []
+    num_blinks_left = []
 
     # Time delay till first continuous window with high volume
     # The audio signal is first smoothed to remove narrow peaks
@@ -26,10 +30,15 @@ def misc(question_dfs):
         num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
                               utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
 
+        num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
+        num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD))
+
         # Blinks
         # TODO Maybe separate to left-right blinks
         num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
                               utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
+        num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
+        num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
 
         audio = ans.loc[:, 'audio_rms']
         threshold_audio = (audio > 1).values.tolist()
@@ -60,8 +69,12 @@ def misc(question_dfs):
             audio_rms_delay.append(0)
 
     df = pd.DataFrame({
-        'smiles': num_smiles, 
+        'smiles': num_smiles,
+        'smiles_right': num_smiles_right,
+        'smiles_left': num_blinks_left,
         'blinks': num_blinks,
+        'blinks_right': num_blinks_right,
+        'blinks_left':num_blinks_left,
         'response_delay': audio_rms_delay
     })
 
