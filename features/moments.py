@@ -20,9 +20,9 @@ def moments(question_dfs):
         q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].min(axis=1)
         q_min.index = [col + '_min' for col in q_min.index]
 
-        q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].max(axis=1)
-        q_min.index = [col + '_min' for col in q_min.index]
+        q_max = q.iloc[:, utils.SKIP_COLUMNS:-1].max(axis=1)
+        q_max.index = [col + '_max' for col in q_max.index]
 
-        question_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt], axis=0))
+        question_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
 
     return pd.concat(question_moments, axis=1).T
