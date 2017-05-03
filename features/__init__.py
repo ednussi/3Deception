@@ -4,7 +4,7 @@ from . import utils, moments, discrete_states, dynamic, misc
 
 def get_all_features(raw_df):
     print("Splitting answers... ", end="")
-    question_idx_dfs = utils.split_df_to_questions(raw_df)
+    question_idx_dfs = utils.split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
@@ -38,5 +38,26 @@ def get_all_features(raw_df):
 
     return all_features
 
-def correlate_features():
-    return 0
+def correlate_features(features_pd,top_features_num):
+    # top_features_num - How many features u want
+    # return pandas of name of feature and its correlation
+    correlation_to_flag = abs(features_pd.corr()['record_flag'])
+    correlation_to_flag.sort(ascending=False)
+    correlation_to_flag = correlation_to_flag.drop('record_flag')
+    top_features = correlation_to_flag[0:top_features_num]
+    return top_features
+
+def take_top_features(features_pd,top_features_num):
+    top_features = correlate_features(features_pd, top_features_num)
+    return features_pd[top_features.index]
+
+"""
+To get here for debug reasons:
+import os
+os.chdir('/cs/engproj/3deception/3deception')
+import features
+from features import utils, moments, discrete_states, dynamic, misc
+import pandas as pd
+raw_df = pd.read_csv('output_22-4-17_17-00-00.csv')
+question_idx_dfs = utils.split_df_to_questions(raw_df)
+"""

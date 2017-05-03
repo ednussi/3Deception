@@ -7,18 +7,22 @@ from sklearn.decomposition import PCA
 import pandas as pd
 
 
-DROP_COLUMNS = ['question', 'record_flag', 'record_index']
+DROP_COLUMNS = ['question', 'record_flag']
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
-def split_df_to_questions(df):
+def split_df_to_answers(df):
     """
     Split raw data frame by answers, skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
+    answers_df.index = 'question_' + answers_df.question.astype(str) \
+        + '__rid_' + answers_df.record_index.astype(str)
+    answers_df = answers_df[answers_df.record_index != 2]
 
-    return [t[1] for t in answers_df.drop(['timestamp'], axis=1)[answers_df.record_index != 2].groupby(DROP_COLUMNS)]
+    return [t[1].drop(['question', 'record_index'], axis=1) 
+        for t in answers_df.groupby(DROP_COLUMNS)]
 
 
 def scale(val):
@@ -160,3 +164,28 @@ def pca_3d(df, dim):
     reduced.index = df.index
 
     return reduced
+
+
+def select_features_from_model(clf, X, y):
+    from sklearn.feature_selection import SelectFromModel
+    clf = clf.fit(X, y)
+
+    model = SelectFromModel(clf, prefit=True)
+    X_new = model.transform(X)
+
+    return X_new
+
+
+def extract_select_tsflesh_features(X):
+    from tsfresh import extract_relevant_features
+
+    y = X.record_flag
+
+    features = X
+    features['id'] = features.index
+    features.drop(['record_flag'], axis=1)
+
+    features_filtered_direct = extract_relevant_features(
+        features, y, column_id='id', column_sort='timestamp')
+
+    return features_filtered_direct
