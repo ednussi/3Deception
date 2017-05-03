@@ -17,6 +17,12 @@ def moments(question_dfs):
         q_kurt = q.iloc[:, utils.SKIP_COLUMNS:-1].kurt()
         q_kurt.index = [col + '_kurt' for col in q_kurt.index]
 
+        q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].min(axis=1)
+        q_min.index = [col + '_min' for col in q_min.index]
+
+        q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].max(axis=1)
+        q_min.index = [col + '_min' for col in q_min.index]
+
         question_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt], axis=0))
 
     return pd.concat(question_moments, axis=1).T
