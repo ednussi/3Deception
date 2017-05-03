@@ -5,6 +5,14 @@ import subprocess
 import random
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn import svm
+from sklearn.model_selection import train_test_split
+
+def split_data(csv_path, test_size = 0.25, random_state=True)
+    raw = pd.read_csv(csv_path)
+    raw_true = raw[raw.record_flag == 3]
+    raw_false = raw[raw.record_flag == 4]
+    X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size = 0.4, random_state = 0)
+    return X_train, X_test, y_train, y_test
 
 def prepare_data(csv_path):
     raw = pd.read_csv(csv_path)
@@ -55,6 +63,8 @@ def run_svm(shuffled_train_data, shuffled_train_labels, shuffled_test_data, shuf
     matches = np.sum(np.logical_xor(predictions,shuffled_test_labels))
     acc = matches/len(predictions)
     print('SVM ACC: ', acc)
+
+
 
 
 ###### MAIN PART ######
