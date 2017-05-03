@@ -17,12 +17,23 @@ def moments(question_dfs):
         q_kurt = q.iloc[:, utils.SKIP_COLUMNS:-1].kurt()
         q_kurt.index = [col + '_kurt' for col in q_kurt.index]
 
-        q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].min(axis=1)
+        q_min = q.iloc[:, utils.SKIP_COLUMNS:-1].min()
         q_min.index = [col + '_min' for col in q_min.index]
 
-        q_max = q.iloc[:, utils.SKIP_COLUMNS:-1].max(axis=1)
+        q_max = q.iloc[:, utils.SKIP_COLUMNS:-1].max()
         q_max.index = [col + '_max' for col in q_max.index]
 
         question_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
 
     return pd.concat(question_moments, axis=1).T
+
+"""
+To get here for debug reasons:
+os.chdir('/cs/engproj/3deception/3deception')
+import features
+from features import utils, moments, discrete_states, dynamic, misc
+import pandas as pd
+raw_df = pd.read_csv('output_22-4-17_17-00-00.csv')
+question_dfs = utils.split_df_to_questions(raw_df)
+q0 = question_dfs[0]
+"""

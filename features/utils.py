@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import sys
 from sklearn import cluster as sk_cluster
-from questionnaire.fs_receive import RecordFlags
+from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 

@@ -3,7 +3,8 @@ import pandas as pd
 import os.path as path
 import features
 
-
+"run in shell command:"
+"python3 runner.py -i output_22-4-17_17-00-00.csv"
 def extract_features(raw_path, with_pca):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 

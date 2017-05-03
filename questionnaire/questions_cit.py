@@ -7,7 +7,7 @@ import tkinter as tk
 import argparse
 import pygame
 from PIL import ImageTk, Image
-from fs_receive import RecordFlags
+from constants import RecordFlags
 from prepare_questions import *
 
 
