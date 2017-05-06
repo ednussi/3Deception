@@ -7,7 +7,7 @@ import tkinter as tk
 import argparse
 import pygame
 from PIL import ImageTk, Image
-from fs_receive import RecordFlags
+from constants import RecordFlags
 from prepare_questions import *
 
 
@@ -29,8 +29,9 @@ TIME_CATCH_ITEM = 4000
 REPEAT_TIMES = 4
 BREAKS = 1
 BREAK_LIST = []
-NUM_CONTROL_ITEMS = 3
 
+NUM_CONTROL_ITEMS = 3
+NO_AUDIO = True
 AUDIO_SEX = 'male'
 SUBJECT_ID = None
 
@@ -203,8 +204,10 @@ def show_example_q(sock, root, label, b, q, b_q):
     # Send question control flag
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION)
-    # Read question out loud
-    root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    
+    if not NO_AUDIO:
+        # Read question out loud
+        root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
@@ -228,9 +231,11 @@ def show_example_q(sock, root, label, b, q, b_q):
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, flag)
-        # Read answer out loud
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   read_question, a[IDX_AUDIO])
+
+        if not NO_AUDIO:
+            # Read answer out loud
+            root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                       read_question, a[IDX_AUDIO])
 
     # Show button_next_question
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
@@ -279,8 +284,10 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # Send question control flag
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
-    # Read question out loud
-    root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    
+    if not NO_AUDIO:
+        # Read question out loud
+        root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
@@ -304,9 +311,11 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, flag)
-        # Read answer out loud
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   read_question, a[IDX_AUDIO])
+        
+        if not NO_AUDIO:
+            # Read answer out loud
+            root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                       read_question, a[IDX_AUDIO])
 
     # Show button_next_question
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
@@ -424,17 +433,26 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--id', dest='subject_id', required=True)
 
+    parser.add_argument('-s', '--no-sound', dest='no_sound')
+
     parser.add_argument('-d', '--devmode', dest='devmode', action='store_true')
 
     parser.add_argument('-a', '--numanswers', dest='numanswers', type=int, choices=[3, 4, 5, 6])
 
-    parser.set_defaults(devmode=False, sex='male', repeat=4, numanswers=3)
+    parser.set_defaults(
+        devmode=False, 
+        sex='male', 
+        repeat=20, 
+        numanswers=3, 
+        no_sound=True
+        )
 
     args = parser.parse_args()
 
     SUBJECT_ID = args.subject_id
 
     NUM_CONTROL_ITEMS = args.numanswers
+    NO_AUDIO = args.no_sound
 
     if args.repeat is not None:
         REPEAT_TIMES = args.repeat

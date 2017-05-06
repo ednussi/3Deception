@@ -3,7 +3,8 @@ import pandas as pd
 import os.path as path
 import features
 
-
+"run in shell command:"
+"python3 runner.py -i output_22-4-17_17-00-00.csv"
 def extract_features(raw_path, with_pca):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
@@ -13,13 +14,16 @@ def extract_features(raw_path, with_pca):
     print("Extracting features:")
     all_features = features.get_all_features(raw_df)
 
+    print("Choosing features with best correlation")
+    top_features = features.take_top_features(all_features,30)
+
     print("Saving all features to {}...".format(features_path), end="")
-    all_features.to_csv(features_path)
+    top_features.to_csv(features_path)
 
     if with_pca is not None:
         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
         print("Running PCA...")
-        pca_features = features.utils.pca_3d(all_features, with_pca)
+        pca_features = features.utils.pca_3d(top_features, with_pca)
         print("Saving PCA features to {}...".format(pca_path), end="")
         pca_features.to_csv(pca_path)
 
