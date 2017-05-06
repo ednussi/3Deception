@@ -6,6 +6,7 @@ import subprocess
 import tkinter as tk
 import argparse
 import pygame
+import numpy as np
 from PIL import ImageTk, Image
 from constants import RecordFlags
 from prepare_questions import *
@@ -433,14 +434,15 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--id', dest='subject_id', required=True)
 
-    parser.add_argument('-s', '--no-sound', dest='no_sound')
+    parser.add_argument('-s', '--no-sound', dest='no_sound', action='store_true')
 
     parser.add_argument('-d', '--devmode', dest='devmode', action='store_true')
 
     parser.add_argument('-a', '--numanswers', dest='numanswers', type=int, choices=[3, 4, 5, 6])
 
     parser.set_defaults(
-        devmode=False, 
+        devmode=False,
+        breaks=4,
         sex='male', 
         repeat=20, 
         numanswers=3, 
@@ -472,12 +474,8 @@ if __name__ == "__main__":
     # CREATE BREAK LIST for breaks
     TOTAL_QUESTIONS = 5 * REPEAT_TIMES
     BREAKS = args.breaks
-    total_q = 5*REPEAT_TIMES
-    jump = int(total_q / BREAKS)
-    i = int(1)
-    while i < BREAKS+1:
-        print('jump * i', jump * i)
-        BREAK_LIST.append(jump * i)
-        i = i+1
+
+    jump = int(TOTAL_QUESTIONS / BREAKS)
+    BREAK_LIST = (np.array(range(1, BREAKS+1)) * jump).tolist()
 
     main()
