@@ -12,7 +12,7 @@ from prepare_questions import *
 
 
 #####################
-# Run command line: questions_cit.py -d -i griffonn@gmail.com -r 1 -a 3
+# Run command line: questions_cit.py -d -i griffonn@gmail.com -r 1 -a 3 -b 4
 #####################
 
 
@@ -29,7 +29,7 @@ TIME_CATCH_ITEM = 4000
 REPEAT_TIMES = 4
 BREAKS = 1
 BREAK_LIST = []
-
+NUM_CONTROL_ITEMS = 3
 
 AUDIO_SEX = 'male'
 SUBJECT_ID = None
@@ -211,7 +211,7 @@ def show_example_q(sock, root, label, b, q, b_q):
     random.shuffle(answers)
 
     # get two false answers
-    answers = answers[:2]
+    answers = answers[:NUM_CONTROL_ITEMS-1]
 
     # true answer is never first
     true_idx = random.randint(1, len(answers))
@@ -264,11 +264,11 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # TOTAL Q'S BY HOW MANY BREAKS
     if QUESTION_NUMBER in BREAK_LIST:
         qlist.insert(0, q)  # put question back to queue
-        root.after(tb, change_label, label, 'BREAK')
+        root.after(tb, change_label, label, 'הפסקה')
         root.after(tb + TIME_BREAK, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
         return
 
-    if (QUESTION_NUMBER) % 4 == 0:
+    if (QUESTION_NUMBER) % 5 == 0:
         qlist.insert(0, q)  # put question back to queue
         root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
         return
@@ -287,7 +287,7 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     random.shuffle(answers)
 
     # get two false answers
-    answers = answers[:2]
+    answers = answers[:NUM_CONTROL_ITEMS-1]
 
     # true answer is never first
     true_idx = random.randint(1, len(answers))
@@ -433,6 +433,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     SUBJECT_ID = args.subject_id
+
+    NUM_CONTROL_ITEMS = args.numanswers
 
     if args.repeat is not None:
         REPEAT_TIMES = args.repeat
