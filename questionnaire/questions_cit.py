@@ -81,7 +81,7 @@ def set_window_mid_screen():
     :return: tk root, width and height of new window
     """
     root = tk.Tk()  # create a Tk root window
-    root.configure(background='black')
+    root.configure(background='grey')
 
     w = 0  # width for the Tk root
     h = 0  # height for the Tk root
@@ -101,7 +101,7 @@ def change_label(label, t):
     :param t:
     :return:
     """
-    label.config(text='%s' % t, fg="grey", bg='black', font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
+    label.config(text='%s' % t, fg="black", bg='grey', font=("Helvetica", 72), justify=tk.CENTER, anchor=tk.CENTER)
 
 
 def show_control_shape(root, flag=COLOR_FALSE, time=1000):
@@ -382,7 +382,7 @@ def run_example_qs(root, sock, receiver, b_q, label):
     qlist = [item for item in prepare_cit(path='data/example_questions_cit.csv', male=AUDIO_SEX == 'male').items()]
 
     b = tk.Button(root,bd=0, text="לחץ להתחיל שאלת דוגמא", height=1, width=30, font=("Helvetica", 72),
-                  fg='gray', bg='black', activebackground='black', activeforeground='gray',
+                  fg='black', bg='grey', activebackground='grey', activeforeground='black',
                   command=lambda: show_example_q(sock, root, label, b, get_next_question(root, receiver, sock, qlist), b_q))
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
@@ -407,7 +407,7 @@ def main():
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
     b = tk.Button(root, bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72),
-                  fg='grey', bg='black', activebackground='black', activeforeground='gray',
+                  fg='black', bg='grey', activebackground='grey', activeforeground='black',
                   command=lambda: show_next_question(sock, root, label, b,
                                                      get_next_question(root, receiver, sock, qlist), receiver, qlist))
 

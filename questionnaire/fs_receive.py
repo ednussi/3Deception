@@ -383,7 +383,7 @@ def record():
         if p is not None:
             p.terminate()
 
-        raise e
+        # raise e
 
 
 if __name__ == "__main__":
