@@ -35,17 +35,31 @@ def cv_split_df_to_answers(df):
     Split 5 existing questions to cross-validation dataset:
      3 questions for training, 1 for validation, 1 for test
     """
-    for test_question_number in df.questions.unique():
-        train_validation_questions = df[df.questions != test_question_number]
+    for test_question_number in df.question_type.unique():
 
-        for validation_question_number in train_validation_questions.question.unique():
-            train_questions = train_validation_questions[train_validation_questions.questions != validation_question_number]
+        if test_question_number == 0:
+            continue
+
+        train_validation_questions = df[df.question_type != test_question_number]
+
+        test_questions = df[df.question_type == test_question_number]
+
+        for validation_question_number in train_validation_questions.question_type.unique():
+
+            if validation_question_number == 0:
+                continue
+
+            train_questions = \
+                train_validation_questions[train_validation_questions.question_type != validation_question_number]
 
             validation_questions = \
-                train_validation_questions[train_validation_questions.questions == validation_question_number]
+                train_validation_questions[train_validation_questions.question_type == validation_question_number]
 
             train = split_df_to_answers(train_questions)
-            validation = split_df_to_answers(validation_question_number)
+            validation = split_df_to_answers(validation_questions)
+            test = split_df_to_answers(test_questions)
+
+            yield (train, validation, test)
 
 
 def scale(val):
