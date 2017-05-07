@@ -140,6 +140,14 @@ AUDIO_FLAGS = {
 
 }
 
+QUESTION_TYPES = {
+    'birth_country': 4,
+    'birth_month': 5,
+    'first_name': 1,
+    'mother_name': 3,
+    'surname': 2,
+}
+
 
 def prepare_slt(path="data/questions_slt.csv"):
     """
@@ -205,6 +213,7 @@ def prepare_cit(path="data/questions_cit.csv", male=True):
             # Format truthful and deceptive answers
             rowname = row[0][:-1] if row[0].endswith('\u200f') else row[0]
             question_templates[row[0]] = {
+                "type": QUESTION_TYPES[rowname],
                 "question": (AUDIO_FLAGS.get(rowname+'_male', 'no_audio')
                              if male else AUDIO_FLAGS.get(rowname+'_female', 'no_audio'), row[1]),
                 "true": (AUDIO_FLAGS.get(row[2][:-1], 'no_audio'), row[2]),

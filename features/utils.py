@@ -15,7 +15,8 @@ SKIP_COLUMNS = len(DROP_COLUMNS)
 
 def split_df_to_answers(df):
     """
-    Split raw data frame by answers, skip first answer for every question (buffer item)
+    Split raw data frame by questions and answers, 
+    skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df.index = 'question_' + answers_df.question.astype(str) \
@@ -24,6 +25,27 @@ def split_df_to_answers(df):
 
     return [t[1].drop(['question', 'record_index'], axis=1) 
         for t in answers_df.groupby(DROP_COLUMNS)]
+
+
+def cv_split_df_to_answers(df):
+    """
+    Split raw data frame by questions and answers, 
+    skip first answer for every question (buffer item).
+    
+    Split 5 existing questions to cross-validation dataset:
+     3 questions for training, 1 for validation, 1 for test
+    """
+    for test_question_number in df.questions.unique():
+        train_validation_questions = df[df.questions != test_question_number]
+
+        for validation_question_number in train_validation_questions.question.unique():
+            train_questions = train_validation_questions[train_validation_questions.questions != validation_question_number]
+
+            validation_questions = \
+                train_validation_questions[train_validation_questions.questions == validation_question_number]
+
+            train = split_df_to_answers(train_questions)
+            validation = split_df_to_answers(validation_question_number)
 
 
 def scale(val):
@@ -38,12 +60,12 @@ def scale(val):
     return ((val - min(val)) / (max(val)-min(val))) * (top-bot) + bot
 
 
-def quantize(question_dfs, n_quant):
+def quantize(question_dfs, n_clusters):
     """
     Quantize values in data frames using K-means
     Args:
         question_dfs: data frames, note that first two columns are not quantized
-        n_quant: number of clusters
+        n_clusters: number of clusters
 
     Returns:
         list of quantized data frames
@@ -54,7 +76,7 @@ def quantize(question_dfs, n_quant):
         q = q_df.copy()
         for au in q.iloc[:, SKIP_COLUMNS:]:
             q.loc[:, au] = sk_cluster\
-                .KMeans(n_clusters=n_quant, random_state=1)\
+                .KMeans(n_clusters=n_clusters, random_state=1)\
                 .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
         question_quantized_dfs.append(q)
@@ -71,7 +93,6 @@ def runs_of_ones_list(bits):
     Returns:
         array of lengths
     """
-
 
     return [sum(g) for b, g in itertools.groupby(bits) if b]
 
@@ -117,7 +138,7 @@ def find_peaks(v, delta=0.1, x = None):
     mn, mx = np.Inf, -np.Inf
     mnpos, mxpos = np.NaN, np.NaN
 
-    lookformax = True
+    look_for_max = True
 
     for i in np.arange(len(v)):
         this = v[i]
@@ -128,20 +149,18 @@ def find_peaks(v, delta=0.1, x = None):
             mn = this
             mnpos = x[i]
 
-        if lookformax:
+        if look_for_max:
             if this < mx-delta:
-            # if this < delta:
                 maxtab.append((mxpos, mx))
                 mn = this
                 mnpos = x[i]
-                lookformax = False
+                look_for_max = False
         else:
             if this > mn+delta:
-            # if this > delta:
                 mintab.append((mnpos, mn))
                 mx = this
                 mxpos = x[i]
-                lookformax = True
+                look_for_max = True
 
     # return np.array(maxtab), np.array(mintab)
     return np.array(maxtab)
@@ -173,7 +192,7 @@ def get_all_features(raw_df):
     print("Done.")
 
     print("Quantizing... ", end="")
-    quantized_question_idx_dfs = quantize(question_idx_dfs, n_quant=4)
+    quantized_question_idx_dfs = quantize(question_idx_dfs, n_clusters=4)
     print("Done.")
 
     print("Moments... ", end="")

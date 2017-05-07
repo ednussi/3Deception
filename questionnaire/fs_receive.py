@@ -16,6 +16,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
 RECORD_SECONDS = 1/30
+EXPECT_QUESTION_TYPE = False
 
 q_sock = None
 fs_sock = None
@@ -183,9 +184,9 @@ class FaceShiftReceiver:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
 
-                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["record_flag"],
-                                                            data_dict["record_index"], blend_shape_values, 
-                                                            audioop.rms(audio_stream.read(CHUNK), 2)))
+                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["question_type"],
+                                                            data_dict["record_flag"], data_dict["record_index"],
+                                                            blend_shape_values, audioop.rms(audio_stream.read(CHUNK), 2)))
 
                 # screenshot = ImageGrab.grab().getdata()
                 # video_out.write(np.array(screenshot, dtype='uint8').reshape(screenshot.size[1], screenshot.size[0], 3))
@@ -222,35 +223,26 @@ def save_and_exit():
 
     print("Stop signal received")
 
-    # stop_AVrecording('output')
-
     fn_token = time.time()
 
     fn = "data/output/fs_shapes.{}.csv".format(fn_token)
-    video_fn = "data/output/video.{}.wav".format(fn_token)
-
-    # video_out.release()
-    # cv2.destroyAllWindows()
 
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
-        header = ["question", "record_flag", "record_index", "timestamp"]
+        header = ["question", "question_type", "record_flag", "record_index", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
         header.append("audio_rms")
         wr.writerow(header)
 
         for block in DATA["blend_shapes"]["values"]:
-            row = [block[1], block[2], block[3], block[0]]
+            row = [block[1], block[2], block[3], block[4], block[0]]
             row.extend(map(lambda x: str(x), block[4]))
             row.append(block[5])
 
             wr.writerow(row)
 
-
-
     print("FS blendshapes output saved to " + fn)
-    # print("Video output saved to " + video_fn)
 
     global q_sock
     global fs_sock
@@ -307,21 +299,28 @@ def read_block(sock, fsr, data_dict):
 
 
 def read_record_flag(sock, data_dict):
+    global EXPECT_QUESTION_TYPE
+
     try:
         msg = sock.recv(4096)
 
         if int(msg.decode('utf-8')) == RecordFlags.RECORD_FLAG_END_SESSION:
             save_and_exit()
 
-        data_dict["record_flag"] = int(msg.decode('utf-8'))
+        if EXPECT_QUESTION_TYPE:
+            data_dict["question_type"] = int(msg.decode('utf-8'))
+            EXPECT_QUESTION_TYPE = False
+        else:
+            data_dict["record_flag"] = int(msg.decode('utf-8'))
 
         # if got RECORD_FLAG_PAUSE, increment question number and reset idx
         if data_dict["record_flag"] == RecordFlags.RECORD_FLAG_PAUSE:
             data_dict["record_index"] = 0
             data_dict["question"] += 1
-        # if got RECORD_FLAG_CHANGE, increment idx
+        # if got RECORD_FLAG_CHANGE, increment idx and expect question type in next flag
         elif data_dict["record_flag"] == RecordFlags.RECORD_FLAG_CHANGE:
             data_dict["record_index"] += 1
+            EXPECT_QUESTION_TYPE = True
 
 
     except socket.error as e:

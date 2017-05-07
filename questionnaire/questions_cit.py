@@ -198,6 +198,7 @@ def show_example_q(sock, root, label, b, q, b_q):
     root.after(tb, change_label, label, '')
     # Send blank control flag
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+    root.after(tb, send_record_flag_udp, sock, q[IDX_QUESTION_DATA]["type"])
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
     # Show question
@@ -263,8 +264,10 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
 
     # Show blank
     root.after(tb, change_label, label, '')
+
     # Send blank control flag
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+    root.after(tb, send_record_flag_udp, sock, q[IDX_QUESTION_DATA]["type"])
     root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
 
     # TOTAL Q'S BY HOW MANY BREAKS
