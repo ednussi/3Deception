@@ -1,42 +1,11 @@
 import argparse
 import pandas as pd
 import os.path as path
-import features
+from features import utils
 
 
-def extract_tsfresh_features():
-    os.chdir(r'\users\gregory\dropbox\code\3deception')
-    df = pd.read_csv('output_22-4-17_17-00-00.csv')
-    from enum import IntEnum
-    class RecordFlags(IntEnum):
-        RECORD_FLAG_EMPTY = 0
-        RECORD_FLAG_PAUSE = 1
-        RECORD_FLAG_QUESTION = 2
-        RECORD_FLAG_ANSWER_TRUE = 3
-        RECORD_FLAG_ANSWER_FALSE = 4
-        RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
-        RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
-        RECORD_FLAG_START_SESSION = 7
-        RECORD_FLAG_END_SESSION = 8
-        RECORD_FLAG_CHANGE = 9
-        RECORD_FLAG_EXAMPLE_QUESTION = 10
-        RECORD_FLAG_EXAMPLE_ANSWER_TRUE = 11
-        RECORD_FLAG_EXAMPLE_ANSWER_FALSE = 12
-        RECORD_FLAG_CATCH_ITEM = 13
-    DROP_COLUMNS = ['question', 'record_flag', 'record_index']
-    ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-    SKIP_COLUMNS = len(DROP_COLUMNS)
-    answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
-    qdfs = [t[1] for t in answers_df[answers_df.record_index != 2].groupby(DROP_COLUMNS)]
-    from tsfresh import extract_features
-    fdfs = []
-    for d in qdfs:
-        fdfs.append(d.drop(['record_flag', 'record_index'], axis=1))
-    ddfs, y = [], []
-    for i, x in enumerate(fdfs):
-        ddfs.append(extract_features(x, column_id="question", column_sort="timestamp"))
-        y.append(qdfs[i].record_flag.iloc[0])
-
+"run in shell command:"
+"python3 runner.py -i output_22-4-17_17-00-00.csv"
 
 
 def extract_features(raw_path, with_pca):
@@ -46,15 +15,18 @@ def extract_features(raw_path, with_pca):
     raw_df = pd.read_csv(raw_path)
 
     print("Extracting features:")
-    all_features = features.get_all_features(raw_df)
+    all_features = utils.get_all_features(raw_df)
+
+    print("Choosing features with best correlation")
+    top_features = utils.take_top_features(all_features,30)
 
     print("Saving all features to {}...".format(features_path), end="")
-    all_features.to_csv(features_path)
+    top_features.to_csv(features_path)
 
     if with_pca is not None:
         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
         print("Running PCA...")
-        pca_features = features.utils.pca_3d(all_features, with_pca)
+        pca_features = utils.pca_3d(top_features, with_pca)
         print("Saving PCA features to {}...".format(pca_path), end="")
         pca_features.to_csv(pca_path)
 

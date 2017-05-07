@@ -4,36 +4,18 @@ import select
 import csv
 import struct
 import time
-from enum import IntEnum
 import pyaudio
 import audioop
 # from PIL import ImageGrab
 # import numpy as np
 # import cv2
-
+from constants import RecordFlags
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
 RECORD_SECONDS = 1/30
-
-
-class RecordFlags(IntEnum):
-    RECORD_FLAG_EMPTY = 0
-    RECORD_FLAG_PAUSE = 1
-    RECORD_FLAG_QUESTION = 2
-    RECORD_FLAG_ANSWER_TRUE = 3
-    RECORD_FLAG_ANSWER_FALSE = 4
-    RECORD_FLAG_CONTROL_SHAPE_TRUE = 5
-    RECORD_FLAG_CONTROL_SHAPE_FALSE = 6
-    RECORD_FLAG_START_SESSION = 7
-    RECORD_FLAG_END_SESSION = 8
-    RECORD_FLAG_CHANGE = 9
-    RECORD_FLAG_EXAMPLE_QUESTION = 10
-    RECORD_FLAG_EXAMPLE_ANSWER_TRUE = 11
-    RECORD_FLAG_EXAMPLE_ANSWER_FALSE = 12
-    RECORD_FLAG_CATCH_ITEM = 13
 
 q_sock = None
 fs_sock = None

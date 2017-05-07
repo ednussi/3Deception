@@ -2,24 +2,28 @@ import itertools
 import numpy as np
 import sys
 from sklearn import cluster as sk_cluster
-from questionnaire.fs_receive import RecordFlags
+from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
 
-DROP_COLUMNS = ['question', 'record_flag', 'record_index']
+DROP_COLUMNS = ['question', 'record_flag']
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
-def split_df_to_questions(df):
+def split_df_to_answers(df):
     """
     Split raw data frame by answers, skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
+    answers_df.index = 'question_' + answers_df.question.astype(str) \
+        + '__rid_' + answers_df.record_index.astype(str)
+    answers_df = answers_df[answers_df.record_index != 2]
 
-    return [t[1] for t in answers_df.drop(['timestamp'], axis=1)[answers_df.record_index != 2].groupby(DROP_COLUMNS)]
+    return [t[1].drop(['question', 'record_index'], axis=1) 
+        for t in answers_df.groupby(DROP_COLUMNS)]
 
 
 def scale(val):
@@ -165,7 +169,7 @@ def pca_3d(df, dim):
 
 def get_all_features(raw_df):
     print("Splitting answers... ", end="")
-    question_idx_dfs = split_df_to_questions(raw_df)
+    question_idx_dfs = split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
@@ -198,3 +202,55 @@ def get_all_features(raw_df):
     all_features.index = all_moments.index
 
     return all_features
+
+
+def select_features_from_model(clf, X, y):
+    from sklearn.feature_selection import SelectFromModel
+    clf = clf.fit(X, y)
+
+    model = SelectFromModel(clf, prefit=True)
+    X_new = model.transform(X)
+
+    return X_new
+
+
+def extract_select_tsflesh_features(X):
+    from tsfresh import extract_relevant_features
+
+    y = X.record_flag
+
+    features = X
+    features['id'] = features.index
+    features.drop(['record_flag'], axis=1)
+
+    features_filtered_direct = extract_relevant_features(
+        features, y, column_id='id', column_sort='timestamp')
+
+    return features_filtered_direct
+
+
+def correlate_features(features_pd,top_features_num):
+    # top_features_num - How many features u want
+    # return pandas of name of feature and its correlation
+    correlation_to_flag = abs(features_pd.corr()['record_flag'])
+    correlation_to_flag.sort(ascending=False)
+    correlation_to_flag = correlation_to_flag.drop('record_flag')
+    top_features = correlation_to_flag[0:top_features_num]
+    return top_features
+
+
+def take_top_features(features_pd,top_features_num):
+    top_features = correlate_features(features_pd, top_features_num)
+    return features_pd[top_features.index]
+
+
+"""
+To get here for debug reasons:
+import os
+os.chdir('/cs/engproj/3deception/3deception')
+import features
+from features import utils, moments, discrete_states, dynamic, misc
+import pandas as pd
+raw_df = pd.read_csv('output_22-4-17_17-00-00.csv')
+question_idx_dfs = utils.split_df_to_questions(raw_df)
+"""

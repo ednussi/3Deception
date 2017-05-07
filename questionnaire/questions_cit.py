@@ -6,13 +6,14 @@ import subprocess
 import tkinter as tk
 import argparse
 import pygame
+import numpy as np
 from PIL import ImageTk, Image
-from fs_receive import RecordFlags
-from prepare_questions import *
+from constants import RecordFlags
+from questionnaire.prepare_questions import *
 
 
 #####################
-# Run command line: questions_cit.py -d -i griffonn@gmail.com -r 1 -a 3
+# Run command line: questions_cit.py -d -i griffonn@gmail.com -r 1 -a 3 -b 4
 #####################
 
 
@@ -30,7 +31,8 @@ REPEAT_TIMES = 4
 BREAKS = 1
 BREAK_LIST = []
 
-
+NUM_CONTROL_ITEMS = 3
+NO_AUDIO = True
 AUDIO_SEX = 'male'
 SUBJECT_ID = None
 
@@ -203,15 +205,17 @@ def show_example_q(sock, root, label, b, q, b_q):
     # Send question control flag
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION)
-    # Read question out loud
-    root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    
+    if not NO_AUDIO:
+        # Read question out loud
+        root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
     # get two false answers
-    answers = answers[:2]
+    answers = answers[:NUM_CONTROL_ITEMS-1]
 
     # true answer is never first
     true_idx = random.randint(1, len(answers))
@@ -228,9 +232,11 @@ def show_example_q(sock, root, label, b, q, b_q):
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, flag)
-        # Read answer out loud
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   read_question, a[IDX_AUDIO])
+
+        if not NO_AUDIO:
+            # Read answer out loud
+            root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                       read_question, a[IDX_AUDIO])
 
     # Show button_next_question
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
@@ -264,11 +270,11 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # TOTAL Q'S BY HOW MANY BREAKS
     if QUESTION_NUMBER in BREAK_LIST:
         qlist.insert(0, q)  # put question back to queue
-        root.after(tb, change_label, label, 'BREAK')
+        root.after(tb, change_label, label, 'הפסקה')
         root.after(tb + TIME_BREAK, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
         return
 
-    if (QUESTION_NUMBER) % 4 == 0:
+    if (QUESTION_NUMBER) % 5 == 0:
         qlist.insert(0, q)  # put question back to queue
         root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
         return
@@ -279,15 +285,17 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # Send question control flag
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
     root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
-    # Read question out loud
-    root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    
+    if not NO_AUDIO:
+        # Read question out loud
+        root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
 
     # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
     random.shuffle(answers)
 
     # get two false answers
-    answers = answers[:2]
+    answers = answers[:NUM_CONTROL_ITEMS-1]
 
     # true answer is never first
     true_idx = random.randint(1, len(answers))
@@ -304,9 +312,11 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
                    send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    send_record_flag_udp, sock, flag)
-        # Read answer out loud
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   read_question, a[IDX_AUDIO])
+        
+        if not NO_AUDIO:
+            # Read answer out loud
+            root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
+                       read_question, a[IDX_AUDIO])
 
     # Show button_next_question
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
@@ -424,15 +434,27 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--id', dest='subject_id', required=True)
 
+    parser.add_argument('-s', '--no-sound', dest='no_sound', action='store_true')
+
     parser.add_argument('-d', '--devmode', dest='devmode', action='store_true')
 
     parser.add_argument('-a', '--numanswers', dest='numanswers', type=int, choices=[3, 4, 5, 6])
 
-    parser.set_defaults(devmode=False, sex='male', repeat=4, numanswers=3)
+    parser.set_defaults(
+        devmode=False,
+        breaks=4,
+        sex='male', 
+        repeat=20, 
+        numanswers=3, 
+        no_sound=True
+        )
 
     args = parser.parse_args()
 
     SUBJECT_ID = args.subject_id
+
+    NUM_CONTROL_ITEMS = args.numanswers
+    NO_AUDIO = args.no_sound
 
     if args.repeat is not None:
         REPEAT_TIMES = args.repeat
@@ -452,12 +474,8 @@ if __name__ == "__main__":
     # CREATE BREAK LIST for breaks
     TOTAL_QUESTIONS = 5 * REPEAT_TIMES
     BREAKS = args.breaks
-    total_q = 5*REPEAT_TIMES
-    jump = int(total_q / BREAKS)
-    i = int(1)
-    while i < BREAKS+1:
-        print('jump * i', jump * i)
-        BREAK_LIST.append(jump * i)
-        i = i+1
+
+    jump = int(TOTAL_QUESTIONS / BREAKS)
+    BREAK_LIST = (np.array(range(1, BREAKS+1)) * jump).tolist()
 
     main()
