@@ -56,14 +56,14 @@ def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     return sock
 
 
-def send_record_flag_udp(sock, flag=RecordFlags.RECORD_FLAG_PAUSE):
+def send_record_flag_udp(sock, flag=int(RecordFlags.RECORD_FLAG_PAUSE)):
     """
     Send control flag to fs_receiver via given socket
     :param sock:
     :param flag:
     :return: None
     """
-    sock.send(bytes(str(int(flag)), 'utf-8'))
+    sock.send(bytes(str(flag), 'utf-8'))
 
 
 def disconnect_from_fs_receiver_udp(sock):
@@ -197,15 +197,15 @@ def show_example_q(sock, root, label, b, q, b_q):
     # Show blank
     root.after(tb, change_label, label, '')
     # Send blank control flag
-    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(tb, send_record_flag_udp, sock, q[IDX_QUESTION_DATA]["type"])
-    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
+    root.after(tb, send_record_flag_udp, sock,
+               str(int(RecordFlags.RECORD_FLAG_CHANGE)) + "_" + str(q[IDX_QUESTION_DATA]["type"]))
+    root.after(tb, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_PAUSE))
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION)
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION))
     
     if not NO_AUDIO:
         # Read question out loud
@@ -230,9 +230,9 @@ def show_example_q(sock, root, label, b, q, b_q):
                    change_label, label, a[IDX_TEXT])
         # Send answer control flag
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+                   send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, flag)
+                   send_record_flag_udp, sock, int(flag))
 
         if not NO_AUDIO:
             # Read answer out loud
@@ -266,9 +266,9 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     root.after(tb, change_label, label, '')
 
     # Send blank control flag
-    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(tb, send_record_flag_udp, sock, q[IDX_QUESTION_DATA]["type"])
-    root.after(tb, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_PAUSE)
+    root.after(tb, send_record_flag_udp, sock,
+               str(int(RecordFlags.RECORD_FLAG_CHANGE)) + "_" + str(q[IDX_QUESTION_DATA]["type"]))
+    root.after(tb, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_PAUSE))
 
     # TOTAL Q'S BY HOW MANY BREAKS
     if QUESTION_NUMBER in BREAK_LIST:
@@ -286,8 +286,8 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
     # Send question control flag
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_QUESTION)
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_QUESTION))
     
     if not NO_AUDIO:
         # Read question out loud
@@ -312,9 +312,9 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
                    change_label, label, a[IDX_TEXT])
         # Send answer control flag
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, RecordFlags.RECORD_FLAG_CHANGE)
+                   send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, flag)
+                   send_record_flag_udp, sock, int(flag))
         
         if not NO_AUDIO:
             # Read answer out loud
@@ -359,7 +359,7 @@ def get_next_question(root, receiver, sock, questions):
 
         # End of questions
 
-        send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_END_SESSION)
+        send_record_flag_udp(sock, int(RecordFlags.RECORD_FLAG_END_SESSION))
 
         # Wait for receiver to save data
         receiver.wait()
@@ -377,7 +377,7 @@ def run_qs(root, sock, receiver, b):
 
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
-    send_record_flag_udp(sock, RecordFlags.RECORD_FLAG_START_SESSION)
+    send_record_flag_udp(sock, int(RecordFlags.RECORD_FLAG_START_SESSION))
 
 
 def run_example_qs(root, sock, receiver, b_q, label):

@@ -16,7 +16,6 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
 RECORD_SECONDS = 1/30
-EXPECT_QUESTION_TYPE = False
 
 q_sock = None
 fs_sock = None
@@ -206,7 +205,8 @@ DATA = {
     },
     "record_flag": 0,
     "record_index": 0,
-    "question": 0
+    "question": 0,
+    "question_type": 0
 }
 
 FRAMES = []
@@ -237,8 +237,8 @@ def save_and_exit():
 
         for block in DATA["blend_shapes"]["values"]:
             row = [block[1], block[2], block[3], block[4], block[0]]
-            row.extend(map(lambda x: str(x), block[4]))
-            row.append(block[5])
+            row.extend(map(lambda x: str(x), block[5]))
+            row.append(block[6])
 
             wr.writerow(row)
 
@@ -299,28 +299,25 @@ def read_block(sock, fsr, data_dict):
 
 
 def read_record_flag(sock, data_dict):
-    global EXPECT_QUESTION_TYPE
 
     try:
         msg = sock.recv(4096)
+        msg = msg.decode('utf-8').split("_")
 
-        if int(msg.decode('utf-8')) == RecordFlags.RECORD_FLAG_END_SESSION:
+        if int(msg[0]) == int(RecordFlags.RECORD_FLAG_END_SESSION):
             save_and_exit()
 
-        if EXPECT_QUESTION_TYPE:
-            data_dict["question_type"] = int(msg.decode('utf-8'))
-            EXPECT_QUESTION_TYPE = False
-        else:
-            data_dict["record_flag"] = int(msg.decode('utf-8'))
+        data_dict["record_flag"] = int(msg[0])
 
         # if got RECORD_FLAG_PAUSE, increment question number and reset idx
-        if data_dict["record_flag"] == RecordFlags.RECORD_FLAG_PAUSE:
+        if data_dict["record_flag"] == int(RecordFlags.RECORD_FLAG_PAUSE):
             data_dict["record_index"] = 0
             data_dict["question"] += 1
         # if got RECORD_FLAG_CHANGE, increment idx and expect question type in next flag
-        elif data_dict["record_flag"] == RecordFlags.RECORD_FLAG_CHANGE:
+        elif data_dict["record_flag"] == int(RecordFlags.RECORD_FLAG_CHANGE):
             data_dict["record_index"] += 1
-            EXPECT_QUESTION_TYPE = True
+            if (len(msg) > 1):
+                data_dict["question_type"] = int(msg[1])
 
 
     except socket.error as e:
@@ -382,7 +379,7 @@ def record():
         if p is not None:
             p.terminate()
 
-        # raise e
+        raise e
 
 
 if __name__ == "__main__":
