@@ -276,6 +276,14 @@ def take_top_features(features_pd,top_features_num):
     top_features = correlate_features(features_pd, top_features_num)
     return features_pd[top_features.index]
 
+def normalize_pd_df(df):
+    # Regular normalization
+    df_norm = (df - df.mean()) / df.std()
+    # Normalize Features to [0,1]
+    # df_norm = (df - df.min()) / (df.max() - df.min())
+    # Normalize Features to [-1,1]
+    # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
+    return df_norm
 
 """
 To get here for debug reasons:
@@ -285,5 +293,5 @@ import features
 from features import utils, moments, discrete_states, dynamic, misc
 import pandas as pd
 raw_df = pd.read_csv('output_22-4-17_17-00-00.csv')
-question_idx_dfs = utils.split_df_to_questions(raw_df)
+all_features = utils.get_all_features(raw_df)
 """

@@ -14,8 +14,11 @@ def extract_features(raw_path, with_pca):
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
+    print("Choosing AU..")
+    top_AU_df = utils.take_top_features(raw_df, 24)
+
     print("Extracting features:")
-    all_features = utils.get_all_features(raw_df)
+    all_features = utils.get_all_features(top_AU_df)
 
     print("Choosing features with best correlation")
     top_features = utils.take_top_features(all_features,30)
