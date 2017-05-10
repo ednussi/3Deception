@@ -261,20 +261,17 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
-
-def correlate_features(features_pd,top_features_num):
+def take_top_features(features_pd,top_features_num):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
-    correlation_to_flag = abs(features_pd.corr()['record_flag'])
+    identifiers = features_pd.iloc[:,:6]
+    data = features_pd.iloc[:,[3]+list(range(7,len(features_pd.columns)))] #column 3 is record_flag
+    correlation_to_flag = abs(data.corr()['record_flag'])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop('record_flag')
     top_features = correlation_to_flag[0:top_features_num]
-    return top_features
-
-
-def take_top_features(features_pd,top_features_num):
-    top_features = correlate_features(features_pd, top_features_num)
-    return features_pd[top_features.index]
+    top_features_pd = identifiers.join(features_pd[top_features.keys()])
+    return top_features_pd
 
 def normalize_pd_df(df):
     # Regular normalization

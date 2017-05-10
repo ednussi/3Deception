@@ -8,19 +8,23 @@ from features import utils
 "python3 runner.py -i output_22-4-17_17-00-00.csv"
 
 
-def extract_features(raw_path, with_pca):
+def extract_features(raw_path, with_pca, choose_top_au_by_group):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
-    print("Choosing AU..")
-    top_AU_df = utils.take_top_features(raw_df, 24)
+    if (choose_top_au_by_group):
+        print("Choosing Top AU from each group..")
+        top_AU = utils.take_top_features(raw_df, 24)
+    else:
+        print("Choosing Top AU from all AU..")
+        top_AU = utils.take_top_features(raw_df, 24)
 
-    print("Extracting features:")
-    all_features = utils.get_all_features(top_AU_df)
+    print("Extracting features..")
+    all_features = utils.get_all_features(top_AU)
 
-    print("Choosing features with best correlation")
+    print("Choosing Top features with best correlation")
     top_features = utils.take_top_features(all_features,30)
 
     print("Saving all features to {}...".format(features_path), end="")
@@ -41,6 +45,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--input', dest='raw_path')
     parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
+    parser.add_argument('-au', '--au_top_by_group', dest='top_au', type=bool, default=True)
 
     args = parser.parse_args()
 
@@ -48,4 +53,4 @@ if __name__ == "__main__":
         print(r"Input csv doesn't exist: {}".format(args.raw_path))
         exit()
 
-    extract_features(args.raw_path, args.pca)
+    extract_features(args.raw_path, args.pca,args.top_au)
