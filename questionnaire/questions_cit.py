@@ -253,7 +253,7 @@ def show_example_q(sock, root, label, b, q, b_q):
                lambda: b_q.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
 
 
-def show_next_question(sock, root, label, b, q, receiver, question_list):
+def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
     """
     Display next question
     :param question_list: 
@@ -271,8 +271,6 @@ def show_next_question(sock, root, label, b, q, receiver, question_list):
 
     b.place_forget()
 
-    tb = TIME_BLANK
-
     if SESSION_START:
         # return question to queue
         question_list.insert(0, q)
@@ -281,27 +279,14 @@ def show_next_question(sock, root, label, b, q, receiver, question_list):
         SESSION_START = False
         SESSION_NUMBER += 1
 
-        root.after(tb, change_label, label, 'now lie')  # TODO
-        root.after(tb, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
+        change_label(label, 'now lie')  # TODO
+        b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
         return
 
     QUESTION_NUMBER += 1
-    print('session:{}\tquestion:{}\ttype:{}'.format(SESSION_NUMBER, QUESTION_NUMBER, q[IDX_QUESTION_DATA]["type"]))
+    print(SESSION_NUMBER, QUESTION_NUMBER)
     # Show blank
-    root.after(tb, change_label, label, '')
-
-    # Send blank control flag
-    root.after(tb, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_PAUSE))
-
-    # Show question
-    root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
-
-    # Send question control flag
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_QUESTION))
-    
-    if not NO_AUDIO:
-        # Read question out loud
-        root.after(tb + TIME_BLANK, read_question, q[IDX_QUESTION_DATA]['question'][IDX_AUDIO])
+    change_label(label, '')
 
     # randomize answers order
     answers = q[IDX_QUESTION_DATA]['false'][:]
@@ -314,27 +299,19 @@ def show_next_question(sock, root, label, b, q, receiver, question_list):
     true_idx = random.randint(1, len(answers))
     answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
 
-    for i, a in enumerate(answers):
-        flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if i == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
+    # Show question
+    change_label(label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
 
-        # Show answer
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   change_label, label, a[IDX_TEXT])
-        # Send answer control flag
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, prepare_flag(q, flag, i))
-        
-        if not NO_AUDIO:
-            # Read answer out loud
-            root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                       read_question, a[IDX_AUDIO])
-
-    # Show button_next_question
-    root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
-               place_button, b)
+    # Send question control flag
+    send_record_flag_udp(sock, prepare_flag(q, RecordFlags.RECORD_FLAG_QUESTION))
 
     if QUESTION_NUMBER % 5 == 0:
         SESSION_START = True
+
+    # Show button_show_answers
+    b2.config(command=handle_show_answers(sock, label, q, answers, true_idx, b))
+    place_button(b2, 'לחץ לתשובה הבאה')
+    return
 
 
 def read_question(audio_flag):
@@ -348,13 +325,13 @@ def read_question(audio_flag):
         pygame.mixer.music.play()
 
 
-def place_button(b):
+def place_button(b, label):
     """
     Display button_next_question
     :param b: button handle
     """
     b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
-    b['text'] = 'לחץ לשאלה הבאה'
+    b['text'] = label
 
 
 def get_next_question(root, receiver, sock, questions):
@@ -402,6 +379,37 @@ def run_example_qs(root, sock, receiver, b_q, label):
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
 
+def handle_show_next_question(sock, root, label, b, b2, receiver, qlist):
+    def handler():
+        show_next_question(sock, root, label, b, b2,
+                           get_next_question(root, receiver, sock, qlist), receiver, qlist)
+
+    return handler
+
+
+def handle_show_answers(sock, label, q, answers, true_idx, b):
+    true_idx -= 1
+
+    def handler():
+
+        if len(answers) == 0:
+            place_button(b, 'לחץ לשאלה הבאה')
+
+        else:
+            a = answers[0]
+            answers.pop(0)
+
+            flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if 0 == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
+
+            # Show answer
+            change_label(label, a[IDX_TEXT])
+
+            # Send answer control flag
+            send_record_flag_udp(sock, prepare_flag(q, flag, NUM_CONTROL_ITEMS - len(answers)))
+
+    return handler
+
+
 def main(num_sessions):
     # Creates the full screen and puts empty first label at top
     root, ws, hs = set_window_mid_screen()
@@ -432,8 +440,10 @@ def main(num_sessions):
 
     b = tk.Button(root, bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72),
                   fg='black', bg='grey', activebackground='grey', activeforeground='black',
-                  command=lambda: show_next_question(sock, root, label, b,
-                                                     get_next_question(root, receiver, sock, qlist), receiver, qlist))
+                  command=handle_show_next_question)
+
+    b2 = tk.Button(root, bd=0, text="לחץ לתשובה הבאה", height=1, width=30, font=("Helvetica", 72),
+                  fg='black', bg='grey', activebackground='grey', activeforeground='black')
 
     global main_button
     main_button = b
