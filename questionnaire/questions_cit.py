@@ -195,8 +195,13 @@ def prepare_flag(question, flag, answer_index=-1):
     global SESSION_NUMBER
     global QUESTION_NUMBER
 
-    return '{}_{}_{}_{}_{}'.format(
+    msg = '{}_{}_{}_{}_{}'.format(
         SESSION_NUMBER, QUESTION_NUMBER, question[IDX_QUESTION_DATA]["type"], int(flag), answer_index)
+
+    if flag == RecordFlags.RECORD_FLAG_END_SESSION:
+        msg += '_'+SUBJECT_ID
+
+    return msg
 
 
 def show_example_q(sock, root, label, b, q, b_q):
