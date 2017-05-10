@@ -9,6 +9,7 @@ import audioop
 # from PIL import ImageGrab
 # import numpy as np
 # import cv2
+import wave
 from constants import RecordFlags
 
 CHUNK = 1024
@@ -35,6 +36,7 @@ audio_stream = p.open(format=FORMAT,
                 rate=RATE,
                 input=True,
                 frames_per_buffer=CHUNK)
+AUDIO_CHUNKS = []
 
 # fourcc = cv2.VideoWriter_fourcc(*'XVID')
 # video_out = cv2.VideoWriter('output.avi', fourcc, 30.0, (640, 480))
@@ -183,12 +185,18 @@ class FaceShiftReceiver:
                 # FS2Rig_MappingDict(target_object, blend_shape_names, blend_shape_values)
                 # print("Blend shapes")
 
-                data_dict["blend_shapes"]["values"].append((ts, data_dict["question"], data_dict["question_type"],
-                                                            data_dict["record_flag"], data_dict["record_index"],
-                                                            blend_shape_values, audioop.rms(audio_stream.read(CHUNK), 2)))
-
-                # screenshot = ImageGrab.grab().getdata()
-                # video_out.write(np.array(screenshot, dtype='uint8').reshape(screenshot.size[1], screenshot.size[0], 3))
+                data_dict["blend_shapes"]["values"].append(
+                    (
+                        data_dict["session_num"],
+                        data_dict["question_num"],
+                        data_dict["question_type"],
+                        data_dict["record_flag"],
+                        data_dict["answer_index"],
+                        ts,
+                        blend_shape_values,
+                        audioop.rms(AUDIO_CHUNKS[-1], 2)
+                    )
+                )
 
                 #
                 # Handle EYES
@@ -203,10 +211,12 @@ DATA = {
         "names": blend_shape_names,
         "values": []  # tuples (timestamp, record_flag, [values])
     },
+
+    "session_num": 0,
+    "question_num": 0,
+    "question_type": 0,
     "record_flag": 0,
-    "record_index": 0,
-    "question": 0,
-    "question_type": 0
+    "answer_index": 0
 }
 
 FRAMES = []
@@ -226,19 +236,20 @@ def save_and_exit():
     fn_token = time.time()
 
     fn = "data/output/fs_shapes.{}.csv".format(fn_token)
+    audio_fn = "data/output/audio.{}.wav".format(fn_token)
 
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
-        header = ["question", "question_type", "record_flag", "record_index", "timestamp"]
+        header = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
         header.append("audio_rms")
         wr.writerow(header)
 
         for block in DATA["blend_shapes"]["values"]:
-            row = [block[1], block[2], block[3], block[4], block[0]]
-            row.extend(map(lambda x: str(x), block[5]))
-            row.append(block[6])
+            row = list(block[:6])
+            row.extend(map(lambda x: str(x), block[6]))
+            row.append(block[7])
 
             wr.writerow(row)
 
@@ -249,6 +260,16 @@ def save_and_exit():
 
     global p
     global audio_stream
+    global AUDIO_CHUNKS
+
+    wf = wave.open(audio_fn, 'wb')
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(p.get_sample_size(FORMAT))
+    wf.setframerate(RATE)
+    wf.writeframes(b''.join(AUDIO_CHUNKS))
+    wf.close()
+    print("Audio output saved to " + audio_fn)
+
     p.terminate()
     audio_stream.stop_stream()
     audio_stream.close()
@@ -262,7 +283,6 @@ def save_and_exit():
     exit()
 
 
-# TODO: check that FLAG_CHANGE is received! maybe switch to TCP
 def connect_to_questions_udp(binding_addr="127.0.0.1", listening_port=33444):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setblocking(0)  # Non-blocking socket, no flag data - your problem
@@ -300,25 +320,20 @@ def read_block(sock, fsr, data_dict):
 
 def read_record_flag(sock, data_dict):
 
+    IDX_SESS, IDX_QNUM, IDX_QTYPE, IDX_FLAG, IDX_ANSI = 0, 1, 2, 3, 4
+
     try:
         msg = sock.recv(4096)
         msg = msg.decode('utf-8').split("_")
 
-        if int(msg[0]) == int(RecordFlags.RECORD_FLAG_END_SESSION):
+        if int(msg[IDX_FLAG]) == int(RecordFlags.RECORD_FLAG_END_SESSION):
             save_and_exit()
 
-        data_dict["record_flag"] = int(msg[0])
-
-        # if got RECORD_FLAG_PAUSE, increment question number and reset idx
-        if data_dict["record_flag"] == int(RecordFlags.RECORD_FLAG_PAUSE):
-            data_dict["record_index"] = 0
-            data_dict["question"] += 1
-        # if got RECORD_FLAG_CHANGE, increment idx and expect question type in next flag
-        elif data_dict["record_flag"] == int(RecordFlags.RECORD_FLAG_CHANGE):
-            data_dict["record_index"] += 1
-            if (len(msg) > 1):
-                data_dict["question_type"] = int(msg[1])
-
+        data_dict["session_num"] = int(msg[IDX_SESS])
+        data_dict["question_num"] = int(msg[IDX_QNUM])
+        data_dict["question_type"] = int(msg[IDX_QTYPE])
+        data_dict["record_flag"] = int(msg[IDX_FLAG])
+        data_dict["answer_index"] = int(msg[IDX_ANSI])
 
     except socket.error as e:
         if e.args[0] == socket.errno.EWOULDBLOCK:
@@ -342,6 +357,7 @@ def record():
     global q_sock
     global fs_sock
     global audio_stream
+    global AUDIO_CHUNKS
 
     try:
         q_sock = connect_to_questions_udp()
@@ -354,6 +370,9 @@ def record():
         # start_AVrecording('output')
 
         while True:
+            chunk = audio_stream.read(CHUNK)
+            AUDIO_CHUNKS.append(chunk)
+
             print("Waiting for record flag... ")
             read_record_flag(q_sock, DATA)
             print("Flag received: {}".format(DATA["record_flag"]))

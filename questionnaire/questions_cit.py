@@ -42,7 +42,10 @@ IDX_TEXT = IDX_QUESTION_DATA = 1
 RUN_EXAMPLE = True
 
 QUESTION_NUMBER = 0
+SESSION_NUMBER = 0
+SESSION_START = True
 IMAGE_COUNTER = 0
+
 
 def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     """
@@ -56,7 +59,7 @@ def connect_to_fs_receiver_udp(ip="127.0.0.1", port=33444):
     return sock
 
 
-def send_record_flag_udp(sock, flag=int(RecordFlags.RECORD_FLAG_PAUSE)):
+def send_record_flag_udp(sock, flag=str(int(RecordFlags.RECORD_FLAG_PAUSE))):
     """
     Send control flag to fs_receiver via given socket
     :param sock:
@@ -188,6 +191,14 @@ def handle_catch_button_click(sock, root, label, b, receiver, qlist):
     show_next_question(sock, root, label, b, get_next_question(root, receiver, sock, qlist), receiver, qlist)
 
 
+def prepare_flag(question, flag, answer_index=-1):
+    global SESSION_NUMBER
+    global QUESTION_NUMBER
+
+    return '{}_{}_{}_{}_{}'.format(
+        SESSION_NUMBER, QUESTION_NUMBER, question[IDX_QUESTION_DATA]["type"], int(flag), answer_index)
+
+
 def show_example_q(sock, root, label, b, q, b_q):
 
     b.place_forget()
@@ -196,16 +207,15 @@ def show_example_q(sock, root, label, b, q, b_q):
 
     # Show blank
     root.after(tb, change_label, label, '')
+
     # Send blank control flag
-    root.after(tb, send_record_flag_udp, sock,
-               str(int(RecordFlags.RECORD_FLAG_CHANGE)) + "_" + str(q[IDX_QUESTION_DATA]["type"]))
-    root.after(tb, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_PAUSE))
+    root.after(tb, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_PAUSE))
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
+
     # Send question control flag
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION))
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_EXAMPLE_QUESTION))
     
     if not NO_AUDIO:
         # Read question out loud
@@ -228,11 +238,10 @@ def show_example_q(sock, root, label, b, q, b_q):
         # Show answer
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
                    change_label, label, a[IDX_TEXT])
+
         # Send answer control flag
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, int(flag))
+                   send_record_flag_udp, sock, prepare_flag(q, flag, i))
 
         if not NO_AUDIO:
             # Read answer out loud
@@ -244,9 +253,11 @@ def show_example_q(sock, root, label, b, q, b_q):
                lambda: b_q.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
 
 
-def show_next_question(sock, root, label, b, q, receiver, qlist):
+def show_next_question(sock, root, label, b, q, receiver, question_list):
     """
     Display next question
+    :param question_list: 
+    :param receiver: 
     :param sock: fs_receiver socket
     :param root: tk window root
     :param label: question label
@@ -254,40 +265,39 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     :param q: the question and its answers
     :return: None
     """
-    global BREAK_LIST
     global QUESTION_NUMBER
-    QUESTION_NUMBER += 1
+    global SESSION_NUMBER
+    global SESSION_START
 
     b.place_forget()
 
     tb = TIME_BLANK
 
+    if SESSION_START:
+        # return question to queue
+        question_list.insert(0, q)
+
+        # show session instructions
+        SESSION_START = False
+        SESSION_NUMBER += 1
+
+        root.after(tb, change_label, label, 'now lie')  # TODO
+        root.after(tb, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
+        return
+
+    QUESTION_NUMBER += 1
+    print('session:{}\tquestion:{}\ttype:{}'.format(SESSION_NUMBER, QUESTION_NUMBER, q[IDX_QUESTION_DATA]["type"]))
     # Show blank
     root.after(tb, change_label, label, '')
 
     # Send blank control flag
-    root.after(tb, send_record_flag_udp, sock,
-               str(int(RecordFlags.RECORD_FLAG_CHANGE)) + "_" + str(q[IDX_QUESTION_DATA]["type"]))
-    root.after(tb, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_PAUSE))
-
-    # TOTAL Q'S BY HOW MANY BREAKS
-    if QUESTION_NUMBER in BREAK_LIST:
-        qlist.insert(0, q)  # put question back to queue
-        root.after(tb, change_label, label, 'הפסקה')
-        root.after(tb + TIME_BREAK, lambda: b.place(relx=0.5, rely=0.4, anchor=tk.CENTER))
-        return
-
-    if (QUESTION_NUMBER) % 5 == 0:
-        qlist.insert(0, q)  # put question back to queue
-        root.after(tb + TIME_BLANK, show_catch_item, sock, root, label, receiver, qlist, b, TIME_CATCH_ITEM)
-        return
-
+    root.after(tb, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_PAUSE))
 
     # Show question
     root.after(tb + TIME_BLANK, change_label, label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
+
     # Send question control flag
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
-    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_QUESTION))
+    root.after(tb + TIME_BLANK, send_record_flag_udp, sock, prepare_flag(q, RecordFlags.RECORD_FLAG_QUESTION))
     
     if not NO_AUDIO:
         # Read question out loud
@@ -312,9 +322,7 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
                    change_label, label, a[IDX_TEXT])
         # Send answer control flag
         root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, int(RecordFlags.RECORD_FLAG_CHANGE))
-        root.after(tb + TIME_BLANK + TIME_QUESTION + i * (TIME_BLANK + TIME_ANSWER),
-                   send_record_flag_udp, sock, int(flag))
+                   send_record_flag_udp, sock, prepare_flag(q, flag, i))
         
         if not NO_AUDIO:
             # Read answer out loud
@@ -324,6 +332,9 @@ def show_next_question(sock, root, label, b, q, receiver, qlist):
     # Show button_next_question
     root.after(tb + TIME_BLANK + TIME_QUESTION + len(answers) * (TIME_BLANK + TIME_ANSWER) + TIME_BLANK,
                place_button, b)
+
+    if QUESTION_NUMBER % 5 == 0:
+        SESSION_START = True
 
 
 def read_question(audio_flag):
@@ -350,6 +361,7 @@ def get_next_question(root, receiver, sock, questions):
     """
     Get next question from question list
     If no more questions left, send stop flag and exit
+    :param root: 
     :param receiver:
     :param sock:
     :param questions:
@@ -359,7 +371,7 @@ def get_next_question(root, receiver, sock, questions):
 
         # End of questions
 
-        send_record_flag_udp(sock, int(RecordFlags.RECORD_FLAG_END_SESSION))
+        send_record_flag_udp(sock, prepare_flag([None, {'type': -1}], RecordFlags.RECORD_FLAG_END_SESSION))
 
         # Wait for receiver to save data
         receiver.wait()
@@ -377,30 +389,39 @@ def run_qs(root, sock, receiver, b):
 
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
-    send_record_flag_udp(sock, int(RecordFlags.RECORD_FLAG_START_SESSION))
+    send_record_flag_udp(sock, prepare_flag([None, {'type': -1}], RecordFlags.RECORD_FLAG_END_SESSION))
 
 
 def run_example_qs(root, sock, receiver, b_q, label):
 
     qlist = [item for item in prepare_cit(path='data/example_questions_cit.csv', male=AUDIO_SEX == 'male').items()]
 
-    b = tk.Button(root,bd=0, text="לחץ להתחיל שאלת דוגמא", height=1, width=30, font=("Helvetica", 72),
+    b = tk.Button(root, bd=0, text="לחץ להתחיל שאלת דוגמא", height=1, width=30, font=("Helvetica", 72),
                   fg='black', bg='grey', activebackground='grey', activeforeground='black',
                   command=lambda: show_example_q(sock, root, label, b, get_next_question(root, receiver, sock, qlist), b_q))
     b.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 
 
-def main():
+def main(num_sessions):
     # Creates the full screen and puts empty first label at top
     root, ws, hs = set_window_mid_screen()
 
-    # Get twice as much questions (half for true half for lies)
-    # and sets colors to be tag for lie\truth
-    qlist = [item for item in prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID), male=AUDIO_SEX == 'male').items()]
-    qlist *= REPEAT_TIMES # Multiple each question
-    random.shuffle(qlist) # randomize order of questions
+    # get 5 questions with all their answers
+    questions = [item for item in prepare_cit(path='data/{}/questions_cit.csv'.format(SUBJECT_ID), male=AUDIO_SEX == 'male').items()]
 
-    pygame.mixer.init()
+    # create list of sessions' questions
+    sessions = []
+    for i in range(num_sessions):
+        sessions.append([q for q in questions])
+
+    # randomize questions in each session
+    for s in sessions:
+        random.shuffle(s)
+
+    # flatten question list
+    qlist = [q for s in sessions for q in s]
+
+    # pygame.mixer.init()
 
     receiver = subprocess.Popen(['python', 'fs_receive.py'])
     sock = connect_to_fs_receiver_udp()
@@ -441,22 +462,25 @@ if __name__ == "__main__":
 
     parser.add_argument('-d', '--devmode', dest='devmode', action='store_true')
 
-    parser.add_argument('-a', '--numanswers', dest='numanswers', type=int, choices=[3, 4, 5, 6])
+    parser.add_argument('-a', '--answers', dest='num_answers', type=int, choices=[3, 4, 5, 6])
+
+    parser.add_argument('-S', '--sessions', dest='num_sessions', type=int, choices=[2, 4, 6, 8])
 
     parser.set_defaults(
         devmode=False,
         breaks=4,
         sex='male', 
         repeat=20, 
-        numanswers=3, 
-        no_sound=True
+        num_answers=3,
+        no_sound=True,
+        num_sessions=4
         )
 
     args = parser.parse_args()
 
     SUBJECT_ID = args.subject_id
 
-    NUM_CONTROL_ITEMS = args.numanswers
+    NUM_CONTROL_ITEMS = args.num_answers
     NO_AUDIO = args.no_sound
 
     if args.repeat is not None:
@@ -481,4 +505,4 @@ if __name__ == "__main__":
     jump = int(TOTAL_QUESTIONS / BREAKS)
     BREAK_LIST = (np.array(range(1, BREAKS+1)) * jump).tolist()
 
-    main()
+    main(args.num_sessions)
