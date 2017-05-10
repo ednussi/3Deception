@@ -227,7 +227,7 @@ def fin_handler(signal, frame):
     save_and_exit()
 
 
-def save_and_exit():
+def save_and_exit(subject_id):
     global STOP_SIGNAL_RECEIVED
     STOP_SIGNAL_RECEIVED = True
 
@@ -235,8 +235,8 @@ def save_and_exit():
 
     fn_token = time.time()
 
-    fn = "data/output/fs_shapes.{}.csv".format(fn_token)
-    audio_fn = "data/output/audio.{}.wav".format(fn_token)
+    fn = "data/{}/fs_shapes.{}.csv".format(subject_id, fn_token)
+    audio_fn = "data/{}/audio.{}.wav".format(subject_id, fn_token)
 
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
@@ -327,7 +327,7 @@ def read_record_flag(sock, data_dict):
         msg = msg.decode('utf-8').split("_")
 
         if int(msg[IDX_FLAG]) == int(RecordFlags.RECORD_FLAG_END_SESSION):
-            save_and_exit()
+            save_and_exit(msg[-1])
 
         data_dict["session_num"] = int(msg[IDX_SESS])
         data_dict["question_num"] = int(msg[IDX_QNUM])

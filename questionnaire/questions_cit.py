@@ -195,8 +195,13 @@ def prepare_flag(question, flag, answer_index=-1):
     global SESSION_NUMBER
     global QUESTION_NUMBER
 
-    return '{}_{}_{}_{}_{}'.format(
+    msg = '{}_{}_{}_{}_{}'.format(
         SESSION_NUMBER, QUESTION_NUMBER, question[IDX_QUESTION_DATA]["type"], int(flag), answer_index)
+
+    if flag == RecordFlags.RECORD_FLAG_END_SESSION:
+        msg += '_'+SUBJECT_ID
+
+    return msg
 
 
 def show_example_q(sock, root, label, b, q, b_q):
@@ -309,7 +314,7 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
         SESSION_START = True
 
     # Show button_show_answers
-    b2.config(command=handle_show_answers(sock, label, q, answers, true_idx, b))
+    b2.config(command=handle_show_answers(sock, label, q, answers, true_idx, b, root, receiver, b2, question_list))
     place_button(b2, 'לחץ לתשובה הבאה')
     return
 
@@ -387,13 +392,14 @@ def handle_show_next_question(sock, root, label, b, b2, receiver, qlist):
     return handler
 
 
-def handle_show_answers(sock, label, q, answers, true_idx, b):
+def handle_show_answers(sock, label, q, answers, true_idx, b, root, receiver, b2, qlist):
     true_idx -= 1
 
     def handler():
 
         if len(answers) == 0:
-            place_button(b, 'לחץ לשאלה הבאה')
+            show_next_question(sock, root, label, b, b2,
+                               get_next_question(root, receiver, sock, qlist), receiver, qlist)
 
         else:
             a = answers[0]
@@ -401,11 +407,14 @@ def handle_show_answers(sock, label, q, answers, true_idx, b):
 
             flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if 0 == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
 
+            # Send answer control flag
+            send_record_flag_udp(sock, prepare_flag(q, flag, NUM_CONTROL_ITEMS - len(answers)))
+
             # Show answer
             change_label(label, a[IDX_TEXT])
 
-            # Send answer control flag
-            send_record_flag_udp(sock, prepare_flag(q, flag, NUM_CONTROL_ITEMS - len(answers)))
+            if len(answers) == 0:
+                b2['text'] = 'לחץ לשאלה הבאה'
 
     return handler
 
@@ -438,12 +447,13 @@ def main(num_sessions):
     # label.grid(row=1,column=2)
     label.place(relx=0.5, rely=0, anchor=tk.N)
 
-    b = tk.Button(root, bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72),
-                  fg='black', bg='grey', activebackground='grey', activeforeground='black',
-                  command=handle_show_next_question)
-
     b2 = tk.Button(root, bd=0, text="לחץ לתשובה הבאה", height=1, width=30, font=("Helvetica", 72),
                   fg='black', bg='grey', activebackground='grey', activeforeground='black')
+
+    b = tk.Button(root, bd=0, text="לחץ להתחלת השאלון", height=1, width=30, font=("Helvetica", 72),
+                  fg='black', bg='grey', activebackground='grey', activeforeground='black')
+
+    b.config(command=handle_show_next_question(sock, root, label, b, b2, receiver, qlist))
 
     global main_button
     main_button = b
@@ -453,7 +463,6 @@ def main(num_sessions):
     else:
         run_qs(root, sock, receiver, b)
 
-    #show_fixation_cross()
     root.mainloop()
 
 

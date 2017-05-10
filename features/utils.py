@@ -8,9 +8,9 @@ import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
 
-DROP_COLUMNS = ['question', 'record_flag']
+META_COLUMNS = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
+GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-SKIP_COLUMNS = len(DROP_COLUMNS)
 
 
 def split_df_to_answers(df):
@@ -19,12 +19,11 @@ def split_df_to_answers(df):
     skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
-    answers_df.index = 'question_' + answers_df.question.astype(str) \
-        + '__rid_' + answers_df.record_index.astype(str)
-    answers_df = answers_df[answers_df.record_index != 2]
+    answers_df = answers_df[answers_df.answer_index != 2]
 
-    return [t[1].drop(['question', 'record_index'], axis=1) 
-        for t in answers_df.groupby(DROP_COLUMNS)]
+    answers_df.index = ['__'.join(ind) for ind in zip(*[[x + '_'] * len(answers_df[x]) + answers_df[x].astype(str) for x in META_COLUMNS])]
+
+    return [t[1].drop(META_COLUMNS, axis=1) for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
 
 def cv_split_df_to_answers(df):
