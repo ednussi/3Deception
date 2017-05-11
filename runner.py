@@ -4,6 +4,19 @@ import os.path as path
 from features import utils
 
 
+
+TODO
+1. AU SELECTION HARD CODED USING DANIELs Utils.py
+2. EXTRACT FEATURES BY GROUPS
+3. PIPELINE
+    AU SELECTION
+    FEATURE SELECTION (Groups vs global, dimension (size))
+    PCA (Groups vs global, dimension (size))
+    LEARNER (Algorithm, Method (4v1 or seesion prediction), Hyper Parameters)
+    REPORT
+
+
+
 "run in shell command:"
 "python3 runner.py -i output_22-4-17_17-00-00.csv"
 
@@ -14,18 +27,19 @@ def extract_features(raw_path, with_pca, choose_top_au_by_group):
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
+    print("Choosing Top AU from all AU..")
+    top_AU = utils.take_top_features(raw_df, 24)
+
     if (choose_top_au_by_group):
-        print("Choosing Top AU from each group..")
-        top_AU = utils.take_top_features(raw_df, 24)
+        print("Extracting features for each group..")
+        all_features = utils.get_all_features(top_AU)
+        print("Choosing Top features from each group..")
+        top_features = utils.take_top_features(all_features, 30)
     else:
-        print("Choosing Top AU from all AU..")
-        top_AU = utils.take_top_features(raw_df, 24)
-
-    print("Extracting features..")
-    all_features = utils.get_all_features(top_AU)
-
-    print("Choosing Top features with best correlation")
-    top_features = utils.take_top_features(all_features,30)
+        print("Extracting features for all..")
+        all_features = utils.get_all_features(top_AU)
+        print("Choosing Top features with best correlation")
+        top_features = utils.take_top_features(all_features,30)
 
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
