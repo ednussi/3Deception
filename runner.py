@@ -21,14 +21,14 @@ TODO
 "python3 runner.py -i output_22-4-17_17-00-00.csv"
 
 
-def extract_features(raw_path, with_pca, choose_top_au_by_group):
+def extract_features(raw_path, with_pca, au, au_num):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
     print("Choosing Top AU..")
-    top_AU = utils.get_top_au(raw_df, method, num_au)
+    top_AU = utils.get_top_au(raw_df, au, au_num)
 
     if (choose_top_au_by_group):
         print("Extracting features for each group..")
@@ -59,9 +59,10 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--input', dest='raw_path')
     parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
-    parser.add_argument('-au', '--au_top_by_group', dest='top_au', type=bool, default=True)
-    parser.add_argument('-au_num', '--au_top_by_group', dest='top_au', type=bool, default=True)
-    parser.add_argument('-au', '--au_top_by_group', dest='top_au', type=bool, default=True)
+    # Possible Choices: 'daniel' 'mouth' 'eyes' 'brows' 'eyes_area' 'smile' 'blinks' 'top'
+    parser.add_argument('-au', '--au_choice', dest='au', type=str, default=None)
+    # If au was chosen 'top' need a number for number of top AU
+    parser.add_argument('-au_num', '--au_top_num', dest='au_num', type=int, default=24)
 
     args = parser.parse_args()
 
@@ -69,7 +70,7 @@ if __name__ == "__main__":
         print(r"Input csv doesn't exist: {}".format(args.raw_path))
         exit()
 
-    extract_features(args.raw_path, args.pca,args.top_au)
+    extract_features(args.raw_path, args.pca,args.au,args.au_num)
 
 """
 import os

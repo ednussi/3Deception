@@ -8,14 +8,50 @@ import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
 
-GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'MouthLeft',
-                    'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-                    'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
-                    'Sneer', 'CheekSquint_L', 'CheekSquint_R']
 META_COLUMNS = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
+
+ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
+ 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R',
+ 'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'MouthLeft', 'MouthRight', 'MouthFrown_L', 'MouthFrown_R',
+ 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperClose',
+ 'LipsLowerClose', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperOpen', 'LipsLowerOpen', 'LipsFunnel', 'LipsPucker', 'ChinLowerRaise',
+ 'ChinUpperRaise', 'Sneer', 'Puff', 'CheekSquint_L', 'CheekSquint_R']
+
+
+ALL_AU_DANIEL = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
+               'EyeOpen_L', 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
+               'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'LipsTogether', 'JawLeft', 'JawRight', 'JawFwd',
+               'LipsUpperUp_L', 'LipsUpperUp_R', 'LipsLowerDown_L', 'LipsLowerDown_R', 'LipsUpperClose',
+               'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
+               'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'MouthPress_L', 'MouthPress_R', 'LipsPucker',
+               'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise', 'Sneer_L', 'Sneer_R',
+               'Puff', 'CheekSquint_L', 'CheekSquint_R']    # len = 51
+
+
+GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'MouthLeft',
+                    'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+                    'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
+                    'Sneer', 'CheekSquint_L', 'CheekSquint_R']
+
+MOUTH_AU = ['JawOpen','JawChew', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose', 'LipsUpperOpen','LipsLowerOpen',
+               'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
+               'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
+               'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
+
+EYES_AREA_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
+                'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
+                'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
+
+EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
+           'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R']
+
+BROWS_AU = ['BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
+SMILE_AU = ['MouthSmile_L', 'MouthSmile_R']
+
+BLINKS_AU = ['EyeBlink_L', 'EyeBlink_R']
 
 def split_df_to_answers(df):
     """
@@ -289,13 +325,29 @@ def normalize_pd_df(df):
     # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
     return df_norm
 
-def get_top_au(raw_df, method, num_au):
+def get_top_au(raw_df, method, au_num):
     if method == 'daniel':
         return raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
-    elif method == 'top':
-        return take_top_features(raw_df, num_au)
-    else: #elif method == 'all':
-        return raw_df
+    elif method == 'mouth':
+        return raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
+    elif method == 'eyes':
+        return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
+    elif method == 'eyes_area':
+        return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
+    elif method == 'brow':
+        return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
+    elif method == 'smile':
+        return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
+    elif method == 'blinks':
+        return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
+    else: # elif method == 'top':
+        return take_top_features(raw_df, au_num)
+
+
+
+
+
+
 
 
 
