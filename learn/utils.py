@@ -8,7 +8,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import RandomizedSearchCV
 
-from constants import *
+from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
+    SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags
 
 
 def prepare_classifiers():
@@ -24,10 +25,10 @@ def prepare_classifiers():
             ]
         },
         {
-            'clf': svm.LinearSVC(),
+            'clf': svm.SVC(),
             'params': [
                 {
-                    'C': [0, 0.1, 1, 10, 100, 1000],
+                    'C': pd.np.logspace(-2, 5),
                     'kernel': ['linear']
                 }
             ]
@@ -36,9 +37,9 @@ def prepare_classifiers():
             'clf': RandomForestClassifier(),
             'params': [
                 {
-                    'max_depth': [3, None],
+                    'max_depth': randint(1, 11),
                     'max_features': randint(1, 11),
-                    'min_samples_split': randint(1, 11),
+                    'min_samples_split': randint(2, 11),
                     'min_samples_leaf': randint(1, 11),
                     'bootstrap': [True, False],
                     'criterion': ['gini', 'entropy']
@@ -49,11 +50,11 @@ def prepare_classifiers():
             'clf': GradientBoostingClassifier(),
             'params': [
                 {
-                    'gbm__max_depth': [3, 6, 10],
-                    'gbm__n_estimators': [50, 100, 500, 1000],
-                    'gbm__min_samples_split': [2, 5, 8, 11],
-                    'gbm__learning_rate': [0.01, 0.05, 0.1, 0.5, 1.0],
-                    'gbm__max_features': ['sqrt', 'log2']
+                    'max_depth': randint(1, 11),
+                    'n_estimators': [50, 100, 500, 1000],
+                    'min_samples_split': randint(2, 11),
+                    'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0],
+                    'max_features': ['sqrt', 'log2']
                 }
             ]
         }
@@ -77,7 +78,7 @@ def prepare_folds(data_df, method='4v1_A'):
     :return: 
     """
 
-    print('Data preparation for evaluation method: %s' % method)
+    print('-- Data preparation for evaluation method: %s' % method)
 
     session_types = [SESSION_TYPES['say_truth'], SESSION_TYPES['say_lies']]
 
@@ -109,7 +110,7 @@ def prepare_folds(data_df, method='4v1_A'):
             train_types = list(map(lambda idx: question_types[idx], train_types_idx))
             test_types = list(map(lambda idx: question_types[idx], test_types_idx))
 
-            print('-- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
+            print('   -- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
 
             # extract frames with train question types
             train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
@@ -129,7 +130,7 @@ def prepare_folds(data_df, method='4v1_A'):
             train_sessions = [s for p in map(lambda idx: session_pairs[idx], train_sessions_idx) for s in p]
             test_sessions = [s for p in map(lambda idx: session_pairs[idx], test_sessions_idx) for s in p]
 
-            print('-- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
+            print('   -- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
 
             # extract frames with train sessions
             train_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(train_sessions)].index
@@ -164,14 +165,11 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
         param_distributions=param_dist,
         n_iter=n_iter_search,
         scoring=score_metric,
-        cv=folds
+        cv=folds,
+        n_jobs=2
     )
 
-    start = time()
     random_search.fit(data, target)
-    print('RandomizedSearchCV took %.2f seconds for %d candidates parameter settings.'
-          % ((time() - start), n_iter_search))
-
     return random_search
 
 
@@ -191,11 +189,12 @@ def cv_all_methods(data_path, metric=None):
     data_df = pd.read_csv(data_path)
 
     data = data_df.iloc[:, len(META_COLUMNS):].values
-    target = data_df[data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE].values
+    target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
     for method in SPLIT_METHODS.values():
         print('Method: {}'.format(method))
         folds = prepare_folds(data_df, method)
+
         results.extend(cv_all_classifiers(data, target, folds, metric))
 
     results_df = pd.concat([pd.DataFrame(x) for x in results])

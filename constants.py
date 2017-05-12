@@ -59,5 +59,19 @@ SPLIT_METHODS = {
     '4_vs_1_all_session_types': '4v1_A',
     '4_vs_1_truth_session_types': '4v1_T',
     '4_vs_1_lies_session_types': '4v1_F',
-    'session_prediction': 'SP',
+    'session_prediction': 'SP'
 }
+
+__all__ = [
+    'RecordFlags',
+    'META_COLUMNS',
+    'GROUPBY_COLUMNS',
+    'SESSION_COLUMN',
+    'SESSION_TYPE_COLUMN',
+    'QUESTION_TYPE_COLUMN',
+    'TARGET_COLUMN',
+    'ANSWER_FLAGS',
+    'SESSION_TYPES',
+    'QUESTION_TYPES',
+    'SPLIT_METHODS'
+]
