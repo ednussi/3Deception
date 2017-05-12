@@ -5,20 +5,10 @@ from features import utils
 from learn.utils import cv_all_methods
 
 
-
-TODO
-2. EXTRACT FEATURES BY GROUPS
-3. PIPELINE
-    AU SELECTION
-    FEATURE SELECTION (Groups vs global, dimension (size))
-    PCA (Groups vs global, dimension (size))
-    LEARNER (Algorithm, Method (4v1 or seesion prediction), Hyper Parameters) - gregory
-    REPORT
-
-
-
-"run in shell command:"
-"python3 runner.py -i output_22-4-17_17-00-00.csv"
+# TODO
+#     AU SELECTION
+#     FEATURE SELECTION (Groups vs global, dimension (size))
+#     PCA (Groups vs global, dimension (size))
 
 
 def extract_features(raw_path, with_pca, au, au_num, feat, feat_num, method):

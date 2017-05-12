@@ -17,33 +17,6 @@ class RecordFlags(IntEnum):
     RECORD_FLAG_EXAMPLE_ANSWER_FALSE = 12
     RECORD_FLAG_CATCH_ITEM = 13
 
-GOOD_DANIEL_AU = [
-    'EyeBlink_L',
-    'EyeBlink_R',
-    'EyeIn_L',
-    'EyeIn_R',
-    'BrowsU_C',
-    'BrowsU_L',
-    'BrowsU_R',
-    'JawOpen',
-    'MouthLeft',
-    'MouthRight',
-    'MouthFrown_L',
-    'MouthFrown_R',
-    'MouthSmile_L',
-    'MouthSmile_R',
-    'MouthDimple_L',
-    'MouthDimple_R',
-    'LipsStretch_L',
-    'LipsStretch_R',
-    'LipsUpperUp',
-    'LipsFunnel',
-    'ChinLowerRaise',
-    'Sneer',
-    'CheekSquint_L',
-    'CheekSquint_R'
-]
-
 META_COLUMNS = [
     'session',
     'session_type',
