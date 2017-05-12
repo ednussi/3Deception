@@ -20,17 +20,17 @@ TODO
 "python3 runner.py -i output_22-4-17_17-00-00.csv"
 
 
-def extract_features(raw_path, with_pca, au, au_num, feat, feat_num):
+def extract_features(raw_path, with_pca, au, au_num, feat, feat_num, method):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
     print("Choosing Top AU with method",au)
-    top_AU = utils.get_top_au(raw_df, au, au_num)
+    top_AU = utils.get_top_au(raw_df, au, au_num, method)
 
     print("Extracting features with method:",feat)
-    top_features = utils.get_top_features(top_AU, feat,feat_num)
+    top_features = utils.get_top_features(top_AU, feat,feat_num, method)
 
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
@@ -52,14 +52,17 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
 
     # Possible Choices: 'daniel' 'mouth' 'eyes' 'brows' 'eyes_area' 'smile' 'blinks' 'top'
-    parser.add_argument('-au', '--au_choice', dest='au', type=str, default=None)
+    parser.add_argument('-a', '--au_choice', dest='au', type=str, default=None)
     # If au was chosen 'top' need a number for number of top AU
-    parser.add_argument('-au_num', '--au_top_num', dest='au_num', type=int, default=24)
+    parser.add_argument('-an', '--au_top_num', dest='au_num', type=int, default=24)
 
     # Possible Choices: 'group' 'all'
-    parser.add_argument('-feat', '--features', dest='feat', type=str, default=None)
+    parser.add_argument('-f', '--features', dest='feat', type=str, default=None)
     # top num of AU
-    parser.add_argument('-feat_num', '--features_num', dest='feat_num', type=int, default=24)
+    parser.add_argument('-fn', '--features_num', dest='feat_num', type=int, default=24)
+    # Choices:
+    parser.add_argument('-m', '--method', dest='method', type=str, default='4v1_A', chocies=['4v1_A','4v1_T','4v1_F','SP'])
+
 
     args = parser.parse_args()
 
@@ -67,7 +70,7 @@ if __name__ == "__main__":
         print(r"Input csv doesn't exist: {}".format(args.raw_path))
         exit()
 
-    extract_features(args.raw_path, args.pca,args.au,args.au_num)
+    extract_features(args.raw_path, args.pca,args.au,args.au_num,args.feat,args.feat_num,args.method)
 
 """
 import os

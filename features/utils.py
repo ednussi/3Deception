@@ -37,6 +37,7 @@ GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', '
 
 MOUTH_AU = [ 'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose',
              'LipsUpperOpen','LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+             'LipsUpperOpen','LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
              'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
                'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
 
@@ -297,20 +298,22 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
-def take_top_features(features_pd,top_features_num):
+def take_top_features(features_pd,top_features_num,method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
-    print(features_pd.shape)
-    identifiers = features_pd.iloc[:,:6]
-    print(identifiers.shape)
-    data = features_pd.iloc[:,[3]+list(range(7,len(features_pd.columns)))] #column 3 is record_flag
-    print(data.shape)
-    correlation_to_flag = abs(data.corr()['record_flag'])
+    meta = META_COLUMNS
+    identifiers = features_pd[META_COLUMNS]
+    if method == 'SP':
+        label_col = 'session_type'
+    else:
+        label_col = 'record_flag'
+    meta.remove(label_col)
+    data = features_pd.remove(meta)
+    correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
-    correlation_to_flag = correlation_to_flag.drop('record_flag')
+    correlation_to_flag = correlation_to_flag.drop(label_col)
     top_features = correlation_to_flag[0:top_features_num]
     top_features_pd = identifiers.join(features_pd[top_features.keys()])
-    print(top_features_pd.shape)
     return top_features_pd
 
 def normalize_pd_df(df):
@@ -322,30 +325,32 @@ def normalize_pd_df(df):
     # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
     return df_norm
 
-def get_top_au(raw_df, method, au_num):
-    if method == 'daniel':
+def get_top_au(raw_df, au, au_num, method):
+    if au == 'daniel':
         return raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
-    elif method == 'mouth':
+    elif au == 'mouth':
         return raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
-    elif method == 'eyes':
+    elif au == 'eyes':
         return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
-    elif method == 'eyes_area':
+    elif au == 'eyes_area':
         return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
-    elif method == 'brow':
+    elif au == 'brow':
         return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
-    elif method == 'smile':
+    elif au == 'smile':
         return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
-    elif method == 'blinks':
+    elif au == 'blinks':
         return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
-    else: # elif method == 'top':
-        return take_top_features(raw_df, au_num)
+    else: # elif au == 'top':
+        return take_top_features(raw_df, au_num, method)
 
-def get_top_features(top_AU, feat,feat_num):
+def get_top_features(top_AU, feat,feat_num, method):
     if feat == 'all':
         all_features = get_all_features(top_AU)
-        return take_top_features(all_features, feat_num)
+        return take_top_features(all_features, feat_num, method)
 
     else: #elif feat == 'by group'
+        #change
+        return 0
 
 
 
