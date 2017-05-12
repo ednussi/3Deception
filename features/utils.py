@@ -237,8 +237,8 @@ def pca_3d(df, dim):
 
     return reduced
 
+def get_all_features_by_groups(raw_df):
 
-def get_all_features(raw_df):
     print("Splitting answers... ", end="")
     question_idx_dfs = split_df_to_answers(raw_df)
     print("Done.")
@@ -263,9 +263,14 @@ def get_all_features(raw_df):
     all_misc = misc.misc(question_idx_dfs)
     print("Done.")
 
+    return all_moments, all_discrete, all_dynamic, all_misc
+
+def get_all_features(raw_df):
+    all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df)
+
     all_features = pd.concat([
         all_moments,
-        all_discrete.iloc[:, SKIP_COLUMNS:],
+        all_discrete.iloc[:, len(META_COLUMNS):],
         all_dynamic,
         all_misc
     ], axis=1)
@@ -298,7 +303,7 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
-def take_top_features(features_pd,top_features_num,method):
+def take_top_features(features_pd, top_features_num, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     meta = META_COLUMNS
@@ -308,7 +313,7 @@ def take_top_features(features_pd,top_features_num,method):
     else:
         label_col = 'record_flag'
     meta.remove(label_col)
-    data = features_pd.remove(meta)
+    data = features_pd.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
@@ -343,14 +348,32 @@ def get_top_au(raw_df, au, au_num, method):
     else: # elif au == 'top':
         return take_top_features(raw_df, au_num, method)
 
+def partition(lst):
+    n = 4 #number of groups
+    division = len(lst) / n
+    return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
+
+
 def get_top_features(top_AU, feat,feat_num, method):
     if feat == 'all':
         all_features = get_all_features(top_AU)
         return take_top_features(all_features, feat_num, method)
 
     else: #elif feat == 'by group'
-        #change
-        return 0
+        au_per_group = partition(list(range(feat_num)))
+        all_list = get_all_features_by_groups(top_AU) #all_moments, all_discrete, all_dynamic, all_misc
+        top_feature_group_list=[None]*4
+        for i in range(4):
+            top_feature_group_list[i] = take_top_features(all_list[i], au_per_group(i), method)
+
+        return pd.concat([
+            top_feature_group_list[0],
+            top_feature_group_list[1].iloc[:, len(META_COLUMNS):],
+            top_feature_group_list[2],
+            top_feature_group_list[3]
+        ], axis=1)
+
+
 
 
 
