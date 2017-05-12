@@ -12,7 +12,7 @@ TODO
     AU SELECTION
     FEATURE SELECTION (Groups vs global, dimension (size))
     PCA (Groups vs global, dimension (size))
-    LEARNER (Algorithm, Method (4v1 or seesion prediction), Hyper Parameters)
+    LEARNER (Algorithm, Method (4v1 or seesion prediction), Hyper Parameters) - gregory
     REPORT
 
 
