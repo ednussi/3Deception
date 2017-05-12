@@ -6,7 +6,6 @@ from features import utils
 
 
 TODO
-1. AU SELECTION HARD CODED USING DANIELs Utils.py
 2. EXTRACT FEATURES BY GROUPS
 3. PIPELINE
     AU SELECTION
@@ -21,25 +20,17 @@ TODO
 "python3 runner.py -i output_22-4-17_17-00-00.csv"
 
 
-def extract_features(raw_path, with_pca, au, au_num):
+def extract_features(raw_path, with_pca, au, au_num, feat, feat_num):
     features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
-    print("Choosing Top AU..")
+    print("Choosing Top AU with method",au)
     top_AU = utils.get_top_au(raw_df, au, au_num)
 
-    if (choose_top_au_by_group):
-        print("Extracting features for each group..")
-        all_features = utils.get_all_features(top_AU)
-        print("Choosing Top features from each group..")
-        top_features = utils.take_top_features(all_features, 30)
-    else:
-        print("Extracting features for all..")
-        all_features = utils.get_all_features(top_AU)
-        print("Choosing Top features with best correlation")
-        top_features = utils.take_top_features(all_features,30)
+    print("Extracting features with method:",feat)
+    top_features = utils.get_top_features(top_AU, feat,feat_num)
 
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
@@ -59,10 +50,16 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--input', dest='raw_path')
     parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
+
     # Possible Choices: 'daniel' 'mouth' 'eyes' 'brows' 'eyes_area' 'smile' 'blinks' 'top'
     parser.add_argument('-au', '--au_choice', dest='au', type=str, default=None)
     # If au was chosen 'top' need a number for number of top AU
     parser.add_argument('-au_num', '--au_top_num', dest='au_num', type=int, default=24)
+
+    # Possible Choices: 'group' 'all'
+    parser.add_argument('-feat', '--features', dest='feat', type=str, default=None)
+    # top num of AU
+    parser.add_argument('-feat_num', '--features_num', dest='feat_num', type=int, default=24)
 
     args = parser.parse_args()
 

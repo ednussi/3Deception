@@ -8,10 +8,9 @@ import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
 
-META_COLUMNS = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
+META_COLUMNS = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-
 
 ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
  'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R',
@@ -36,9 +35,9 @@ GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', '
                     'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
                     'Sneer', 'CheekSquint_L', 'CheekSquint_R']
 
-MOUTH_AU = ['JawOpen','JawChew', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose', 'LipsUpperOpen','LipsLowerOpen',
-               'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
-               'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
+MOUTH_AU = [ 'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose',
+             'LipsUpperOpen','LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+             'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
                'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
 
 EYES_AREA_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
@@ -50,7 +49,6 @@ EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L'
 
 BROWS_AU = ['BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
 SMILE_AU = ['MouthSmile_L', 'MouthSmile_R']
-
 BLINKS_AU = ['EyeBlink_L', 'EyeBlink_R']
 
 def split_df_to_answers(df):
@@ -272,7 +270,6 @@ def get_all_features(raw_df):
     ], axis=1)
 
     all_features.index = all_moments.index
-
     return all_features
 
 
@@ -343,11 +340,12 @@ def get_top_au(raw_df, method, au_num):
     else: # elif method == 'top':
         return take_top_features(raw_df, au_num)
 
+def get_top_features(top_AU, feat,feat_num):
+    if feat == 'all':
+        all_features = get_all_features(top_AU)
+        return take_top_features(all_features, feat_num)
 
-
-
-
-
+    else: #elif feat == 'by group'
 
 
 
