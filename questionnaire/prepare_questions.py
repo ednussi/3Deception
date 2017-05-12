@@ -6,6 +6,7 @@ from io import StringIO
 import csv
 import random
 import os
+from constants import QUESTION_TYPES
 
 CATCH_ITEMS_FREQ = 3
 CATCH_ITEMS_QUESTION = "נא להשיב כן לשאלה הזאת?"
@@ -138,14 +139,6 @@ AUDIO_FLAGS = {
     'אוגוסט': 'voice/cit/month_a/8.mp3',
     'ספטמבר': 'voice/cit/month_a/9.mp3'
 
-}
-
-QUESTION_TYPES = {
-    'birth_country': 4,
-    'birth_month': 5,
-    'first_name': 1,
-    'mother_name': 3,
-    'surname': 2,
 }
 
 

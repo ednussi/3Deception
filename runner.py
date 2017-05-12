@@ -2,6 +2,7 @@ import argparse
 import pandas as pd
 import os.path as path
 from features import utils
+from learn.utils import cv_all_methods
 
 
 
@@ -35,12 +36,23 @@ def extract_features(raw_path, with_pca, au, au_num, feat, feat_num, method):
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
 
+    fpath = features_path
+
     if with_pca is not None:
         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
         print("Running PCA...")
         pca_features = utils.pca_3d(top_features, with_pca)
         print("Saving PCA features to {}...".format(pca_path), end="")
         pca_features.to_csv(pca_path)
+
+        fpath = pca_path
+
+    print("Learning...")
+    results_df = cv_all_methods(fpath)
+
+    results_path = path.join(path.dirname(raw_path), "learning-results_" + path.basename(raw_path))
+    print("Saving learning results to {}...".format(results_path))
+    results_df.to_csv(results_path)
 
     print("Done.")
 

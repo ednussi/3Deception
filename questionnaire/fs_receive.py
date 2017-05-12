@@ -188,6 +188,7 @@ class FaceShiftReceiver:
                 data_dict["blend_shapes"]["values"].append(
                     (
                         data_dict["session_num"],
+                        data_dict["session_type"],
                         data_dict["question_num"],
                         data_dict["question_type"],
                         data_dict["record_flag"],
@@ -213,6 +214,7 @@ DATA = {
     },
 
     "session_num": 0,
+    "session_type": 0,
     "question_num": 0,
     "question_type": 0,
     "record_flag": 0,
@@ -224,7 +226,7 @@ STOP_SIGNAL_RECEIVED = False
 
 
 def fin_handler(signal, frame):
-    save_and_exit()
+    save_and_exit('__force_stop')
 
 
 def save_and_exit(subject_id):
@@ -241,15 +243,15 @@ def save_and_exit(subject_id):
     with open(fn, "w", newline='') as out:
         wr = csv.writer(out)
 
-        header = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
+        header = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
         header.extend(DATA["blend_shapes"]["names"])
         header.append("audio_rms")
         wr.writerow(header)
 
         for block in DATA["blend_shapes"]["values"]:
-            row = list(block[:6])
-            row.extend(map(lambda x: str(x), block[6]))
-            row.append(block[7])
+            row = list(block[:7])
+            row.extend(map(lambda x: str(x), block[7]))
+            row.append(block[8])
 
             wr.writerow(row)
 
@@ -320,7 +322,7 @@ def read_block(sock, fsr, data_dict):
 
 def read_record_flag(sock, data_dict):
 
-    IDX_SESS, IDX_QNUM, IDX_QTYPE, IDX_FLAG, IDX_ANSI = 0, 1, 2, 3, 4
+    IDX_SESS, IDX_STYPE, IDX_QNUM, IDX_QTYPE, IDX_FLAG, IDX_ANSI = 0, 1, 2, 3, 4
 
     try:
         msg = sock.recv(4096)
@@ -330,6 +332,7 @@ def read_record_flag(sock, data_dict):
             save_and_exit(msg[-1])
 
         data_dict["session_num"] = int(msg[IDX_SESS])
+        data_dict["question_num"] = int(msg[IDX_STYPE])
         data_dict["question_num"] = int(msg[IDX_QNUM])
         data_dict["question_type"] = int(msg[IDX_QTYPE])
         data_dict["record_flag"] = int(msg[IDX_FLAG])
