@@ -8,7 +8,7 @@ import argparse
 import pygame
 import numpy as np
 from PIL import ImageTk, Image
-from constants import RecordFlags
+from constants import RecordFlags, SESSION_TYPES
 from questionnaire.prepare_questions import *
 
 
@@ -43,6 +43,7 @@ RUN_EXAMPLE = True
 
 QUESTION_NUMBER = 0
 SESSION_NUMBER = 0
+SESSION_TYPE = 1
 SESSION_START = True
 IMAGE_COUNTER = 0
 
@@ -195,8 +196,8 @@ def prepare_flag(question, flag, answer_index=-1):
     global SESSION_NUMBER
     global QUESTION_NUMBER
 
-    msg = '{}_{}_{}_{}_{}'.format(
-        SESSION_NUMBER, QUESTION_NUMBER, question[IDX_QUESTION_DATA]["type"], int(flag), answer_index)
+    msg = '{}_{}_{}_{}_{}_{}'.format(
+        SESSION_NUMBER, SESSION_TYPE, QUESTION_NUMBER, question[IDX_QUESTION_DATA]["type"], int(flag), answer_index)
 
     if flag == RecordFlags.RECORD_FLAG_END_SESSION:
         msg += '_'+SUBJECT_ID
@@ -273,6 +274,7 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
     global QUESTION_NUMBER
     global SESSION_NUMBER
     global SESSION_START
+    global SESSION_TYPE
 
     b.place_forget()
 
@@ -284,7 +286,17 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
         SESSION_START = False
         SESSION_NUMBER += 1
 
-        change_label(label, 'now lie')  # TODO
+        session_start_message = ''
+
+        if SESSION_TYPE == SESSION_TYPES['say_truth']:
+            SESSION_TYPE = SESSION_TYPES['say_lies']
+            session_start_message = 'נא לענות תשובה שקרית לכל השאלות הבאות'
+
+        elif SESSION_TYPE == SESSION_TYPES['say_lies']:
+            SESSION_TYPE = SESSION_TYPES['say_truth']
+            session_start_message = 'נא לענות תשובה אמיתית לכל השאלות הבאות'
+
+        change_label(label, session_start_message)
         b.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
         return
 
