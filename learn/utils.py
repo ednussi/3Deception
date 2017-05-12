@@ -1,15 +1,70 @@
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
-from constants import RecordFlags, META_COLUMNS, TARGET_COLUMN
 from time import time
 
+import pandas as pd
+from scipy.stats import randint, uniform
+from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import RandomizedSearchCV
 
-def prepare_data(data_path, method='4v1_A'):
+from constants import *
+
+
+def prepare_classifiers():
+    return [
+        {
+            'clf': SGDClassifier(),
+            'params': [
+                {
+                    'n_iter': randint(1, 11),
+                    'alpha': uniform(scale=0.01),
+                    'penalty': ['none', 'l1', 'l2']
+                }
+            ]
+        },
+        {
+            'clf': svm.LinearSVC(),
+            'params': [
+                {
+                    'C': [0, 0.1, 1, 10, 100, 1000],
+                    'kernel': ['linear']
+                }
+            ]
+        },
+        {
+            'clf': RandomForestClassifier(),
+            'params': [
+                {
+                    'max_depth': [3, None],
+                    'max_features': randint(1, 11),
+                    'min_samples_split': randint(1, 11),
+                    'min_samples_leaf': randint(1, 11),
+                    'bootstrap': [True, False],
+                    'criterion': ['gini', 'entropy']
+                }
+            ]
+        },
+        {
+            'clf': GradientBoostingClassifier(),
+            'params': [
+                {
+                    'gbm__max_depth': [3, 6, 10],
+                    'gbm__n_estimators': [50, 100, 500, 1000],
+                    'gbm__min_samples_split': [2, 5, 8, 11],
+                    'gbm__learning_rate': [0.01, 0.05, 0.1, 0.5, 1.0],
+                    'gbm__max_features': ['sqrt', 'log2']
+                }
+            ]
+        }
+    ]
+
+
+def prepare_folds(data_df, method='4v1_A'):
     """
-    Reads features from csv file, and splits to list of datasets 
+    Splits features to list of folds 
     according to learning method.
-    Each dataset is a tuple (train, test, train_labels, test_labels)
+    Each fold is a tuple (train_indices, test_indices)
     
     Supported methods:
         4vs1: learn on answers of 4 types of questions and predict every answer in 5th
@@ -17,37 +72,32 @@ def prepare_data(data_path, method='4v1_A'):
                     learn on n-1 questions in each sessions of this type
                     predict left out questions if it is a part of lying or truthful session
     
-    :param data_path: 
+    :param data_df: 
     :param method: 
     :return: 
     """
-    from constants import SESSION_COLUMN, SESSION_TYPE_COLUMN, QUESTION_TYPE_COLUMN, SESSION_TYPES, QUESTION_TYPES
-    from sklearn.model_selection import LeaveOneOut
 
     print('Data preparation for evaluation method: %s' % method)
-
-    # read input features
-    data_df = pd.read_csv(data_path)
 
     session_types = [SESSION_TYPES['say_truth'], SESSION_TYPES['say_lies']]
 
     if method.startswith('4v1'):
-        if method.endswith('A'):
+        if method == SPLIT_METHODS['4_vs_1_all_session_types']:
             pass
 
-        elif method.endswith('T'):
+        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:
             session_types = [SESSION_TYPES['say_truth']]
 
-        elif method.endswith('F'):
+        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:
             session_types = [SESSION_TYPES['say_lies']]
 
         else:
             raise Exception('Unknown method: %s' % method)
 
     # filter sessions
-    data_df = data_df[data_df[SESSION_TYPE_COLUMN].astype(int).isin(session_types)]
+    data_fs = data_df[data_df[SESSION_TYPE_COLUMN].astype(int).isin(session_types)]
 
-    data_sets = []
+    folds = []
 
     loo = LeaveOneOut()
 
@@ -62,28 +112,16 @@ def prepare_data(data_path, method='4v1_A'):
             print('-- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
 
             # extract frames with train question types
-            train = data_df[data_df[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)]
-
-            # drop meta columns
-            train_data = train.iloc[:, len(META_COLUMNS):].values
-
-            # extract train labels
-            train_labels = (train[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+            train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
 
             # extract frames with test question types
-            test = data_df[data_df[QUESTION_TYPE_COLUMN].astype(int) == test_types[0]]
-
-            # drop meta columns
-            test_data = test.iloc[:, len(META_COLUMNS):].values
-
-            # extract test labels
-            test_labels = (test[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+            test_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
 
             # add dataset
-            data_sets.append((train_data, test_data, train_labels, test_labels))
+            folds.append((train_indices, test_indices))
 
     elif method == 'SP':
-        sessions = data_df[SESSION_COLUMN].unique()
+        sessions = data_fs[SESSION_COLUMN].unique()
         session_pairs = list(zip(sessions[::2], sessions[1::2]))
 
         for i, (train_sessions_idx, test_sessions_idx) in enumerate(loo.split(session_pairs)):
@@ -94,57 +132,71 @@ def prepare_data(data_path, method='4v1_A'):
             print('-- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
 
             # extract frames with train sessions
-            train = data_df[data_df[SESSION_COLUMN].astype(int).isin(train_sessions)]
-
-            # drop meta columns
-            train_data = train.iloc[:, len(META_COLUMNS):].values
-
-            # extract train labels
-            train_labels = (train[SESSION_TYPE_COLUMN] == SESSION_TYPES['say_truth']).values
+            train_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(train_sessions)].index
 
             # extract frames with test sessions
-            test = data_df[data_df[SESSION_COLUMN].astype(int).isin(test_sessions)]
-
-            # drop meta columns
-            test_data = test.iloc[:, len(META_COLUMNS):].values
-
-            # extract train labels
-            test_labels = (test[SESSION_TYPE_COLUMN] == SESSION_TYPES['say_truth']).values
+            test_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)].index
 
             # add dataset
-            data_sets.append((train_data, test_data, train_labels, test_labels))
+            folds.append((train_indices, test_indices))
 
     else:
         raise Exception('Unknown method: %s' % method)
 
-    return data_sets
+    return folds
 
 
-def find_params_random_search(clf, param_dist, data, target, score_metric):
+def find_params_random_search(clf, param_dist, data, target, folds, score_metric=None):
+    """
+    Evaluates classifier on given data using score_metric and prepared cross-validation folds
+    :param clf: 
+    :param param_dist: 
+    :param data: 
+    :param target: 
+    :param folds: 
+    :param score_metric: 
+    :return: 
+    """
     # run randomized search
     n_iter_search = 50
     random_search = RandomizedSearchCV(
         clf,
         param_distributions=param_dist,
         n_iter=n_iter_search,
-        scoring=score_metric
+        scoring=score_metric,
+        cv=folds
     )
 
     start = time()
     random_search.fit(data, target)
-    print("RandomizedSearchCV took %.2f seconds for %d candidates parameter settings."
+    print('RandomizedSearchCV took %.2f seconds for %d candidates parameter settings.'
           % ((time() - start), n_iter_search))
 
-    report(random_search.cv_results_)
+    return random_search
 
 
-def report(results, n_top=3):
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                results['mean_test_score'][candidate],
-                results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
+def cv_all_classifiers(data, target, folds, metric=None):
+    results = []
+    for classifier in prepare_classifiers():
+        print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
+        for param_dict in classifier['params']:
+            results.append(find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric))
+
+    return results
+
+
+def cv_all_methods(data_path, metric=None):
+    results = []
+
+    data_df = pd.read_csv(data_path)
+
+    data = data_df.iloc[:, len(META_COLUMNS):].values
+    target = data_df[data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE].values
+
+    for method in SPLIT_METHODS.values():
+        print('Method: {}'.format(method))
+        folds = prepare_folds(data_df, method)
+        results.extend(cv_all_classifiers(data, target, folds, metric))
+
+    results_df = pd.concat([pd.DataFrame(x) for x in results])
+    return results_df

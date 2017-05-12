@@ -81,3 +81,10 @@ QUESTION_TYPES = {
     'birth_country': 4,
     'birth_month': 5,
 }
+
+SPLIT_METHODS = {
+    '4_vs_1_all_session_types': '4v1_A',
+    '4_vs_1_truth_session_types': '4v1_T',
+    '4_vs_1_lies_session_types': '4v1_F',
+    'session_prediction': 'SP',
+}
