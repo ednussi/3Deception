@@ -8,6 +8,10 @@ import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
 
+GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'MouthLeft',
+                    'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+                    'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
+                    'Sneer', 'CheekSquint_L', 'CheekSquint_R']
 META_COLUMNS = ["session", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
@@ -285,9 +289,20 @@ def normalize_pd_df(df):
     # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
     return df_norm
 
+def get_top_au(raw_df, method, num_au):
+    if method == 'daniel':
+        return raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
+    elif method == 'top':
+        return take_top_features(raw_df, num_au)
+    else: #elif method == 'all':
+        return raw_df
+
+
+
 """
 To get here for debug reasons:
 import os
+os.chdir('C:/Users/owner/Desktop/Project/3deception/')
 os.chdir('/cs/engproj/3deception/3deception')
 import features
 from features import utils, moments, discrete_states, dynamic, misc

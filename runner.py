@@ -27,8 +27,8 @@ def extract_features(raw_path, with_pca, choose_top_au_by_group):
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
-    print("Choosing Top AU from all AU..")
-    top_AU = utils.take_top_features(raw_df, 24)
+    print("Choosing Top AU..")
+    top_AU = utils.get_top_au(raw_df, method, num_au)
 
     if (choose_top_au_by_group):
         print("Extracting features for each group..")
@@ -60,6 +60,8 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', dest='raw_path')
     parser.add_argument('-p', '--pca', dest='pca', type=int, default=None)
     parser.add_argument('-au', '--au_top_by_group', dest='top_au', type=bool, default=True)
+    parser.add_argument('-au_num', '--au_top_by_group', dest='top_au', type=bool, default=True)
+    parser.add_argument('-au', '--au_top_by_group', dest='top_au', type=bool, default=True)
 
     args = parser.parse_args()
 
@@ -68,3 +70,13 @@ if __name__ == "__main__":
         exit()
 
     extract_features(args.raw_path, args.pca,args.top_au)
+
+"""
+import os
+os.chdir('C:/Users/owner/Desktop/Project/3deception/')
+import argparse
+import pandas as pd
+import os.path as path
+from features import utils
+raw_df = pd.read_csv('new_csv.csv')
+"""
