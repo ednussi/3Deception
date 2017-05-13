@@ -90,14 +90,14 @@ def save_results_plot(plot_path, results):
             train_score = res['cv_results']['mean_train_score'].values.tolist()
             test_score = res['cv_results']['mean_test_score'].values.tolist()
 
-            data.append([method, estimator, train_score[0], test_score[0]])
+            data.append([method, estimator + ' mean_train_score', train_score[0]])
+            data.append([method, estimator + ' mean_test_score', test_score[0]])
 
     data = np.array(data)
-    print(data)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    barplot(ax, data[:, 1:])
+    barplot(ax, data)
 
 
 def extract_features(raw_path, with_pca, au, au_num, feat, feat_num, method):
