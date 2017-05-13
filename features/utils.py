@@ -271,7 +271,7 @@ def pca_grouped(df, groups):
     group_columns = set(META_COLUMNS)
 
     for g in groups.keys():
-        group_columns.union(set(g))
+        group_columns = group_columns.union(set(g))
 
     skip_columns = set(df.columns) - group_columns
 
@@ -279,16 +279,21 @@ def pca_grouped(df, groups):
     reduced = df.copy()
     reduced = reduced.iloc[:, :len(META_COLUMNS)]
 
+    suffix = 0
+
     for g, dim in groups.items():
 
         pca = PCA(n_components=dim, copy=True, whiten=True)
-        pca.fit(df.loc[:, g])
+        pca.fit(df.loc[:, g].T)
 
         # append to result DataFrame
-        reduced = pd.concat([reduced, pd.DataFrame(pca.components_.T, index=reduced.index)], axis=1)
+        reduced = reduced.join(pd.DataFrame(pca.components_.T,
+                                            columns=[str(c)+str(suffix) for c in range(pca.components_.shape[0])]))
+
+        suffix += 1
 
     # add skipped columns
-    reduced = pd.concat([reduced, df.loc[:, list(skip_columns)]])
+    reduced = reduced.join(df.loc[:, list(skip_columns)])
     return reduced
 
 
@@ -321,7 +326,6 @@ def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
         }
 
         print("Running PCA for feature groups...")
-        print(groups)
         pca_features = pca_grouped(top_features, groups)
 
         print("Saving PCA features to {}...".format(pca_path))
