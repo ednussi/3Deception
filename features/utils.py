@@ -6,10 +6,10 @@ from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
+from constants import META_COLUMNS, GROUPBY_COLUMNS
 
-META_COLUMNS = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 SKIP_COLUMNS = len(META_COLUMNS)
-GROUPBY_COLUMNS = ["question", "answer_index"]
+
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
 ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
