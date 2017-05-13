@@ -349,22 +349,22 @@ def extract_select_tsflesh_features(X):
     return features_filtered_direct
 
 
-def take_top_features(features_pd, top_features_num, method):
+def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     meta = META_COLUMNS
-    identifiers = features_pd[META_COLUMNS]
+    identifiers = df[META_COLUMNS]
     if method == 'SP':
         label_col = 'session_type'
     else:
         label_col = 'record_flag'
     meta.remove(label_col)
-    data = features_pd.drop(meta, axis=1)
+    data = df.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
-    top_features = correlation_to_flag[0:top_features_num]
-    top_features_pd = identifiers.join(features_pd[top_features.keys()])
+    top_features = correlation_to_flag[0:top_n]
+    top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
 
@@ -387,14 +387,14 @@ def get_top_au(raw_df, au, au_num, method):
         return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
     elif au == 'eyes_area':
         return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
-    elif au == 'brow':
+    elif au == 'brows':
         return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
     elif au == 'smile':
         return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
     elif au == 'blinks':
         return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
     else:  # elif au == 'top':
-        return take_top_features(raw_df, au_num, method)
+        return take_top_(raw_df, au_num, method)
 
 
 def partition(lst):
@@ -406,14 +406,14 @@ def partition(lst):
 def get_top_features(top_AU, feat, feat_num, method):
     if feat == 'all':
         all_features = get_all_features(top_AU)
-        return take_top_features(all_features, feat_num, method)
+        return take_top_(all_features, feat_num, method)
 
     else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
         all_list = get_all_features_by_groups(top_AU)  # all_moments, all_discrete, all_dynamic, all_misc
         top_feature_group_list = [None] * 4
         for i in range(4):
-            top_feature_group_list[i] = take_top_features(all_list[i], au_per_group(i), method)
+            top_feature_group_list[i] = take_top_(all_list[i], au_per_group(i), method)
 
         return pd.concat([
             top_feature_group_list[0],
