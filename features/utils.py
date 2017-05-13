@@ -8,6 +8,8 @@ from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 from constants import META_COLUMNS, GROUPBY_COLUMNS
+import pickle
+
 
 SKIP_COLUMNS = len(META_COLUMNS)
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
@@ -129,24 +131,26 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     Returns:
         list of quantized data frames
     """
-    question_quantized_dfs = []
+    pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(raw_path)
+    
+    if raw_path is not None and path.isfile(pickle_path):
+        question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
 
-    for i, q_df in enumerate(question_dfs):
-        pickle_path = 'pickles/{}__quantized_answers_df_{}.pickle'.format(raw_path, i)
-        if raw_path is not None and path.isfile(pickle_path):
-            q = pd.read_pickle(pickle_path)
+    else:
+        question_quantized_dfs = []
 
-        else:
+        for i, q_df in enumerate(question_dfs):
+
             q = q_df.copy()
             for au in q.iloc[:, SKIP_COLUMNS:]:
                 q.loc[:, au] = sk_cluster \
                     .KMeans(n_clusters=n_clusters, random_state=1) \
                     .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
-            if raw_path is not None and not path.isfile(pickle_path):
-                q.to_pickle(pickle_path)
+            question_quantized_dfs.append(q)
 
-        question_quantized_dfs.append(q)
+        if raw_path is not None and not path.isfile(pickle_path):
+            pickle.dump(question_quantized_dfs, open(pickle_path, 'rb'))
 
     return question_quantized_dfs
 
@@ -413,7 +417,7 @@ def partition(lst):
 def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
     if feat == 'all':
         all_features = get_all_features(top_AU, raw_path)
-        return take_top_(all_features, feat_num, method)
+        return take_top_(all_features, feat_num, method).fillna(0.0)
 
     else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
@@ -430,7 +434,7 @@ def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
             top_feature_group_list[1].iloc[:, len(META_COLUMNS):],
             top_feature_group_list[2].iloc[:, len(META_COLUMNS):],
             top_feature_group_list[3].iloc[:, len(META_COLUMNS):]
-        ], axis=1)
+        ], axis=1).fillna(0.0)
 
 
 """
