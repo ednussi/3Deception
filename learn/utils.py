@@ -178,7 +178,10 @@ def cv_all_classifiers(data, target, folds, metric=None):
     for classifier in prepare_classifiers():
         print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
-            results.append(find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric))
+            results.append({
+                'estimator': classifier['clf'].__class__.__name__,
+                'cv_results': find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric)
+            })
 
     return results
 
@@ -195,7 +198,9 @@ def cv_all_methods(data_path, metric=None):
         print('Method: {}'.format(method))
         folds = prepare_folds(data_df, method)
 
-        results.extend(cv_all_classifiers(data, target, folds, metric))
+        results.append({
+            'method': method,
+            'results': cv_all_classifiers(data, target, folds, metric)
+        })
 
-    results_df = pd.concat([pd.DataFrame(x) for x in results])
-    return results_df
+    return results
