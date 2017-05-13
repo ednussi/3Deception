@@ -284,27 +284,27 @@ def pca_grouped(df, groups):
 
 def get_all_features_by_groups(raw_df):
     print("Splitting answers... ", end="")
-    question_idx_dfs = split_df_to_answers(raw_df)
+    answers_dfs = split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
-    quantized_question_idx_dfs = quantize(question_idx_dfs, n_clusters=4)
+    quantized_answers_dfs = quantize(answers_dfs, n_clusters=4)
     print("Done.")
 
     print("Moments... ", end="")
-    all_moments = moments.moments(question_idx_dfs)
+    all_moments = moments.moments(answers_dfs)
     print("Done.")
 
     print("Discrete... ", end="")
-    all_discrete = discrete_states.discrete_states(quantized_question_idx_dfs)
+    all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
     print("Done.")
 
     print("Dynamic... ", end="")
-    all_dynamic = dynamic.dynamic(quantized_question_idx_dfs)
+    all_dynamic = dynamic.dynamic(quantized_answers_dfs)
     print("Done.")
 
     print("Miscellaneous... ", end="")
-    all_misc = misc.misc(question_idx_dfs)
+    all_misc = misc.misc(answers_dfs)
     print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
@@ -352,12 +352,11 @@ def extract_select_tsflesh_features(X):
     return features_filtered_direct
 
 
-def take_top_features(features_pd, top_features_num, method):
+def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     meta = META_COLUMNS
-    print('features_pd.columns',features_pd.columns)
-    identifiers = features_pd[META_COLUMNS]
+    identifiers = df[META_COLUMNS]
     if method == 'SP':
         label_col = 'session_type'
     else:
@@ -365,12 +364,12 @@ def take_top_features(features_pd, top_features_num, method):
     print('META_COLUMNS',META_COLUMNS)
     print('meta', meta)
     meta.remove(label_col)
-    data = features_pd.drop(meta, axis=1)
+    data = df.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
-    top_features = correlation_to_flag[0:top_features_num]
-    top_features_pd = identifiers.join(features_pd[top_features.keys()])
+    top_features = correlation_to_flag[0:top_n]
+    top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
 
@@ -393,14 +392,14 @@ def get_top_au(raw_df, au, au_num, method):
         return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
     elif au == 'eyes_area':
         return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
-    elif au == 'brow':
+    elif au == 'brows':
         return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
     elif au == 'smile':
         return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
     elif au == 'blinks':
         return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
     else:  # elif au == 'top':
-        return take_top_features(raw_df, au_num, method)
+        return take_top_(raw_df, au_num, method)
 
 
 def partition(lst):
@@ -412,7 +411,7 @@ def partition(lst):
 def get_top_features(top_AU, feat, feat_num, method):
     if feat == 'all':
         all_features = get_all_features(top_AU)
-        return take_top_features(all_features, feat_num, method)
+        return take_top_(all_features, feat_num, method)
 
     else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
@@ -422,7 +421,9 @@ def get_top_features(top_AU, feat, feat_num, method):
         print('all_list[1]', all_list[1].columns)
         top_feature_group_list = [None] * 4
         for i in range(4):
-            top_feature_group_list[i] = take_top_features(all_list[i], au_per_group[i], method)
+
+            top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)
+
 
         return pd.concat([
             top_feature_group_list[0],

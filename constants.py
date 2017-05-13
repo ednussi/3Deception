@@ -69,6 +69,24 @@ PCA_METHODS = {
 }
 
 
+AU_SELECTION_METHODS = {
+    'daniel': 'daniel',
+    'mouth': 'mouth',
+    'eyes': 'eyes',
+    'brows': 'brows',
+    'eyes_area': 'eyes_area',
+    'smile': 'smile',
+    'blinks': 'blinks',
+    'top': 'top'
+}
+
+
+FEATURE_SELECTION_METHODS = {
+    'all': 'all',
+    'groups': 'groups'
+}
+
+
 __all__ = [
     'RecordFlags',
     'META_COLUMNS',
