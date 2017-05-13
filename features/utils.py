@@ -9,6 +9,7 @@ from . import moments, discrete_states, dynamic, misc
 
 
 META_COLUMNS = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
+SKIP_COLUMNS = len(META_COLUMNS)
 GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 

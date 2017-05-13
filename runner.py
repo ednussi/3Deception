@@ -179,10 +179,15 @@ if __name__ == "__main__":
 """
 import os
 os.chdir('C:/Users/owner/Desktop/Project/3deception/')
-dsadads
 import argparse
 import pandas as pd
 import os.path as path
 from features import utils
 raw_df = pd.read_csv('new_csv.csv')
+with_pca = 1
+au = 'daniel'
+au_num = 8
+feat = 'group'
+feat_num = 8
+method = '4v1_A'
 """
