@@ -26,19 +26,37 @@ def misc(question_dfs):
 
     for ans in question_dfs:
         # ================== Smiles ==================
-        num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
-                              utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
+        if ('MouthSmile_L' in ans.columns) and ('MouthSmile_R' in ans.columns):
 
-        num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
-        num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD))
+            num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
+                                  utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
+
+            num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
+            num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD))
+
+            if ('EyeBlink_L' not in ans.columns) or ('EyeBlink_R' not in ans.columns):
+                return pd.DataFrame({
+                    'smiles': num_smiles,
+                    'smiles_right': num_smiles_right,
+                    'smiles_left': num_blinks_left,
+                })
 
         # ================== Blinks ==================
-        num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
-                              utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
-        num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
-        num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
+        if ('EyeBlink_L' in ans.columns) and ('EyeBlink_R' in ans.columns):
+            num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
+                                  utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
+            num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
+            num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
 
-        # ================== Response delay ==================
+            if ('MouthSmile_L' not in ans.columns) or ('MouthSmile_R' not in ans.columns):
+                return pd.DataFrame({
+                    'blinks': num_blinks,
+                    'blinks_right': num_blinks_right,
+                    'blinks_left': num_blinks_left,
+                })
+
+
+                # ================== Response delay ==================
         # audio = ans.loc[:, 'audio_rms']
         # threshold_audio = (audio > 1).values.tolist()
         #
@@ -77,7 +95,7 @@ def misc(question_dfs):
         'smiles_left': num_blinks_left,
         'blinks': num_blinks,
         'blinks_right': num_blinks_right,
-        'blinks_left':num_blinks_left,
+        'blinks_left': num_blinks_left,
         # 'response_delay': audio_rms_delay,
         # 'response_duration': response_dur
     })

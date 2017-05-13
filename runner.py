@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument('-fn', '--features_num', dest='feat_num', type=int, default=24)
 
     parser.add_argument('-m', '--method', dest='method', type=str, default='4v1_A',
-                        chocies=['4v1_A', '4v1_T', '4v1_F', 'SP'])
+                        choices=['4v1_A', '4v1_T', '4v1_F', 'SP'])
 
     parser.add_argument('-mr', '--metric', dest='metric', type=str, default=None)
 
