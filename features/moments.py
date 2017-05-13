@@ -1,6 +1,7 @@
 import pandas as pd
 from . import utils
 
+
 def moments(question_dfs):
     question_moments = []
 
@@ -23,7 +24,7 @@ def moments(question_dfs):
         q_max = q.iloc[:, utils.SKIP_COLUMNS:].max()
         q_max.index = [col + '_max' for col in q_max.index]
 
-        question_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
+        question_moments.append(pd.concat([q.iloc[:, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
 
     return pd.concat(question_moments, axis=1).T
 

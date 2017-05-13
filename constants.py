@@ -65,7 +65,7 @@ SPLIT_METHODS = {
 
 PCA_METHODS = {
     'global': 'global',
-    'grouped': 'grouped'
+    'groups': 'groups'
 }
 
 
