@@ -327,7 +327,6 @@ def get_all_features(raw_df, raw_path=None):
         all_misc.iloc[:, len(META_COLUMNS):]
     ], axis=1)
 
-    print('In get all features: all_features.columns',all_features.columns)
 
     all_features.index = all_moments.index
     return all_features
@@ -367,8 +366,6 @@ def take_top_(df, top_n, method):
         label_col = 'session_type'
     else:
         label_col = 'record_flag'
-    print('META_COLUMNS',META_COLUMNS)
-    print('meta', meta)
     meta.remove(label_col)
     data = df.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
@@ -424,18 +421,15 @@ def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
         all_list = list(get_all_features_by_groups(top_AU, raw_path))  # all_moments, all_discrete, all_dynamic, all_misc
         for i in range(len(all_list)):
             all_list[i] = pd.concat([top_AU[META_COLUMNS],all_list[i]])
-        print('all_list[1]', all_list[1].columns)
         top_feature_group_list = [None] * 4
         for i in range(4):
-
             top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)
-
 
         return pd.concat([
             top_feature_group_list[0],
             top_feature_group_list[1].iloc[:, len(META_COLUMNS):],
-            top_feature_group_list[2],
-            top_feature_group_list[3]
+            top_feature_group_list[2].iloc[:, len(META_COLUMNS):],
+            top_feature_group_list[3].iloc[:, len(META_COLUMNS):]
         ], axis=1)
 
 
