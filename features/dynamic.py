@@ -37,7 +37,7 @@ def dynamic(question_quantized_dfs):
     all_transitions = {}
 
     for i, qdf in enumerate(question_quantized_dfs):
-        q = qdf.iloc[:, utils.SKIP_COLUMNS:-1]  # don't work on audio_rms column
+        q = qdf.iloc[:, utils.SKIP_COLUMNS:]  # don't work on audio_rms column
 
         all_transitions[i] = OrderedDict()
 

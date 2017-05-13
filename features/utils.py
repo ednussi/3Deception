@@ -9,7 +9,6 @@ from . import moments, discrete_states, dynamic, misc
 from constants import META_COLUMNS, GROUPBY_COLUMNS
 
 SKIP_COLUMNS = len(META_COLUMNS)
-
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
 ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
@@ -355,7 +354,7 @@ def extract_select_tsflesh_features(X):
 def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
-    meta = META_COLUMNS
+    meta = [x for x in META_COLUMNS]
     identifiers = df[META_COLUMNS]
     if method == 'SP':
         label_col = 'session_type'
