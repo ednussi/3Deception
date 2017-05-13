@@ -22,7 +22,7 @@ META_COLUMNS = [
     'session_type',
     'question', 
     'question_type', 
-    'record_flag', 
+    'record_flag',
     'answer_index', 
     'timestamp'
 ]
