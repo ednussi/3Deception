@@ -284,27 +284,27 @@ def pca_grouped(df, groups):
 
 def get_all_features_by_groups(raw_df):
     print("Splitting answers... ", end="")
-    question_idx_dfs = split_df_to_answers(raw_df)
+    answers_dfs = split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
-    quantized_question_idx_dfs = quantize(question_idx_dfs, n_clusters=4)
+    quantized_answers_dfs = quantize(answers_dfs, n_clusters=4)
     print("Done.")
 
     print("Moments... ", end="")
-    all_moments = moments.moments(question_idx_dfs)
+    all_moments = moments.moments(answers_dfs)
     print("Done.")
 
     print("Discrete... ", end="")
-    all_discrete = discrete_states.discrete_states(quantized_question_idx_dfs)
+    all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
     print("Done.")
 
     print("Dynamic... ", end="")
-    all_dynamic = dynamic.dynamic(quantized_question_idx_dfs)
+    all_dynamic = dynamic.dynamic(quantized_answers_dfs)
     print("Done.")
 
     print("Miscellaneous... ", end="")
-    all_misc = misc.misc(question_idx_dfs)
+    all_misc = misc.misc(answers_dfs)
     print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
@@ -413,7 +413,7 @@ def get_top_features(top_AU, feat, feat_num, method):
         all_list = get_all_features_by_groups(top_AU)  # all_moments, all_discrete, all_dynamic, all_misc
         top_feature_group_list = [None] * 4
         for i in range(4):
-            top_feature_group_list[i] = take_top_(all_list[i], au_per_group(i), method)
+            top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)
 
         return pd.concat([
             top_feature_group_list[0],

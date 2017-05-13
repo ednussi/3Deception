@@ -81,6 +81,12 @@ AU_SELECTION_METHODS = {
 }
 
 
+FEATURE_SELECTION_METHODS = {
+    'all': 'all',
+    'groups': 'groups'
+}
+
+
 __all__ = [
     'RecordFlags',
     'META_COLUMNS',

@@ -7,7 +7,7 @@ from learn.utils import cv_method_all_classifiers
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import operator as o
-from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS
+from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS
 
 
 # TODO
@@ -174,7 +174,7 @@ def extract_features(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i', '--input', dest='raw_path', reqired=True)
+    parser.add_argument('-i', '--input', dest='raw_path', required=True)
 
     # AU selection method
     parser.add_argument('-a', '--au_selection_method', dest='au_selection_method', type=str, default='top',
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
     # Feature selection method
     parser.add_argument('-f', '--feature_selection_method', dest='feature_selection_method', type=str, default=None,
-                        choices=[])
+                        choices=list(FEATURE_SELECTION_METHODS.values()))
 
     # Number of top correlated features to use
     parser.add_argument('-fn', '--features_top_n', dest='features_top_n', type=int, default=24)
