@@ -173,7 +173,7 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
     return random_search
 
 
-def cv_all_classifiers(data, target, folds, metric=None):
+def cv_folds_all_classifiers(data, target, folds, metric=None):
     results = []
     for classifier in prepare_classifiers():
         print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
@@ -186,21 +186,26 @@ def cv_all_classifiers(data, target, folds, metric=None):
     return results
 
 
-def cv_all_methods(data_path, metric=None):
-    results = []
-
+def cv_method_all_classifiers(data_path, method, metric=None):
     data_df = pd.read_csv(data_path)
 
     data = data_df.iloc[:, len(META_COLUMNS):].values
     target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
+    folds = prepare_folds(data_df, method)
+
+    return cv_folds_all_classifiers(data, target, folds, metric)
+
+
+def cv_all_methods_all_classifiers(data_path, metric=None):
+    results = []
+
     for method in SPLIT_METHODS.values():
         print('Method: {}'.format(method))
-        folds = prepare_folds(data_df, method)
-
+        
         results.append({
             'method': method,
-            'results': cv_all_classifiers(data, target, folds, metric)
+            'results': cv_method(data_path, method, metric)
         })
 
     return results

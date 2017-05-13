@@ -39,37 +39,37 @@ def misc(question_dfs):
         num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
 
         # ================== Response delay ==================
-        audio = ans.loc[:, 'audio_rms']
-        threshold_audio = (audio > 1).values.tolist()
-
-        current_length, j = 1, 0
-        sequences = []
-        prev = threshold_audio[0]
-
-        for i, x in enumerate(threshold_audio[1:]):
-            if x != prev:
-                sequences.append((prev, j, current_length))
-                current_length = 1
-                j = i + 1
-            else:
-                current_length += 1
-            prev = x
-
-        sequences.append((prev, j, current_length))
-
-        # delay is the length of silent segment before last noisy one
-        # intuition: the last noisy segment is
-        idx = len(sequences) - 2 - [*map(lambda x: x[0], sequences)][::-1].index(True)
-
-        # in case there is only one noisy segment (the subject says NO in the time of recording), ignore
-        if idx >= 0:
-            audio_rms_delay.append(sequences[idx][2])
-        else:
-            audio_rms_delay.append(0)
-
-        # ================== Respone duration ==================
-        idx = len(sequences) - 1 - [*map(lambda x: x[0], sequences)][::-1].index(True)
-        response_dur = sequences[idx][2]
+        # audio = ans.loc[:, 'audio_rms']
+        # threshold_audio = (audio > 1).values.tolist()
+        #
+        # current_length, j = 1, 0
+        # sequences = []
+        # prev = threshold_audio[0]
+        #
+        # for i, x in enumerate(threshold_audio[1:]):
+        #     if x != prev:
+        #         sequences.append((prev, j, current_length))
+        #         current_length = 1
+        #         j = i + 1
+        #     else:
+        #         current_length += 1
+        #     prev = x
+        #
+        # sequences.append((prev, j, current_length))
+        #
+        # # delay is the length of silent segment before last noisy one
+        # # intuition: the last noisy segment is
+        # idx = len(sequences) - 2 - [*map(lambda x: x[0], sequences)][::-1].index(True)
+        #
+        # # in case there is only one noisy segment (the subject says NO in the time of recording), ignore
+        # if idx >= 0:
+        #     audio_rms_delay.append(sequences[idx][2])
+        # else:
+        #     audio_rms_delay.append(0)
+        #
+        # # ================== Response duration ==================
+        # idx = len(sequences) - 1 - [*map(lambda x: x[0], sequences)][::-1].index(True)
+        # response_dur = sequences[idx][2]
 
     df = pd.DataFrame({
         'smiles': num_smiles,
@@ -78,8 +78,8 @@ def misc(question_dfs):
         'blinks': num_blinks,
         'blinks_right': num_blinks_right,
         'blinks_left':num_blinks_left,
-        'response_delay': audio_rms_delay,
-        'response_duration': response_dur
+        # 'response_delay': audio_rms_delay,
+        # 'response_duration': response_dur
     })
 
     return df

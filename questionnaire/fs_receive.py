@@ -322,7 +322,7 @@ def read_block(sock, fsr, data_dict):
 
 def read_record_flag(sock, data_dict):
 
-    IDX_SESS, IDX_STYPE, IDX_QNUM, IDX_QTYPE, IDX_FLAG, IDX_ANSI = 0, 1, 2, 3, 4
+    IDX_SESS, IDX_STYPE, IDX_QNUM, IDX_QTYPE, IDX_FLAG, IDX_ANSI = 0, 1, 2, 3, 4, 5
 
     try:
         msg = sock.recv(4096)

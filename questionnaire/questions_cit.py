@@ -322,7 +322,7 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
     # Send question control flag
     send_record_flag_udp(sock, prepare_flag(q, RecordFlags.RECORD_FLAG_QUESTION))
 
-    if QUESTION_NUMBER % 5 == 0:
+    if QUESTION_NUMBER % (5 * REPEAT_TIMES) == 0:
         SESSION_START = True
 
     # Show button_show_answers
@@ -441,7 +441,7 @@ def main(num_sessions):
     # create list of sessions' questions
     sessions = []
     for i in range(num_sessions):
-        sessions.append([q for q in questions])
+        sessions.append([q for q in questions] * REPEAT_TIMES)
 
     # randomize questions in each session
     for s in sessions:
@@ -470,7 +470,7 @@ def main(num_sessions):
     global main_button
     main_button = b
 
-    if (RUN_EXAMPLE):
+    if not RUN_EXAMPLE:
         run_example_qs(root, sock, receiver, b, label)
     else:
         run_qs(root, sock, receiver, b)
@@ -495,7 +495,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-a', '--answers', dest='num_answers', type=int, choices=[3, 4, 5, 6])
 
-    parser.add_argument('-S', '--sessions', dest='num_sessions', type=int, choices=[2, 4, 6, 8])
+    parser.add_argument('-S', '--sessions', dest='num_sessions', type=int, choices=[2, 4, 6, 8, 10, 12, 14, 16, 18, 20])
 
     parser.set_defaults(
         devmode=False,
