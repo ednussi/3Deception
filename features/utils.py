@@ -1,3 +1,4 @@
+import os.path as path
 import itertools
 import numpy as np
 import sys
@@ -68,10 +69,7 @@ def split_df_to_answers(df):
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df = answers_df[answers_df.answer_index != 2]
 
-    answers_df.index = ['__'.join(ind) for ind in
-                        zip(*[[x + '_'] * len(answers_df[x]) + answers_df[x].astype(str) for x in META_COLUMNS])]
-
-    return [t[1].drop(META_COLUMNS, axis=1) for t in answers_df.groupby(GROUPBY_COLUMNS)]
+    return [t[1] for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
 
 def cv_split_df_to_answers(df):
@@ -121,10 +119,11 @@ def scale(val):
     return ((val - min(val)) / (max(val) - min(val))) * (top - bot) + bot
 
 
-def quantize(question_dfs, n_clusters):
+def quantize(question_dfs, n_clusters, raw_path=None):
     """
     Quantize values in data frames using K-means
     Args:
+        raw_path:
         question_dfs: data frames, note that first two columns are not quantized
         n_clusters: number of clusters
 
@@ -133,12 +132,20 @@ def quantize(question_dfs, n_clusters):
     """
     question_quantized_dfs = []
 
-    for q_df in question_dfs:
-        q = q_df.copy()
-        for au in q.iloc[:, SKIP_COLUMNS:]:
-            q.loc[:, au] = sk_cluster \
-                .KMeans(n_clusters=n_clusters, random_state=1) \
-                .fit_predict(np.reshape(q[au].values, (-1, 1)))
+    for i, q_df in enumerate(question_dfs):
+        pickle_path = 'pickles/{}__quantized_answers_df_{}.pickle'.format(raw_path, i)
+        if raw_path is not None and path.isfile(pickle_path):
+            q = pd.read_pickle(pickle_path)
+
+        else:
+            q = q_df.copy()
+            for au in q.iloc[:, SKIP_COLUMNS:]:
+                q.loc[:, au] = sk_cluster \
+                    .KMeans(n_clusters=n_clusters, random_state=1) \
+                    .fit_predict(np.reshape(q[au].values, (-1, 1)))
+
+            if raw_path is not None and not path.isfile(pickle_path):
+                q.to_pickle(pickle_path)
 
         question_quantized_dfs.append(q)
 
@@ -282,13 +289,13 @@ def pca_grouped(df, groups):
     return reduced
 
 
-def get_all_features_by_groups(raw_df):
+def get_all_features_by_groups(raw_df, raw_path=None):
     print("Splitting answers... ", end="")
     answers_dfs = split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
-    quantized_answers_dfs = quantize(answers_dfs, n_clusters=4)
+    quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
     print("Done.")
 
     print("Moments... ", end="")
@@ -310,8 +317,8 @@ def get_all_features_by_groups(raw_df):
     return all_moments, all_discrete, all_dynamic, all_misc
 
 
-def get_all_features(raw_df):
-    all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df)
+def get_all_features(raw_df, raw_path=None):
+    all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df, raw_path)
 
     all_features = pd.concat([
         all_moments,
@@ -403,14 +410,14 @@ def partition(lst):
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
 
-def get_top_features(top_AU, feat, feat_num, method):
+def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
     if feat == 'all':
         all_features = get_all_features(top_AU)
         return take_top_(all_features, feat_num, method)
 
     else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
-        all_list = get_all_features_by_groups(top_AU)  # all_moments, all_discrete, all_dynamic, all_misc
+        all_list = get_all_features_by_groups(top_AU, raw_path)  # all_moments, all_discrete, all_dynamic, all_misc
         top_feature_group_list = [None] * 4
         for i in range(4):
             top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)

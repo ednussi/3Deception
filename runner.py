@@ -119,7 +119,7 @@ def extract_features(
     top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 
     print("Extracting features with method:", feature_selection_method)
-    top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method)
+    top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
 
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
