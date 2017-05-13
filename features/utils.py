@@ -414,20 +414,23 @@ def partition(lst):
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
 
-def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
-    if feat == 'all':
+def get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path=None):
+    if feature_selection_method == 'all':
         all_features = get_all_features(top_AU, raw_path)
-        return take_top_(all_features, feat_num, method).fillna(0.0)
+        return take_top_(all_features, features_top_n, learning_method).fillna(0.0)
 
     else:  # elif feat == 'by group'
-        au_per_group = partition(list(range(feat_num)))
+        au_per_group = partition(list(range(features_top_n)))
         all_list = list(get_all_features_by_groups(top_AU, raw_path))  # all_moments, all_discrete, all_dynamic, all_misc
-        for i in range(len(all_list)):
-            all_list[i] = pd.concat([top_AU[META_COLUMNS],all_list[i]])
-
+        
         top_feature_group_list = [None] * 4
+        
+        for i in range(1,4):
+            all_list[i] = all_list[0].loc[:,META_COLUMNS].join(all_list[i])
+
+
         for i in range(4):
-            top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)
+            top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], learning_method)
 
         return pd.concat([
             top_feature_group_list[0],

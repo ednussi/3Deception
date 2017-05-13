@@ -234,16 +234,26 @@ if __name__ == "__main__":
 
 """
 import os
-os.chdir('C:/Users/owner/Desktop/Project/3deception/')
+os.chdir('/cs/engproj/3deception/eran/3deception')
 import argparse
 import pandas as pd
 import os.path as path
 from features import utils
-raw_df = pd.read_csv('new_csv.csv')
-with_pca = 1
-au = 'daniel'
-au_num = 8
-feat = 'group'
-feat_num = 8
-method = '4v1_A'
+raw_path = 'new_jonathan.csv'
+features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
+au_selection_method = 'top'
+au_top_n = 24
+feature_selection_method = 'groups'
+features_top_n = 80
+pca_method = 'groups'
+pca_dim = 6
+learn_method ='4v1_T'
+print("Reading {}...".format(raw_path))
+raw_df = pd.read_csv(raw_path)
+print("Choosing Top AU with method", au_selection_method)
+top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+print("Extracting features with method:", feature_selection_method)
+top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+print("Saving all features to {}...".format(features_path), end="")
+top_features.to_csv(features_path)
 """
