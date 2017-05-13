@@ -193,7 +193,7 @@ if __name__ == "__main__":
     cv_method_all_learners(
         args.raw_path,
         features_path,
-        args.learn_method,
+        args.learning_method,
         args.metric
     )
 
