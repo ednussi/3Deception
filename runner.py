@@ -160,7 +160,7 @@ def extract_features(
 
             pca_features = utils.pca_grouped(top_features, groups)
 
-            print("Saving PCA features to {}...".format(pca_path), end="")
+            print("Saving PCA features to {}...".format(pca_path))
             pca_features.to_csv(pca_path)
 
         else:
