@@ -2,10 +2,10 @@ import pandas as pd
 from . import utils
 
 
-def moments(question_dfs):
-    question_moments = []
+def moments(answers_dfs):
+    answers_moments = []
 
-    for q in question_dfs:
+    for i, q in enumerate(answers_dfs):
         q_mean = q.iloc[:, utils.SKIP_COLUMNS:].mean()
         q_mean.index = [col + '_mean' for col in q_mean.index]
 
@@ -24,9 +24,9 @@ def moments(question_dfs):
         q_max = q.iloc[:, utils.SKIP_COLUMNS:].max()
         q_max.index = [col + '_max' for col in q_max.index]
 
-        question_moments.append(pd.concat([q.iloc[:, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
+        answers_moments.append(pd.concat([q.iloc[0, :utils.SKIP_COLUMNS], q_mean, q_var, q_skew, q_kurt, q_min, q_max], axis=0))
 
-    return pd.concat(question_moments, axis=1).T
+    return pd.concat(answers_moments, axis=1).T
 
 """
 To get here for debug reasons:
@@ -35,6 +35,6 @@ import features
 from features import utils, moments, discrete_states, dynamic, misc
 import pandas as pd
 raw_df = pd.read_csv('output_22-4-17_17-00-00.csv')
-question_dfs = utils.split_df_to_questions(raw_df)
-q0 = question_dfs[0]
+answers_dfs = utils.split_df_to_questions(raw_df)
+q0 = answers_dfs[0]
 """

@@ -7,7 +7,7 @@ from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
-from constants import META_COLUMNS, GROUPBY_COLUMNS
+from constants import META_COLUMNS, GROUPBY_COLUMNS, PCA_METHODS
 import pickle
 
 
@@ -290,6 +290,45 @@ def pca_grouped(df, groups):
     # add skipped columns
     reduced = pd.concat([reduced, df.loc[:, list(skip_columns)]])
     return reduced
+
+
+def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
+    if pca_method == PCA_METHODS["global"]:
+        print("Running global PCA...")
+        pca_features = pca_global(top_features, pca_dimension)
+        print("Saving PCA features to {}...".format(pca_path), end="")
+        pca_features.to_csv(pca_path)
+
+    elif pca_method == PCA_METHODS["groups"]:
+        groups = {
+            # moments
+            tuple(filter(lambda x: 'mean' in x or
+                                   'var' in x or
+                                   'skew' in x or
+                                   'kurt' in x,
+                         top_features.columns)): pca_dimension,
+
+            # dynamic
+            tuple(filter(lambda x: 'change_ratio' in x,
+                         top_features.columns)): pca_dimension,
+
+            # discreet
+            tuple(filter(lambda x: ('change_ratio' not in x and 'ratio' in x) or
+                                   '_avg_level' in x or
+                                   '_avg_length' in x or
+                                   'avg_volume' in x,
+                         top_features.columns)): pca_dimension,
+        }
+
+        print("Running PCA for feature groups...")
+        print(groups)
+        pca_features = pca_grouped(top_features, groups)
+
+        print("Saving PCA features to {}...".format(pca_path))
+        pca_features.to_csv(pca_path)
+
+    else:
+        raise Exception("Unknown PCA method")
 
 
 def get_all_features_by_groups(raw_df, raw_path=None):
