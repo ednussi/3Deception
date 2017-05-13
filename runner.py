@@ -129,42 +129,7 @@ def extract_features(
     if pca_method is not None:
         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
 
-        if pca_method == PCA_METHODS["global"]:
-            print("Running global PCA...")
-            pca_features = utils.pca_global(top_features, pca_dimension)
-            print("Saving PCA features to {}...".format(pca_path), end="")
-            pca_features.to_csv(pca_path)
-
-        elif pca_method == PCA_METHODS["grouped"]:
-            groups = {
-                # moments
-                tuple(filter(lambda x: 'mean' in x or
-                                       'var' in x or
-                                       'skew' in x or
-                                       'kurt' in x,
-                             top_features.columns)): pca_dimension,
-
-                # dynamic
-                tuple(filter(lambda x: 'change_ratio' in x,
-                             top_features.columns)): pca_dimension,
-
-                # discreet
-                tuple(filter(lambda x: ('change_ratio' not in x and 'ratio' in x) or
-                                       '_avg_level' in x or
-                                       '_avg_length' in x or
-                                       'avg_volume' in x,
-                             top_features.columns)): pca_dimension,
-            }
-
-            print("Running PCA for feature groups...")
-
-            pca_features = utils.pca_grouped(top_features, groups)
-
-            print("Saving PCA features to {}...".format(pca_path))
-            pca_features.to_csv(pca_path)
-
-        else:
-            raise Exception("Unknown PCA method")
+        utils.dimension_reduction(pca_dimension, pca_method, pca_path, top_features)
 
         return_path = pca_path
 
@@ -202,7 +167,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--pca_dim', dest='pca_dim', type=int, default=None)
 
     # Folding/learning method
-    parser.add_argument('-lm', '--learn_method', dest='learn_method', type=str,
+    parser.add_argument('-lm', '--learning_method', dest='learning_method', type=str,
                         default=SPLIT_METHODS['4_vs_1_all_session_types'],
                         choices=list(SPLIT_METHODS.values()))
 
@@ -222,7 +187,7 @@ if __name__ == "__main__":
         args.features_top_n,
         args.pca_method,
         args.pca_dim,
-        args.learn_method
+        args.learning_method
     )
 
     # cv_method_all_learners(
