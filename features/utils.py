@@ -7,51 +7,58 @@ from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 
-
 META_COLUMNS = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 SKIP_COLUMNS = len(META_COLUMNS)
 GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
-ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
- 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R',
- 'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'MouthLeft', 'MouthRight', 'MouthFrown_L', 'MouthFrown_R',
- 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperClose',
- 'LipsLowerClose', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperOpen', 'LipsLowerOpen', 'LipsFunnel', 'LipsPucker', 'ChinLowerRaise',
- 'ChinUpperRaise', 'Sneer', 'Puff', 'CheekSquint_L', 'CheekSquint_R']
+ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
+          'EyeOpen_L',
+          'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L',
+          'BrowsU_R',
+          'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'MouthLeft', 'MouthRight', 'MouthFrown_L',
+          'MouthFrown_R',
+          'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R',
+          'LipsUpperClose',
+          'LipsLowerClose', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperOpen', 'LipsLowerOpen', 'LipsFunnel',
+          'LipsPucker', 'ChinLowerRaise',
+          'ChinUpperRaise', 'Sneer', 'Puff', 'CheekSquint_L', 'CheekSquint_R']
 
+ALL_AU_DANIEL = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L',
+                 'EyeIn_R',
+                 'EyeOpen_L', 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
+                 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'LipsTogether', 'JawLeft', 'JawRight', 'JawFwd',
+                 'LipsUpperUp_L', 'LipsUpperUp_R', 'LipsLowerDown_L', 'LipsLowerDown_R', 'LipsUpperClose',
+                 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
+                 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'MouthPress_L', 'MouthPress_R', 'LipsPucker',
+                 'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise', 'Sneer_L', 'Sneer_R',
+                 'Puff', 'CheekSquint_L', 'CheekSquint_R']  # len = 51
 
-ALL_AU_DANIEL = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
-               'EyeOpen_L', 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
-               'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'LipsTogether', 'JawLeft', 'JawRight', 'JawFwd',
-               'LipsUpperUp_L', 'LipsUpperUp_R', 'LipsLowerDown_L', 'LipsLowerDown_R', 'LipsUpperClose',
-               'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
-               'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'MouthPress_L', 'MouthPress_R', 'LipsPucker',
-               'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise', 'Sneer_L', 'Sneer_R',
-               'Puff', 'CheekSquint_L', 'CheekSquint_R']    # len = 51
+GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen',
+                  'MouthLeft',
+                  'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+                  'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
+                  'Sneer', 'CheekSquint_L', 'CheekSquint_R']
 
+MOUTH_AU = ['JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose',
+            'LipsUpperOpen', 'LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+            'LipsUpperOpen', 'LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
+            'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
+            'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
 
-GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R','EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'MouthLeft',
-                    'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-                    'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
-                    'Sneer', 'CheekSquint_L', 'CheekSquint_R']
-
-MOUTH_AU = [ 'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose',
-             'LipsUpperOpen','LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-             'LipsUpperOpen','LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-             'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
-               'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
-
-EYES_AREA_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
+EYES_AREA_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L',
+                'EyeIn_R', 'EyeOpen_L',
                 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
                 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
 
-EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R', 'EyeOpen_L',
+EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
+           'EyeOpen_L',
            'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R']
 
 BROWS_AU = ['BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
 SMILE_AU = ['MouthSmile_L', 'MouthSmile_R']
 BLINKS_AU = ['EyeBlink_L', 'EyeBlink_R']
+
 
 def split_df_to_answers(df):
     """
@@ -61,7 +68,8 @@ def split_df_to_answers(df):
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df = answers_df[answers_df.answer_index != 2]
 
-    answers_df.index = ['__'.join(ind) for ind in zip(*[[x + '_'] * len(answers_df[x]) + answers_df[x].astype(str) for x in META_COLUMNS])]
+    answers_df.index = ['__'.join(ind) for ind in
+                        zip(*[[x + '_'] * len(answers_df[x]) + answers_df[x].astype(str) for x in META_COLUMNS])]
 
     return [t[1].drop(META_COLUMNS, axis=1) for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
@@ -108,9 +116,9 @@ def scale(val):
     bot = 0
     top = 1
 
-    if max(val)-min(val) == 0:
+    if max(val) - min(val) == 0:
         return val
-    return ((val - min(val)) / (max(val)-min(val))) * (top-bot) + bot
+    return ((val - min(val)) / (max(val) - min(val))) * (top - bot) + bot
 
 
 def quantize(question_dfs, n_clusters):
@@ -128,8 +136,8 @@ def quantize(question_dfs, n_clusters):
     for q_df in question_dfs:
         q = q_df.copy()
         for au in q.iloc[:, SKIP_COLUMNS:]:
-            q.loc[:, au] = sk_cluster\
-                .KMeans(n_clusters=n_clusters, random_state=1)\
+            q.loc[:, au] = sk_cluster \
+                .KMeans(n_clusters=n_clusters, random_state=1) \
                 .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
         question_quantized_dfs.append(q)
@@ -150,7 +158,7 @@ def runs_of_ones_list(bits):
     return [sum(g) for b, g in itertools.groupby(bits) if b]
 
 
-def find_peaks(v, delta=0.1, x = None):
+def find_peaks(v, delta=0.1, x=None):
     """
     Converted from MATLAB script at http://billauer.co.il/peakdet.html
     Returns two arrays
@@ -203,13 +211,13 @@ def find_peaks(v, delta=0.1, x = None):
             mnpos = x[i]
 
         if look_for_max:
-            if this < mx-delta:
+            if this < mx - delta:
                 maxtab.append((mxpos, mx))
                 mn = this
                 mnpos = x[i]
                 look_for_max = False
         else:
-            if this > mn+delta:
+            if this > mn + delta:
                 mintab.append((mnpos, mn))
                 mx = this
                 mxpos = x[i]
@@ -219,27 +227,62 @@ def find_peaks(v, delta=0.1, x = None):
     return np.array(maxtab)
 
 
-def count_peaks(v, delta=0.1, x = None):
+def count_peaks(v, delta=0.1, x=None):
     return len(find_peaks(v, delta, x))
 
 
-def pca_3d(df, dim):
+def pca_global(df, dim):
+    """
+    Global dimensionality reduction on all features in df
+    """
 
     # turn data into np array without the ordering columns
-    data = df.iloc[:, 3:].values.T
+    data = df.iloc[:, len(META_COLUMNS):].values.T
 
     # run PCA
     pca = PCA(n_components=dim, copy=True, whiten=True)
     pca.fit(data)
 
     # return to DataFrame of proper size
-    reduced = pd.concat([df.iloc[:, :3], pd.DataFrame(pca.components_.T)], axis=1)
+    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(pca.components_.T)], axis=1)
     reduced.index = df.index
 
     return reduced
 
-def get_all_features_by_groups(raw_df):
 
+def pca_grouped(df, groups):
+    """
+    Local dimensionality reduction per feature group
+    groups is a mapping from feature columns to dimension
+
+    Non-meta columns that are not part of any group will not be reduced
+    """
+
+    group_columns = set(META_COLUMNS)
+
+    for g in groups.keys():
+        group_columns.union(set(g))
+
+    skip_columns = set(df.columns) - group_columns
+
+    # turn data into np array without the ordering columns
+    reduced = df.copy()
+    reduced = reduced.iloc[:, :len(META_COLUMNS)]
+
+    for g, dim in groups.items():
+
+        pca = PCA(n_components=dim, copy=True, whiten=True)
+        pca.fit(df.loc[:, g])
+
+        # append to result DataFrame
+        reduced = pd.concat([reduced, pd.DataFrame(pca.components_.T, index=reduced.index)], axis=1)
+
+    # add skipped columns
+    reduced = pd.concat([reduced, df.loc[:, list(skip_columns)]])
+    return reduced
+
+
+def get_all_features_by_groups(raw_df):
     print("Splitting answers... ", end="")
     question_idx_dfs = split_df_to_answers(raw_df)
     print("Done.")
@@ -265,6 +308,7 @@ def get_all_features_by_groups(raw_df):
     print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
+
 
 def get_all_features(raw_df):
     all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df)
@@ -304,6 +348,7 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
+
 def take_top_features(features_pd, top_features_num, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
@@ -322,6 +367,7 @@ def take_top_features(features_pd, top_features_num, method):
     top_features_pd = identifiers.join(features_pd[top_features.keys()])
     return top_features_pd
 
+
 def normalize_pd_df(df):
     # Regular normalization
     df_norm = (df - df.mean()) / df.std()
@@ -330,6 +376,7 @@ def normalize_pd_df(df):
     # Normalize Features to [-1,1]
     # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
     return df_norm
+
 
 def get_top_au(raw_df, au, au_num, method):
     if au == 'daniel':
@@ -346,24 +393,25 @@ def get_top_au(raw_df, au, au_num, method):
         return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
     elif au == 'blinks':
         return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
-    else: # elif au == 'top':
+    else:  # elif au == 'top':
         return take_top_features(raw_df, au_num, method)
 
+
 def partition(lst):
-    n = 4 #number of groups
+    n = 4  # number of groups
     division = len(lst) / n
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
 
-def get_top_features(top_AU, feat,feat_num, method):
+def get_top_features(top_AU, feat, feat_num, method):
     if feat == 'all':
         all_features = get_all_features(top_AU)
         return take_top_features(all_features, feat_num, method)
 
-    else: #elif feat == 'by group'
+    else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
-        all_list = get_all_features_by_groups(top_AU) #all_moments, all_discrete, all_dynamic, all_misc
-        top_feature_group_list=[None]*4
+        all_list = get_all_features_by_groups(top_AU)  # all_moments, all_discrete, all_dynamic, all_misc
+        top_feature_group_list = [None] * 4
         for i in range(4):
             top_feature_group_list[i] = take_top_features(all_list[i], au_per_group(i), method)
 
@@ -373,9 +421,6 @@ def get_top_features(top_AU, feat,feat_num, method):
             top_feature_group_list[2],
             top_feature_group_list[3]
         ], axis=1)
-
-
-
 
 
 """

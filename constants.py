@@ -62,6 +62,13 @@ SPLIT_METHODS = {
     'session_prediction': 'SP'
 }
 
+
+PCA_METHODS = {
+    'global': 'global',
+    'grouped': 'grouped'
+}
+
+
 __all__ = [
     'RecordFlags',
     'META_COLUMNS',
