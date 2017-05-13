@@ -225,12 +225,12 @@ if __name__ == "__main__":
         args.learn_method
     )
 
-    cv_method_all_learners(
-        args.raw_path,
-        features_path,
-        args.learn_method,
-        args.metric
-    )
+    # cv_method_all_learners(
+    #     args.raw_path,
+    #     features_path,
+    #     args.learn_method,
+    #     args.metric
+    # )
 
 """
 import os

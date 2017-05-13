@@ -150,7 +150,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
             question_quantized_dfs.append(q)
 
         if raw_path is not None and not path.isfile(pickle_path):
-            pickle.dump(question_quantized_dfs, open(pickle_path, 'rb'))
+            pickle.dump(question_quantized_dfs, open(pickle_path, 'wb'))
 
     return question_quantized_dfs
 
