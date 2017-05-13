@@ -22,7 +22,7 @@ META_COLUMNS = [
     'session_type',
     'question', 
     'question_type', 
-    'record_flag', 
+    'record_flag',
     'answer_index', 
     'timestamp'
 ]
@@ -66,6 +66,24 @@ SPLIT_METHODS = {
 PCA_METHODS = {
     'global': 'global',
     'grouped': 'grouped'
+}
+
+
+AU_SELECTION_METHODS = {
+    'daniel': 'daniel',
+    'mouth': 'mouth',
+    'eyes': 'eyes',
+    'brows': 'brows',
+    'eyes_area': 'eyes_area',
+    'smile': 'smile',
+    'blinks': 'blinks',
+    'top': 'top'
+}
+
+
+FEATURE_SELECTION_METHODS = {
+    'all': 'all',
+    'groups': 'groups'
 }
 
 

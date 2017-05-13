@@ -1,3 +1,4 @@
+import os.path as path
 import itertools
 import numpy as np
 import sys
@@ -6,10 +7,9 @@ from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
+from constants import META_COLUMNS, GROUPBY_COLUMNS
 
-META_COLUMNS = ["session", "session_type", "question", "question_type", "record_flag", "answer_index", "timestamp"]
 SKIP_COLUMNS = len(META_COLUMNS)
-GROUPBY_COLUMNS = ["question", "answer_index"]
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
 ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
@@ -68,10 +68,7 @@ def split_df_to_answers(df):
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df = answers_df[answers_df.answer_index != 2]
 
-    answers_df.index = ['__'.join(ind) for ind in
-                        zip(*[[x + '_'] * len(answers_df[x]) + answers_df[x].astype(str) for x in META_COLUMNS])]
-
-    return [t[1].drop(META_COLUMNS, axis=1) for t in answers_df.groupby(GROUPBY_COLUMNS)]
+    return [t[1] for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
 
 def cv_split_df_to_answers(df):
@@ -121,10 +118,11 @@ def scale(val):
     return ((val - min(val)) / (max(val) - min(val))) * (top - bot) + bot
 
 
-def quantize(question_dfs, n_clusters):
+def quantize(question_dfs, n_clusters, raw_path=None):
     """
     Quantize values in data frames using K-means
     Args:
+        raw_path:
         question_dfs: data frames, note that first two columns are not quantized
         n_clusters: number of clusters
 
@@ -133,12 +131,20 @@ def quantize(question_dfs, n_clusters):
     """
     question_quantized_dfs = []
 
-    for q_df in question_dfs:
-        q = q_df.copy()
-        for au in q.iloc[:, SKIP_COLUMNS:]:
-            q.loc[:, au] = sk_cluster \
-                .KMeans(n_clusters=n_clusters, random_state=1) \
-                .fit_predict(np.reshape(q[au].values, (-1, 1)))
+    for i, q_df in enumerate(question_dfs):
+        pickle_path = 'pickles/{}__quantized_answers_df_{}.pickle'.format(raw_path, i)
+        if raw_path is not None and path.isfile(pickle_path):
+            q = pd.read_pickle(pickle_path)
+
+        else:
+            q = q_df.copy()
+            for au in q.iloc[:, SKIP_COLUMNS:]:
+                q.loc[:, au] = sk_cluster \
+                    .KMeans(n_clusters=n_clusters, random_state=1) \
+                    .fit_predict(np.reshape(q[au].values, (-1, 1)))
+
+            if raw_path is not None and not path.isfile(pickle_path):
+                q.to_pickle(pickle_path)
 
         question_quantized_dfs.append(q)
 
@@ -282,43 +288,46 @@ def pca_grouped(df, groups):
     return reduced
 
 
-def get_all_features_by_groups(raw_df):
+def get_all_features_by_groups(raw_df, raw_path=None):
     print("Splitting answers... ", end="")
-    question_idx_dfs = split_df_to_answers(raw_df)
+    answers_dfs = split_df_to_answers(raw_df)
     print("Done.")
 
     print("Quantizing... ", end="")
-    quantized_question_idx_dfs = quantize(question_idx_dfs, n_clusters=4)
+    quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
     print("Done.")
 
     print("Moments... ", end="")
-    all_moments = moments.moments(question_idx_dfs)
+    all_moments = moments.moments(answers_dfs)
     print("Done.")
 
     print("Discrete... ", end="")
-    all_discrete = discrete_states.discrete_states(quantized_question_idx_dfs)
+    all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
     print("Done.")
 
     print("Dynamic... ", end="")
-    all_dynamic = dynamic.dynamic(quantized_question_idx_dfs)
+    all_dynamic = dynamic.dynamic(quantized_answers_dfs)
     print("Done.")
 
     print("Miscellaneous... ", end="")
-    all_misc = misc.misc(question_idx_dfs)
+    all_misc = misc.misc(answers_dfs)
     print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
 
 
-def get_all_features(raw_df):
-    all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df)
+def get_all_features(raw_df, raw_path=None):
+    all_moments, all_discrete, all_dynamic, all_misc = get_all_features_by_groups(raw_df, raw_path)
 
     all_features = pd.concat([
+        raw_df[META_COLUMNS],
         all_moments,
         all_discrete.iloc[:, len(META_COLUMNS):],
-        all_dynamic,
-        all_misc
+        all_dynamic.iloc[:, len(META_COLUMNS):],
+        all_misc.iloc[:, len(META_COLUMNS):]
     ], axis=1)
+
+    print('In get all features: all_features.columns',all_features.columns)
 
     all_features.index = all_moments.index
     return all_features
@@ -349,22 +358,24 @@ def extract_select_tsflesh_features(X):
     return features_filtered_direct
 
 
-def take_top_features(features_pd, top_features_num, method):
+def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
-    meta = META_COLUMNS
-    identifiers = features_pd[META_COLUMNS]
+    meta = [x for x in META_COLUMNS]
+    identifiers = df[META_COLUMNS]
     if method == 'SP':
         label_col = 'session_type'
     else:
         label_col = 'record_flag'
+    print('META_COLUMNS',META_COLUMNS)
+    print('meta', meta)
     meta.remove(label_col)
-    data = features_pd.drop(meta, axis=1)
+    data = df.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
-    top_features = correlation_to_flag[0:top_features_num]
-    top_features_pd = identifiers.join(features_pd[top_features.keys()])
+    top_features = correlation_to_flag[0:top_n]
+    top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
 
@@ -387,14 +398,14 @@ def get_top_au(raw_df, au, au_num, method):
         return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
     elif au == 'eyes_area':
         return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
-    elif au == 'brow':
+    elif au == 'brows':
         return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
     elif au == 'smile':
         return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
     elif au == 'blinks':
         return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
     else:  # elif au == 'top':
-        return take_top_features(raw_df, au_num, method)
+        return take_top_(raw_df, au_num, method)
 
 
 def partition(lst):
@@ -403,17 +414,22 @@ def partition(lst):
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
 
-def get_top_features(top_AU, feat, feat_num, method):
+def get_top_features(top_AU, feat, feat_num, method, raw_path=None):
     if feat == 'all':
         all_features = get_all_features(top_AU)
-        return take_top_features(all_features, feat_num, method)
+        return take_top_(all_features, feat_num, method)
 
     else:  # elif feat == 'by group'
         au_per_group = partition(list(range(feat_num)))
-        all_list = get_all_features_by_groups(top_AU)  # all_moments, all_discrete, all_dynamic, all_misc
+        all_list = list(get_all_features_by_groups(top_AU, raw_path))  # all_moments, all_discrete, all_dynamic, all_misc
+        for i in range(len(all_list)):
+            all_list[i] = pd.concat([top_AU[META_COLUMNS],all_list[i]])
+        print('all_list[1]', all_list[1].columns)
         top_feature_group_list = [None] * 4
         for i in range(4):
-            top_feature_group_list[i] = take_top_features(all_list[i], au_per_group(i), method)
+
+            top_feature_group_list[i] = take_top_(all_list[i], au_per_group[i], method)
+
 
         return pd.concat([
             top_feature_group_list[0],
