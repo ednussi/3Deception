@@ -83,7 +83,7 @@ def save_results_plot(plot_path, results):
         plt.savefig(plot_path)
 
     data = []
-    for res in mres['results']:
+    for res in results:
         estimator = res['estimator']
         train_score = res['cv_results']['mean_train_score'].values.tolist()
         test_score = res['cv_results']['mean_test_score'].values.tolist()
