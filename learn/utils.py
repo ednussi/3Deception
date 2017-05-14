@@ -166,7 +166,8 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
         n_iter=n_iter_search,
         scoring=score_metric,
         cv=folds,
-        n_jobs=2
+        n_jobs=2,
+        verbose=50
     )
 
     random_search.fit(data, target)
