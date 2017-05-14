@@ -4,6 +4,10 @@ import pandas as pd
 import os.path as path
 from features import utils
 from learn.utils import cv_method_all_classifiers
+
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import operator as o
@@ -20,7 +24,12 @@ def cv_method_all_learners(raw_path, features_path, method, metric=None):
     print("Cross validating all learners...")
     results = cv_method_all_classifiers(features_path, method, metric)
 
-    results_df = pd.concat([pd.DataFrame(x['results'], index=x['method']) for x in results])
+    temp_list = []
+    for x in results:
+        temp_df = pd.DataFrame(x['cv_results'].cv_results_)
+        temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
+
+    results_df = pd.concat(temp_list)
 
     results_path = path.join(path.dirname(raw_path), "learning-results_" + path.basename(raw_path))
     print("Saving learning results to {}...".format(results_path))
@@ -71,11 +80,11 @@ def save_results_plot(plot_path, results):
         # Set the x-axis tick labels to be equal to the categories
         ax.set_xticks(indeces)
         ax.set_xticklabels(categories)
-        plt.setp(plt.xticks()[1], rotation=90)
+        plt.setp(plt.xticks()[1])
 
         # Add the axis labels
-        ax.set_ylabel("RMSD")
-        ax.set_xlabel("Structure")
+        ax.set_ylabel("Accuracy")
+        ax.set_xlabel("Classifiers")
 
         # Add a legend
         handles, labels = ax.get_legend_handles_labels()
@@ -86,11 +95,13 @@ def save_results_plot(plot_path, results):
     data = []
     for res in results:
         estimator = res['estimator']
-        train_score = res['cv_results']['mean_train_score'].values.tolist()
-        test_score = res['cv_results']['mean_test_score'].values.tolist()
+        res_df = pd.DataFrame(res['cv_results'].cv_results_).sort(['mean_test_score'], ascending=[0])
 
-        data.append([estimator, 'mean_train_score', train_score[0]])
-        data.append([estimator, 'mean_test_score', test_score[0]])
+        train_score = res_df.loc[0, :]['mean_train_score']
+        test_score = res_df.loc[0, :]['mean_test_score']
+
+        data.append([estimator, 'best_mean_train_score', train_score])
+        data.append([estimator, 'best_mean_test_score', test_score])
 
     data = np.array(data)
 
@@ -179,16 +190,17 @@ if __name__ == "__main__":
         parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
         exit()
 
-    features_path = extract_features(
-        args.raw_path,
-        args.au_selection_method,
-        args.au_top_n,
-        args.feature_selection_method,
-        args.features_top_n,
-        args.pca_method,
-        args.pca_dim,
-        args.learning_method
-    )
+    # features_path = extract_features(
+    #     args.raw_path,
+    #     args.au_selection_method,
+    #     args.au_top_n,
+    #     args.feature_selection_method,
+    #     args.features_top_n,
+    #     args.pca_method,
+    #     args.pca_dim,
+    #     args.learning_method
+    # )
+    features_path = 'pca_new_jonathan.csv'
 
     cv_method_all_learners(
         args.raw_path,

@@ -138,7 +138,7 @@ def prepare_folds(data_df, method='4v1_A'):
             # extract frames with test sessions
             test_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)].index
 
-            # add dataset
+            # add data split
             folds.append((train_indices, test_indices))
 
     else:
@@ -187,7 +187,7 @@ def cv_folds_all_classifiers(data, target, folds, metric=None):
 
 
 def cv_method_all_classifiers(data_path, method, metric=None):
-    data_df = pd.read_csv(data_path)
+    data_df = pd.read_csv(data_path, index_col=0)
 
     data = data_df.iloc[:, len(META_COLUMNS):].values
     target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
@@ -205,7 +205,7 @@ def cv_all_methods_all_classifiers(data_path, metric=None):
         
         results.append({
             'method': method,
-            'results': cv_method(data_path, method, metric)
+            'results': cv_method_all_classifiers(data_path, method, metric)
         })
 
     return results

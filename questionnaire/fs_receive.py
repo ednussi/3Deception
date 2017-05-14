@@ -332,7 +332,7 @@ def read_record_flag(sock, data_dict):
             save_and_exit(msg[-1])
 
         data_dict["session_num"] = int(msg[IDX_SESS])
-        data_dict["question_num"] = int(msg[IDX_STYPE])
+        data_dict["session_type"] = int(msg[IDX_STYPE])
         data_dict["question_num"] = int(msg[IDX_QNUM])
         data_dict["question_type"] = int(msg[IDX_QTYPE])
         data_dict["record_flag"] = int(msg[IDX_FLAG])
