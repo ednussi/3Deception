@@ -14,12 +14,6 @@ import operator as o
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS
 
 
-# TODO
-#     AU SELECTION
-#     FEATURE SELECTION (Groups vs global, dimension (size))
-#     PCA (Groups vs global, dimension (size))
-
-
 def cv_method_all_learners(raw_path, features_path, method, metric=None):
     print("Cross validating all learners...")
     results = cv_method_all_classifiers(features_path, method, metric)
@@ -120,8 +114,13 @@ def extract_features(
         pca_dimension,
         learning_method
 ):
+    features_params = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(raw_path,au_selection_method,au_top_n,feature_selection_method,
+                                                                          features_top_n,pca_dimension,pca_method,learning_method)
 
-    features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
+
+    features_path = path.join(path.dirname(raw_path), features_params + "_features_" + path.basename(raw_path))
+    au_cor_path = path.join(path.dirname(raw_path), features_params + "_au_correlation_" + path.basename(raw_path))
+    features_cor_path = path.join(path.dirname(raw_path), features_params + "_features_correlation_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
@@ -131,6 +130,10 @@ def extract_features(
 
     print("Extracting features with method:", feature_selection_method)
     top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+
+    print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path), end="")
+    utils.get_cor(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
+    utils.get_cor(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
     print("Saving all features to {}...".format(features_path), end="")
     top_features.to_csv(features_path)
@@ -224,7 +227,7 @@ feature_selection_method = 'groups'
 features_top_n = 80
 pca_method = 'groups'
 pca_dim = 6
-learn_method ='4v1_T'
+learning_method ='4v1_T'
 print("Reading {}...".format(raw_path))
 raw_df = pd.read_csv(raw_path)
 print("Choosing Top AU with method", au_selection_method)

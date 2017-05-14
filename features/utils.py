@@ -401,12 +401,8 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
-
-def take_top_(df, top_n, method):
-    # top_features_num - How many features u want
-    # return pandas of name of feature and its correlation
+def get_cor(df, top_n, method):
     meta = [x for x in META_COLUMNS]
-    identifiers = df[META_COLUMNS]
     if method == 'SP':
         label_col = 'session_type'
     else:
@@ -417,7 +413,14 @@ def take_top_(df, top_n, method):
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag.sort(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
-    top_features = correlation_to_flag[0:top_n]
+    return correlation_to_flag[0:top_n]
+
+
+def take_top_(df, top_n, method):
+    # top_features_num - How many features u want
+    # return pandas of name of feature and its correlation
+    identifiers = df[META_COLUMNS]
+    top_features = get_cor(df, top_n, method)
     top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
