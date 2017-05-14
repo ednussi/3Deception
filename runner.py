@@ -185,43 +185,66 @@ if __name__ == "__main__":
 
     parser.add_argument('-m', '--metric', dest='metric', type=str, default=None)
 
+    parser.add_argument('-MR', '--mega_runner', dest='mega_runner', action='store_true')
+
     args = parser.parse_args()
 
-    if args.pca_method and args.pca_dim is None:
-        parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
-        exit()
+    if args.mega_runner:
+        features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
+            args.raw_path,
+            args.au_selection_method,
+            args.au_top_n,
+            args.feature_selection_method,
+            args.features_top_n,
+            args.pca_dim,
+            args.pca_method,
+            args.learning_method
+        )
 
-    features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
-        args.raw_path,
-        args.au_selection_method,
-        args.au_top_n,
-        args.feature_selection_method,
-        args.features_top_n,
-        args.pca_dim,
-        args.pca_method,
-        args.learning_method
-    )
+        # TODO run extract_features and cv_all_learners in lots of "for"s
+        # take only YES or only NO from all sessions
+        # last raw answer is really really long
+        # take only first pair of sessions
+        # don't learn other classifiers, only SVC
+        # try to learn only on second answer (note the dataset may be imbalanced, weight it)
 
-    # features_path = extract_features(
-    #     args.raw_path,
-    #     args.au_selection_method,
-    #     args.au_top_n,
-    #     args.feature_selection_method,
-    #     args.features_top_n,
-    #     args.pca_method,
-    #     args.pca_dim,
-    #     args.learning_method,
-    #     features_params_string
-    # )
-    features_path = 'pca_new_jonathan.csv'
+    else:
 
-    cv_method_all_learners(
-        args.raw_path,
-        features_path,
-        args.learning_method,
-        args.metric,
-        features_params_string
-    )
+        if args.pca_method and args.pca_dim is None:
+            parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
+            exit()
+
+        features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
+            args.raw_path,
+            args.au_selection_method,
+            args.au_top_n,
+            args.feature_selection_method,
+            args.features_top_n,
+            args.pca_dim,
+            args.pca_method,
+            args.learning_method
+        )
+
+        # features_path = extract_features(
+        #     args.raw_path,
+        #     args.au_selection_method,
+        #     args.au_top_n,
+        #     args.feature_selection_method,
+        #     args.features_top_n,
+        #     args.pca_method,
+        #     args.pca_dim,
+        #     args.learning_method,
+        #     features_params_string
+        # )
+        features_path = 'pca_new_jonathan.csv'
+
+        cv_method_all_learners(
+            args.raw_path,
+            features_path,
+            args.learning_method,
+            args.metric,
+            features_params_string
+        )
 
 """
 import os
