@@ -14,7 +14,7 @@ import operator as o
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS
 
 
-def cv_method_all_learners(raw_path, features_path, method, metric=None):
+def cv_method_all_learners(raw_path, features_path, method, metric=None, features_params_string=''):
     print("Cross validating all learners...")
     results = cv_method_all_classifiers(features_path, method, metric)
 
@@ -27,9 +27,9 @@ def cv_method_all_learners(raw_path, features_path, method, metric=None):
 
     results_path = path.join(path.dirname(raw_path), "learning-results_" + path.basename(raw_path))
     print("Saving learning results to {}...".format(results_path))
-    results_df.to_csv(results_path)
+    results_df.to_csv(features_params_string + '_' + results_path)
 
-    plot_path = results_path.replace('.csv', '.{}.png'.format(method))
+    plot_path = features_params_string + '_' + results_path.replace('.csv', '.png')
     print("Plotting learning results to {}...".format(plot_path))
     save_results_plot(plot_path, results)
 
@@ -112,15 +112,13 @@ def extract_features(
         features_top_n,
         pca_method,
         pca_dimension,
-        learning_method
+        learning_method,
+        features_params_string
 ):
-    features_params = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(raw_path,au_selection_method,au_top_n,feature_selection_method,
-                                                                          features_top_n,pca_dimension,pca_method,learning_method)
 
-
-    features_path = path.join(path.dirname(raw_path), features_params + "_features_" + path.basename(raw_path))
-    au_cor_path = path.join(path.dirname(raw_path), features_params + "_au_correlation_" + path.basename(raw_path))
-    features_cor_path = path.join(path.dirname(raw_path), features_params + "_features_correlation_" + path.basename(raw_path))
+    features_path = path.join(path.dirname(raw_path), features_params_string + "_features_" + path.basename(raw_path))
+    au_cor_path = path.join(path.dirname(raw_path), features_params_string + "_au_correlation_" + path.basename(raw_path))
+    features_cor_path = path.join(path.dirname(raw_path), features_params_string + "_features_correlation_" + path.basename(raw_path))
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
@@ -193,6 +191,17 @@ if __name__ == "__main__":
         parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
         exit()
 
+    features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
+        args.raw_path,
+        args.au_selection_method,
+        args.au_top_n,
+        args.feature_selection_method,
+        args.features_top_n,
+        args.pca_dim,
+        args.pca_method,
+        args.learning_method
+    )
+
     # features_path = extract_features(
     #     args.raw_path,
     #     args.au_selection_method,
@@ -201,7 +210,8 @@ if __name__ == "__main__":
     #     args.features_top_n,
     #     args.pca_method,
     #     args.pca_dim,
-    #     args.learning_method
+    #     args.learning_method,
+    #     features_params_string
     # )
     features_path = 'pca_new_jonathan.csv'
 
@@ -209,7 +219,8 @@ if __name__ == "__main__":
         args.raw_path,
         features_path,
         args.learning_method,
-        args.metric
+        args.metric,
+        features_params_string
     )
 
 """
