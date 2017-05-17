@@ -25,13 +25,15 @@ def cv_method_all_learners(raw_path, features_path, method, metric=None, feature
 
     results_df = pd.concat(temp_list)
 
-    results_path = path.join(path.dirname(raw_path), "learning-results_" + path.basename(raw_path))
+    results_path = path.join(path.dirname(raw_path), "learning-results_" + features_params_string)
     print("Saving learning results to {}...".format(results_path))
-    results_df.to_csv(features_params_string + '_' + results_path)
+    results_df.to_csv(results_path)
 
-    plot_path = features_params_string + '_' + results_path.replace('.csv', '.png')
-    print("Plotting learning results to {}...".format(plot_path))
-    save_results_plot(plot_path, results)
+    print(results_df.sort_values(['mean_test_score'], ascending=False).loc[:, ['mean_test_score', 'mean_train_score']].head())
+
+    # plot_path = features_params_string + '_' + results_path.replace('.csv', '.png')
+    # print("Plotting learning results to {}...".format(plot_path))
+    # save_results_plot(plot_path, results)
 
 
 def save_results_plot(plot_path, results):
@@ -39,8 +41,7 @@ def save_results_plot(plot_path, results):
         """
         Create a barchart for data across different categories with
         multiple conditions for each category.
-        
-        @param ax: The plotting axes from matplotlib.
+         @param ax: The plotting axes from matplotlib.
         @param dpoints: The data set as an (n, 3) numpy array
         """
 
@@ -116,9 +117,9 @@ def extract_features(
         features_params_string
 ):
 
-    features_path = path.join(path.dirname(raw_path), features_params_string + "_features_" + path.basename(raw_path))
-    au_cor_path = path.join(path.dirname(raw_path), features_params_string + "_au_correlation_" + path.basename(raw_path))
-    features_cor_path = path.join(path.dirname(raw_path), features_params_string + "_features_correlation_" + path.basename(raw_path))
+    features_path = path.join(path.dirname(raw_path), "features_" + features_params_string)
+    au_cor_path = path.join(path.dirname(raw_path), "au_correlation_" + features_params_string)
+    features_cor_path = path.join(path.dirname(raw_path), "features_correlation_" + features_params_string)
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
@@ -129,11 +130,11 @@ def extract_features(
     print("Extracting features with method:", feature_selection_method)
     top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
 
-    print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path), end="")
+    print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
     utils.get_cor(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
     utils.get_cor(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
-    print("Saving all features to {}...".format(features_path), end="")
+    print("Saving all features to {}...".format(features_path))
     top_features.to_csv(features_path)
 
     return_path = features_path
@@ -190,16 +191,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.mega_runner:
-        features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
-            args.raw_path,
-            args.au_selection_method,
-            args.au_top_n,
-            args.feature_selection_method,
-            args.features_top_n,
-            args.pca_dim,
-            args.pca_method,
-            args.learning_method
-        )
 
         # TODO run extract_features and cv_all_learners in lots of "for"s
         # take only YES or only NO from all sessions
@@ -208,13 +199,49 @@ if __name__ == "__main__":
         # don't learn other classifiers, only SVC
         # try to learn only on second answer (note the dataset may be imbalanced, weight it)
 
+        for au_top_n in range(10, 25):
+            for fe_top_n in range(20, 81):
+                for pca_method in list(PCA_METHODS.values()) + [None]:
+                    pca_opts = range(5, 20)
+
+                    for pca_dim in pca_opts:
+                        try:
+                            features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
+                              args.raw_path,
+                              'top',
+                              au_top_n,
+                              'all',
+                              fe_top_n,
+                              pca_dim,
+                              pca_method,
+                              '4v1_A'
+                            )
+                            print(features_params_string)
+
+                            features_path = extract_features(
+                               args.raw_path,
+                               'top',
+                               au_top_n,
+                               'all',
+                               fe_top_n,
+                               pca_method,
+                               pca_dim,
+                               '4v1_A',
+                               features_params_string
+                            )
+
+                            cv_method_all_learners(args.raw_path, features_path, '4v1_A', args.metric, features_params_string)
+
+                        except Exception as e:
+                            print('---- ERROR ----\r\n' + str(e) + '\r\n')
+
     else:
 
         if args.pca_method and args.pca_dim is None:
             parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
             exit()
 
-        features_params_string = 'i_{}_a_{}_an_{}_f_{}_fn_{}_p_{}_pm_{}_m_{}'.format(
+        features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
             args.raw_path,
             args.au_selection_method,
             args.au_top_n,
@@ -225,18 +252,18 @@ if __name__ == "__main__":
             args.learning_method
         )
 
-        # features_path = extract_features(
-        #     args.raw_path,
-        #     args.au_selection_method,
-        #     args.au_top_n,
-        #     args.feature_selection_method,
-        #     args.features_top_n,
-        #     args.pca_method,
-        #     args.pca_dim,
-        #     args.learning_method,
-        #     features_params_string
-        # )
-        features_path = 'pca_new_jonathan.csv'
+        features_path = extract_features(
+            args.raw_path,
+            args.au_selection_method,
+            args.au_top_n,
+            args.feature_selection_method,
+            args.features_top_n,
+            args.pca_method,
+            args.pca_dim,
+            args.learning_method,
+            features_params_string
+        )
+        #features_path = 'pca_new_jonathan.csv'
 
         cv_method_all_learners(
             args.raw_path,
@@ -246,28 +273,28 @@ if __name__ == "__main__":
             features_params_string
         )
 
-"""
-import os
-os.chdir('/cs/engproj/3deception/eran/3deception')
-import argparse
-import pandas as pd
-import os.path as path
-from features import utils
-raw_path = 'new_jonathan.csv'
-features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
-au_selection_method = 'top'
-au_top_n = 24
-feature_selection_method = 'groups'
-features_top_n = 80
-pca_method = 'groups'
-pca_dim = 6
-learning_method ='4v1_T'
-print("Reading {}...".format(raw_path))
-raw_df = pd.read_csv(raw_path)
-print("Choosing Top AU with method", au_selection_method)
-top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
-print("Extracting features with method:", feature_selection_method)
-top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
-print("Saving all features to {}...".format(features_path), end="")
-top_features.to_csv(features_path)
-"""
+#"""
+#import os
+#os.chdir('/cs/engproj/3deception/eran/3deception')
+#import argparse
+#import pandas as pd
+#import os.path as path
+#from features import utils
+#raw_path = 'new_jonathan.csv'
+#features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
+#au_selection_method = 'top'
+#au_top_n = 24
+#feature_selection_method = 'groups'
+#features_top_n = 80
+#pca_method = 'groups'
+#pca_dim = 6
+#learning_method ='4v1_T'
+#print("Reading {}...".format(raw_path))
+#raw_df = pd.read_csv(raw_path)
+#print("Choosing Top AU with method", au_selection_method)
+#top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+#print("Extracting features with method:", feature_selection_method)
+#top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+#print("Saving all features to {}...".format(features_path), end="")
+#top_features.to_csv(features_path)
+#"""

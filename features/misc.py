@@ -27,16 +27,16 @@ def misc(question_dfs):
     for ans in question_dfs:
         # ================== Smiles ==================
         if ('MouthSmile_L' in ans.columns):
-            num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD))
+            num_smiles_left.append(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].values.tolist(), delta=PEAK_THRESHOLD))
             if ('MouthSmile_R' in ans.columns):
-                num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
-                num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].tolist(), delta=PEAK_THRESHOLD),
-                                  utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD)))
+                num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].values.tolist(), delta=PEAK_THRESHOLD))
+                num_smiles.append(max(utils.count_peaks(ans.loc[:, 'MouthSmile_L'].values.tolist(), delta=PEAK_THRESHOLD),
+                                  utils.count_peaks(ans.loc[:, 'MouthSmile_R'].values.tolist(), delta=PEAK_THRESHOLD)))
             else:
                 num_smiles_right.append(0)
                 num_smiles.append(0)
         elif ('MouthSmile_R' in ans.columns):
-            num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].tolist(), delta=PEAK_THRESHOLD))
+            num_smiles_right.append(utils.count_peaks(ans.loc[:, 'MouthSmile_R'].values.tolist(), delta=PEAK_THRESHOLD))
             num_smiles_left.append(0)
             num_smiles.append(0)
         else:
@@ -47,16 +47,16 @@ def misc(question_dfs):
 
         # ================== Blinks ==================
         if ('EyeBlink_L' in ans.columns):
-            num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()))
+            num_blinks_left.append(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].values.tolist()))
             if ('EyeBlink_R' in ans.columns):
-                num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
-                num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].tolist()),
-                                      utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist())))
+                num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].values.tolist()))
+                num_blinks.append(max(utils.count_peaks(ans.loc[:, 'EyeBlink_L'].values.tolist()),
+                                      utils.count_peaks(ans.loc[:, 'EyeBlink_R'].values.tolist())))
             else:
                 num_blinks_right.append(0)
                 num_blinks.append(0)
         elif ('EyeBlink_R' in ans.columns):
-            num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].tolist()))
+            num_blinks_right.append(utils.count_peaks(ans.loc[:, 'EyeBlink_R'].values.tolist()))
             num_blinks_left.append(0)
             num_blinks.append(0)
         else:
