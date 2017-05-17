@@ -282,6 +282,9 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
         # return question to queue
         question_list.insert(0, q)
 
+        # Send question control flag
+        send_record_flag_udp(sock, prepare_flag(q, RecordFlags.RECORD_FLAG_PAUSE))
+
         # show session instructions
         SESSION_START = False
         SESSION_NUMBER += 1
