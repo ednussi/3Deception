@@ -25,7 +25,7 @@ def cv_method_all_learners(raw_path, features_path, method, metric=None, feature
 
     results_df = pd.concat(temp_list)
 
-    results_path = path.join(path.dirname(raw_path), "learning-results_" + features_params_string)
+    results_path = path.join(path.dirname(raw_path), "learning-results__" + features_params_string)
     print("Saving learning results to {}...".format(results_path))
     results_df.to_csv(results_path)
 
@@ -117,9 +117,9 @@ def extract_features(
         features_params_string
 ):
 
-    features_path = path.join(path.dirname(raw_path), "features_" + features_params_string)
-    au_cor_path = path.join(path.dirname(raw_path), "au_correlation_" + features_params_string)
-    features_cor_path = path.join(path.dirname(raw_path), "features_correlation_" + features_params_string)
+    features_path = path.join(path.dirname(raw_path), "features__" + features_params_string)
+    au_cor_path = path.join(path.dirname(raw_path), "au-correlation__" + features_params_string)
+    features_cor_path = path.join(path.dirname(raw_path), "features-correlation__" + features_params_string)
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
             parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
             exit()
 
-        features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
+        features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}.csv'.format(
             args.raw_path,
             args.au_selection_method,
             args.au_top_n,

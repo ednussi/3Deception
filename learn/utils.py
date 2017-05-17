@@ -82,23 +82,38 @@ def prepare_folds(data_df, method='4v1_A'):
 
     print('-- Data preparation for evaluation method: %s' % method)
 
-    session_types = [SESSION_TYPES['say_truth'], SESSION_TYPES['say_lies']]
+    session_types = {
+        SESSION_TYPES['say_truth']: [],
+        SESSION_TYPES['say_lies']: []
+    }
+
 
     if method.startswith('4v1'):
         if method == SPLIT_METHODS['4_vs_1_all_session_types']:
-            pass
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
-        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:
-            session_types = [SESSION_TYPES['say_truth']]
+        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:  # Only learn on answers where "YES" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
-        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:
-            session_types = [SESSION_TYPES['say_lies']]
+        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:   # Only learn on answers where "NO" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
 
         else:
             raise Exception('Unknown method: %s' % method)
 
-    # filter sessions
-    data_fs = data_df[data_df[SESSION_TYPE_COLUMN].astype(int).isin(session_types)]
+    # filter answers
+    dfs = []
+
+    tdf = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_truth']]
+    dfs.append(tdf[tdf[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_truth']])
+
+    tdf = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_lies']]
+    dfs.append(tdf[tdf[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_lies']])
+
+    data_fs = pd.concat(dfs)
 
     folds = []
 
@@ -168,7 +183,8 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
         n_iter=n_iter_search,
         scoring=score_metric,
         cv=folds,
-        n_jobs=2
+        n_jobs=2,
+        verbose=50
     )
 
     random_search.fit(data, target)
