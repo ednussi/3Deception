@@ -7,59 +7,12 @@ from constants import RecordFlags
 from sklearn.decomposition import PCA
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
-from constants import META_COLUMNS, GROUPBY_COLUMNS, PCA_METHODS
+from constants import *
 import pickle
 
 
 SKIP_COLUMNS = len(META_COLUMNS)
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-
-ALL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
-          'EyeOpen_L',
-          'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L',
-          'BrowsU_R',
-          'JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'MouthLeft', 'MouthRight', 'MouthFrown_L',
-          'MouthFrown_R',
-          'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R',
-          'LipsUpperClose',
-          'LipsLowerClose', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperOpen', 'LipsLowerOpen', 'LipsFunnel',
-          'LipsPucker', 'ChinLowerRaise',
-          'ChinUpperRaise', 'Sneer', 'Puff', 'CheekSquint_L', 'CheekSquint_R']
-
-ALL_AU_DANIEL = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L',
-                 'EyeIn_R',
-                 'EyeOpen_L', 'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
-                 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen', 'LipsTogether', 'JawLeft', 'JawRight', 'JawFwd',
-                 'LipsUpperUp_L', 'LipsUpperUp_R', 'LipsLowerDown_L', 'LipsLowerDown_R', 'LipsUpperClose',
-                 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L', 'MouthDimple_R', 'LipsStretch_L',
-                 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'MouthPress_L', 'MouthPress_R', 'LipsPucker',
-                 'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise', 'Sneer_L', 'Sneer_R',
-                 'Puff', 'CheekSquint_L', 'CheekSquint_R']  # len = 51
-
-GOOD_DANIEL_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeIn_L', 'EyeIn_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R', 'JawOpen',
-                  'MouthLeft',
-                  'MouthRight', 'MouthFrown_L', 'MouthFrown_R', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-                  'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'LipsUpperUp', 'LipsFunnel', 'ChinLowerRaise',
-                  'Sneer', 'CheekSquint_L', 'CheekSquint_R']
-
-MOUTH_AU = ['JawFwd', 'JawLeft', 'JawOpen', 'JawChew', 'JawRight', 'LipsUpperUp', 'LipsLowerDown', 'LipsUpperClose',
-            'LipsUpperOpen', 'LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-            'LipsUpperOpen', 'LipsLowerOpen', 'LipsLowerClose', 'MouthSmile_L', 'MouthSmile_R', 'MouthDimple_L',
-            'MouthDimple_R', 'LipsStretch_L', 'LipsStretch_R', 'MouthFrown_L', 'MouthFrown_R', 'LipsPucker',
-            'LipsFunnel', 'MouthLeft', 'MouthRight', 'ChinLowerRaise', 'ChinUpperRaise']
-
-EYES_AREA_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L',
-                'EyeIn_R', 'EyeOpen_L',
-                'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R', 'BrowsD_L', 'BrowsD_R',
-                'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
-
-EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L', 'EyeDown_R', 'EyeIn_L', 'EyeIn_R',
-           'EyeOpen_L',
-           'EyeOpen_R', 'EyeOut_L', 'EyeOut_R', 'EyeUp_L', 'EyeUp_R']
-
-BROWS_AU = ['BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
-SMILE_AU = ['MouthSmile_L', 'MouthSmile_R']
-BLINKS_AU = ['EyeBlink_L', 'EyeBlink_R']
 
 
 def split_df_to_answers(df):
@@ -131,7 +84,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     Returns:
         list of quantized data frames
     """
-    pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(raw_path)
+    pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(path.basename(raw_path))
     
     if raw_path is not None and path.isfile(pickle_path):
         question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
@@ -411,7 +364,7 @@ def get_cor(df, top_n, method):
     meta.remove(label_col)
     data = df.drop(meta, axis=1)
     correlation_to_flag = abs(data.corr()[label_col])
-    correlation_to_flag.sort(ascending=False)
+    correlation_to_flag.sort_values(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
     return correlation_to_flag[0:top_n]
 
