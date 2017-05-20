@@ -131,7 +131,7 @@ if __name__ == "__main__":
                         try:
                             m = '4v1_T'
                             features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
-                              args.raw_path,
+                              path.basename(args.raw_path),
                               'top',
                               au_top_n,
                               'all',
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             exit()
 
         features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}.csv'.format(
-            args.raw_path,
+            path.basename(args.raw_path),
             args.au_selection_method,
             args.au_top_n,
             args.feature_selection_method,

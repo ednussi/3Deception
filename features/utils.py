@@ -21,7 +21,7 @@ def split_df_to_answers(df):
     skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
-    answers_df = answers_df[answers_df.answer_index != 0]
+    answers_df = answers_df[answers_df.answer_index != 1]
 
     return [t[1] for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
