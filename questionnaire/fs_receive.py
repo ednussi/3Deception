@@ -30,13 +30,13 @@ def audio_callback(in_data, frame_count, time_info, status):
         return (frame_count, pyaudio.paContinue)
 
 
-p = pyaudio.PyAudio()
-audio_stream = p.open(format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                frames_per_buffer=CHUNK)
-AUDIO_CHUNKS = []
+# p = pyaudio.PyAudio()
+# audio_stream = p.open(format=FORMAT,
+#                 channels=CHANNELS,
+#                 rate=RATE,
+#                 input=True,
+#                 frames_per_buffer=CHUNK)
+# AUDIO_CHUNKS = []
 
 # fourcc = cv2.VideoWriter_fourcc(*'XVID')
 # video_out = cv2.VideoWriter('output.avi', fourcc, 30.0, (640, 480))
@@ -195,7 +195,7 @@ class FaceShiftReceiver:
                         data_dict["answer_index"],
                         ts,
                         blend_shape_values,
-                        audioop.rms(AUDIO_CHUNKS[-1], 2)
+                        0  # audioop.rms(AUDIO_CHUNKS[-1], 2)
                     )
                 )
 
@@ -260,21 +260,21 @@ def save_and_exit(subject_id):
     global q_sock
     global fs_sock
 
-    global p
-    global audio_stream
-    global AUDIO_CHUNKS
+    # global p
+    # global audio_stream
+    # global AUDIO_CHUNKS
 
-    wf = wave.open(audio_fn, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
-    wf.writeframes(b''.join(AUDIO_CHUNKS))
-    wf.close()
-    print("Audio output saved to " + audio_fn)
+    # wf = wave.open(audio_fn, 'wb')
+    # wf.setnchannels(CHANNELS)
+    # wf.setsampwidth(p.get_sample_size(FORMAT))
+    # wf.setframerate(RATE)
+    # wf.writeframes(b''.join(AUDIO_CHUNKS))
+    # wf.close()
+    # print("Audio output saved to " + audio_fn)
 
-    p.terminate()
-    audio_stream.stop_stream()
-    audio_stream.close()
+    # p.terminate()
+    # audio_stream.stop_stream()
+    # audio_stream.close()
 
     if fs_sock is not None:
         fs_sock.close()
@@ -359,8 +359,8 @@ def record():
 
     global q_sock
     global fs_sock
-    global audio_stream
-    global AUDIO_CHUNKS
+    # global audio_stream
+    # global AUDIO_CHUNKS
 
     try:
         q_sock = connect_to_questions_udp()
@@ -368,13 +368,13 @@ def record():
 
         fsr = FaceShiftReceiver()
 
-        audio_stream.start_stream()
+        # audio_stream.start_stream()
 
         # start_AVrecording('output')
 
         while True:
-            chunk = audio_stream.read(CHUNK)
-            AUDIO_CHUNKS.append(chunk)
+            # chunk = audio_stream.read(CHUNK)
+            # AUDIO_CHUNKS.append(chunk)
 
             print("Waiting for record flag... ")
             read_record_flag(q_sock, DATA)
@@ -394,12 +394,12 @@ def record():
         if q_sock is not None:
             q_sock.close()
 
-        if audio_stream is not None:
-            audio_stream.stop_stream()
-            audio_stream.close()
+        # if audio_stream is not None:
+        #     audio_stream.stop_stream()
+        #     audio_stream.close()
 
-        if p is not None:
-            p.terminate()
+        # if p is not None:
+        #     p.terminate()
 
         raise e
 
