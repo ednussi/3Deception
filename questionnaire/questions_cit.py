@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
+os.chdir(r'c:\users\user\desktop\3deception')
+
 import socket
 import subprocess
 import tkinter as tk
@@ -9,7 +12,7 @@ import pygame
 import numpy as np
 from PIL import ImageTk, Image
 from constants import RecordFlags, SESSION_TYPES
-from questionnaire.prepare_questions import *
+from prepare_questions import *
 
 
 #####################
