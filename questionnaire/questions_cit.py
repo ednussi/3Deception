@@ -320,7 +320,7 @@ def show_next_question(sock, root, label, b, b2, q, receiver, question_list):
     answers.insert(true_idx, q[IDX_QUESTION_DATA]['true'])
 
     # Show question
-    change_label(label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT])
+    change_label(label, q[IDX_QUESTION_DATA]['question'][IDX_TEXT] + '\n' + str(QUESTION_NUMBER))
 
     # Send question control flag
     send_record_flag_udp(sock, prepare_flag(q, RecordFlags.RECORD_FLAG_QUESTION))
@@ -408,7 +408,6 @@ def handle_show_next_question(sock, root, label, b, b2, receiver, qlist):
 
 
 def handle_show_answers(sock, label, q, answers, true_idx, b, root, receiver, b2, qlist):
-    true_idx -= 1
 
     def handler():
 
@@ -417,10 +416,12 @@ def handle_show_answers(sock, label, q, answers, true_idx, b, root, receiver, b2
                                get_next_question(root, receiver, sock, qlist), receiver, qlist)
 
         else:
+            curr_idx = NUM_CONTROL_ITEMS - len(answers)
+
             a = answers[0]
             answers.pop(0)
 
-            flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if 0 == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            flag = RecordFlags.RECORD_FLAG_ANSWER_TRUE if curr_idx == true_idx else RecordFlags.RECORD_FLAG_ANSWER_FALSE
 
             # Send answer control flag
             send_record_flag_udp(sock, prepare_flag(q, flag, NUM_CONTROL_ITEMS - len(answers)))
