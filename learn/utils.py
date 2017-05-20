@@ -10,7 +10,7 @@ from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import RandomizedSearchCV
 
 from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
-    SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags
+    SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN
 
 
 def prepare_classifiers():
@@ -63,17 +63,16 @@ def prepare_classifiers():
     ]
 
 
-def prepare_folds(data_df, method='4v1_A'):
+def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     """
     Splits features to list of folds 
     according to learning method.
     Each fold is a tuple (train_indices, test_indices)
     
     Supported methods:
-        4vs1: learn on answers of 4 types of questions and predict every answer in 5th
-        sessions: for every session type:
-                    learn on n-1 questions in each sessions of this type
-                    predict left out questions if it is a part of lying or truthful session
+        4vs1_A: learn on answers of 4 types of questions and predict every answer in 5th
+        4vs1_T/4vs1_F: same as _A, but learn and predict only answers where "Yes"/"No" was said accordingly
+        4vs1_SINGLE: same as _A, but learn only on first answer (out of (buffer, first, second))
     
     :param data_df: 
     :param method: 
@@ -87,33 +86,56 @@ def prepare_folds(data_df, method='4v1_A'):
         SESSION_TYPES['say_lies']: []
     }
 
-
     if method.startswith('4v1'):
-        if method == SPLIT_METHODS['4_vs_1_all_session_types']:
-            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+        if method == SPLIT_METHODS['4_vs_1_all_session_types'] or \
+           method == SPLIT_METHODS['4_vs_1_all_single_answer']:
+            session_types[SESSION_TYPES['say_truth']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
+            session_types[SESSION_TYPES['say_lies']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
 
-        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:  # Only learn on answers where "YES" was (should have been) answered
+        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:
+            # Only learn on answers where "YES" was (should have been) answered
             session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
             session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
-        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:   # Only learn on answers where "NO" was (should have been) answered
+        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:
+            # Only learn on answers where "NO" was (should have been) answered
             session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
             session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
 
         else:
             raise Exception('Unknown method: %s' % method)
 
+
+    # take first n sessions
+    if take_sessions is not None:
+        data_df = data_df[data_df[SESSION_COLUMN] <= take_sessions]
+
     # filter answers
     dfs = []
 
-    tdf = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_truth']]
-    dfs.append(tdf[tdf[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_truth']])
+    temp_df = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_truth']]
+    dfs.append(temp_df[temp_df[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_truth']])])
 
-    tdf = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_lies']]
-    dfs.append(tdf[tdf[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_lies']])
+    temp_df = data_df[data_df[SESSION_TYPE_COLUMN].astype(int) == SESSION_TYPES['say_lies']]
+    dfs.append(temp_df[temp_df[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_lies']])])
 
     data_fs = pd.concat(dfs)
+
+    if method == SPLIT_METHODS['4_vs_1_all_single_answer']:
+        #  duplicate answer with answer_index=1 to answer_index=2
+        ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 1].index
+
+        for row in ans1_index:
+            q_fs = data_fs[data_fs[QUESTION_COLUMN] == data_fs.iloc[row, QUESTION_COLUMN]]
+            ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 2].index[0]
+
+            data_fs.iloc[ans2_row, len(META_COLUMNS):] = data_fs.iloc[row, len(META_COLUMNS):]
 
     folds = []
 
@@ -183,10 +205,9 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
         n_iter=n_iter_search,
         scoring=score_metric,
         cv=folds,
-        n_jobs=2,
-        verbose=50
+        n_jobs=4
     )
-
+    
     random_search.fit(data, target)
     return random_search
 
@@ -204,18 +225,18 @@ def cv_folds_all_classifiers(data, target, folds, metric=None):
     return results
 
 
-def cv_method_all_classifiers(data_path, method, metric=None):
+def cv_method_all_classifiers(data_path, method, metric=None, take_sessions=None):
     data_df = pd.read_csv(data_path, index_col=0)
 
     data = data_df.iloc[:, len(META_COLUMNS):].values
     target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-    folds = prepare_folds(data_df, method)
+    folds = prepare_folds(data_df, method, take_sessions)
 
     return cv_folds_all_classifiers(data, target, folds, metric)
 
 
-def cv_all_methods_all_classifiers(data_path, metric=None):
+def cv_all_methods_all_classifiers(data_path, metric=None, take_sessions=None):
     results = []
 
     for method in SPLIT_METHODS.values():
@@ -223,7 +244,7 @@ def cv_all_methods_all_classifiers(data_path, metric=None):
         
         results.append({
             'method': method,
-            'results': cv_method_all_classifiers(data_path, method, metric)
+            'results': cv_method_all_classifiers(data_path, method, metric, take_sessions)
         })
 
     return results

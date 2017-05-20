@@ -4,19 +4,12 @@ import pandas as pd
 import os.path as path
 from features import utils
 from learn.utils import cv_method_all_classifiers
-
-import matplotlib
-matplotlib.use('Agg')
-
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-import operator as o
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS
 
 
-def cv_method_all_learners(raw_path, features_path, method, metric=None, features_params_string=''):
+def cv_method_all_learners(raw_path, features_path, method, metric=None, features_params_string='', take_sessions=None):
     print("Cross validating all learners...")
-    results = cv_method_all_classifiers(features_path, method, metric)
+    results = cv_method_all_classifiers(features_path, method, metric, take_sessions)
 
     temp_list = []
     for x in results:
@@ -30,79 +23,6 @@ def cv_method_all_learners(raw_path, features_path, method, metric=None, feature
     results_df.to_csv(results_path)
 
     print(results_df.sort_values(['mean_test_score'], ascending=False).loc[:, ['mean_test_score', 'mean_train_score']].head())
-
-    # plot_path = features_params_string + '_' + results_path.replace('.csv', '.png')
-    # print("Plotting learning results to {}...".format(plot_path))
-    # save_results_plot(plot_path, results)
-
-
-def save_results_plot(plot_path, results):
-    def barplot(ax, dpoints):
-        """
-        Create a barchart for data across different categories with
-        multiple conditions for each category.
-         @param ax: The plotting axes from matplotlib.
-        @param dpoints: The data set as an (n, 3) numpy array
-        """
-
-        # Aggregate the conditions and the categories according to their
-        # mean values
-        conditions = [(c, np.mean(dpoints[dpoints[:, 0] == c][:, 2].astype(float)))
-                      for c in np.unique(dpoints[:, 0])]
-        categories = [(c, np.mean(dpoints[dpoints[:, 1] == c][:, 2].astype(float)))
-                      for c in np.unique(dpoints[:, 1])]
-
-        # sort the conditions, categories and data so that the bars in
-        # the plot will be ordered by category and condition
-        conditions = [c[0] for c in sorted(conditions, key=o.itemgetter(1))]
-        categories = [c[0] for c in sorted(categories, key=o.itemgetter(1))]
-
-        dpoints = np.array(sorted(dpoints, key=lambda x: categories.index(x[1])))
-
-        # the space between each set of bars
-        space = 0.3
-        n = len(conditions)
-        width = (1 - space) / (len(conditions))
-
-        # Create a set of bars at each position
-        for i, cond in enumerate(conditions):
-            indeces = range(1, len(categories) + 1)
-            vals = dpoints[dpoints[:, 0] == cond][:, 2].astype(np.float)
-            pos = [j - (1 - space) / 2. + i * width for j in indeces]
-            ax.bar(pos, vals, width=width, label=cond,
-                   color=cm.Accent(float(i) / n))
-
-        # Set the x-axis tick labels to be equal to the categories
-        ax.set_xticks(indeces)
-        ax.set_xticklabels(categories)
-        plt.setp(plt.xticks()[1])
-
-        # Add the axis labels
-        ax.set_ylabel("Accuracy")
-        ax.set_xlabel("Classifiers")
-
-        # Add a legend
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles[::-1], labels[::-1], loc='upper left')
-
-        plt.savefig(plot_path)
-
-    data = []
-    for res in results:
-        estimator = res['estimator']
-        res_df = pd.DataFrame(res['cv_results'].cv_results_).sort(['mean_test_score'], ascending=[0])
-
-        train_score = res_df.loc[0, :]['mean_train_score']
-        test_score = res_df.loc[0, :]['mean_test_score']
-
-        data.append([estimator, 'best_mean_train_score', train_score])
-        data.append([estimator, 'best_mean_test_score', test_score])
-
-    data = np.array(data)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    barplot(ax, data)
 
 
 def extract_features(
@@ -186,6 +106,9 @@ if __name__ == "__main__":
 
     parser.add_argument('-m', '--metric', dest='metric', type=str, default=None)
 
+    parser.add_argument('-ts', '--take_sessions', dest='take_sessions', type=int, default=None,
+                        choices=list(range(2, 21, 2)))
+
     parser.add_argument('-MR', '--mega_runner', dest='mega_runner', action='store_true')
 
     args = parser.parse_args()
@@ -206,6 +129,7 @@ if __name__ == "__main__":
 
                     for pca_dim in pca_opts:
                         try:
+                            m = '4v1_T'
                             features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
                               args.raw_path,
                               'top',
@@ -214,7 +138,7 @@ if __name__ == "__main__":
                               fe_top_n,
                               pca_dim,
                               pca_method,
-                              '4v1_A'
+                              m
                             )
                             print(features_params_string)
 
@@ -226,11 +150,18 @@ if __name__ == "__main__":
                                fe_top_n,
                                pca_method,
                                pca_dim,
-                               '4v1_A',
+                               m,
                                features_params_string
                             )
 
-                            cv_method_all_learners(args.raw_path, features_path, '4v1_A', args.metric, features_params_string)
+                            cv_method_all_learners(
+                                args.raw_path,
+                                features_path,
+                                m,
+                                args.metric,
+                                features_params_string,
+                                args.take_sessions
+                            )
 
                         except Exception as e:
                             print('---- ERROR ----\r\n' + str(e) + '\r\n')
@@ -270,7 +201,8 @@ if __name__ == "__main__":
             features_path,
             args.learning_method,
             args.metric,
-            features_params_string
+            features_params_string,
+            args.take_sessions
         )
 
 #"""

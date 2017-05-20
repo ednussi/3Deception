@@ -34,7 +34,9 @@ GROUPBY_COLUMNS = [
 
 SESSION_COLUMN = 'session'
 SESSION_TYPE_COLUMN = 'session_type'
+QUESTION_COLUMN = 'question'
 QUESTION_TYPE_COLUMN = 'question_type'
+ANSWER_INDEX_COLUMN = 'answer_index'
 TARGET_COLUMN = 'record_flag'
 
 ANSWER_FLAGS = [
@@ -59,6 +61,7 @@ SPLIT_METHODS = {
     '4_vs_1_all_session_types': '4v1_A',
     '4_vs_1_truth_session_types': '4v1_T',
     '4_vs_1_lies_session_types': '4v1_F',
+    '4_vs_1_single_answer': '4v1_SINGLE',
     'session_prediction': 'SP'
 }
 
