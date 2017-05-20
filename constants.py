@@ -61,7 +61,7 @@ SPLIT_METHODS = {
     '4_vs_1_all_session_types': '4v1_A',
     '4_vs_1_truth_session_types': '4v1_T',
     '4_vs_1_lies_session_types': '4v1_F',
-    '4_vs_1_single_answer': '4v1_SINGLE',
+    '4_vs_1_ast_single_answer': '4v1_SINGLE',
     'session_prediction': 'SP'
 }
 

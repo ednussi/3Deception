@@ -88,7 +88,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
     if method.startswith('4v1'):
         if method == SPLIT_METHODS['4_vs_1_all_session_types'] or \
-           method == SPLIT_METHODS['4_vs_1_all_single_answer']:
+           method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
             session_types[SESSION_TYPES['say_truth']] = [
                 RecordFlags.RECORD_FLAG_ANSWER_TRUE,
                 RecordFlags.RECORD_FLAG_ANSWER_FALSE
@@ -127,7 +127,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
     data_fs = pd.concat(dfs)
 
-    if method == SPLIT_METHODS['4_vs_1_all_single_answer']:
+    if method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
         #  duplicate answer with answer_index=1 to answer_index=2
         ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 1].index
 
