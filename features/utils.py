@@ -250,12 +250,10 @@ def pca_grouped(df, groups):
     return reduced
 
 
-def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
+def dimension_reduction(pca_dimension, pca_method, top_features):
     if pca_method == PCA_METHODS["global"]:
-        print("Running global PCA...")
+        # print("Running global PCA...")
         pca_features = pca_global(top_features, pca_dimension)
-        print("Saving PCA features to {}...".format(pca_path), end="")
-        pca_features.to_csv(pca_path)
 
     elif pca_method == PCA_METHODS["groups"]:
         groups = {
@@ -278,40 +276,39 @@ def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
                          top_features.columns)): pca_dimension,
         }
 
-        print("Running PCA for feature groups...")
+        # print("Running PCA for feature groups...")
         pca_features = pca_grouped(top_features, groups)
-
-        print("Saving PCA features to {}...".format(pca_path))
-        pca_features.to_csv(pca_path)
 
     else:
         raise Exception("Unknown PCA method")
 
+    return pca_features
+
 
 def get_all_features_by_groups(raw_df, raw_path=None):
-    print("Splitting answers... ", end="")
+    # print("Splitting answers... ", end="")
     answers_dfs = split_df_to_answers(raw_df)
-    print("Done.")
+    # print("Done.")
 
-    print("Quantizing... ", end="")
+    # print("Quantizing... ", end="")
     quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
-    print("Done.")
+    # print("Done.")
 
-    print("Moments... ", end="")
+    # print("Moments... ", end="")
     all_moments = moments.moments(answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Discrete... ", end="")
+    # print("Discrete... ", end="")
     all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Dynamic... ", end="")
+    # print("Dynamic... ", end="")
     all_dynamic = dynamic.dynamic(quantized_answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Miscellaneous... ", end="")
+    # print("Miscellaneous... ", end="")
     all_misc = misc.misc(answers_dfs)
-    print("Done.")
+    # print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
 
@@ -354,18 +351,22 @@ def extract_select_tsflesh_features(X):
 
     return features_filtered_direct
 
-def get_cor(df, top_n, method):
-    meta = [x for x in META_COLUMNS]
+
+def get_corr_(df, top_n, method):
     if method == 'SP':
         label_col = 'session_type'
     else:
         label_col = 'record_flag'
 
+    meta = [x for x in META_COLUMNS]
     meta.remove(label_col)
+
     data = df.drop(meta, axis=1)
+
     correlation_to_flag = abs(data.corr()[label_col])
-    correlation_to_flag.sort_values(ascending=False)
+    correlation_to_flag = correlation_to_flag.sort_values(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
+
     return correlation_to_flag[0:top_n]
 
 
@@ -373,7 +374,7 @@ def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     identifiers = df[META_COLUMNS]
-    top_features = get_cor(df, top_n, method)
+    top_features = get_corr_(df, top_n, method)
     top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
@@ -390,19 +391,26 @@ def normalize_pd_df(df):
 
 def get_top_au(raw_df, au, au_num, method):
     if au == 'daniel':
-        return raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU]), au_num, method)
+        
     elif au == 'mouth':
-        return raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[MOUTH_AU]), au_num, method)
+        
     elif au == 'eyes':
-        return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU]), au_num, method)
+        
     elif au == 'eyes_area':
-        return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[EYES_AU]), au_num, method)
+        
     elif au == 'brows':
-        return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[BROWS_AU]), au_num, method)
+        
     elif au == 'smile':
-        return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[SMILE_AU]), au_num, method)
+        
     elif au == 'blinks':
-        return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[BLINKS_AU]), au_num, method)
+        
     else:  # elif au == 'top':
         return take_top_(raw_df, au_num, method)
 

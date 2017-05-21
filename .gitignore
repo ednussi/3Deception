@@ -1,6 +1,9 @@
 .idea/*
+pickles/*
 */.idea/*
 questionnaire/data/output/*
+learning-results*
+pca_*
 *.pyc
 *.exe
 *.png
