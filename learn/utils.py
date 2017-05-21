@@ -233,6 +233,11 @@ def cv_method_all_classifiers(data_path, method, metric=None, take_sessions=None
 
     folds = prepare_folds(data_df, method, take_sessions)
 
+    # split train part of folds to train and test
+    # run prepare_folds on train to get train and validation (=new_folds)
+    # run cv_folds_all_classifiers on new_folds to get best classifier
+    # report test score of best classifier (or maybe top 5) - create it manually and use fit/predict
+
     return cv_folds_all_classifiers(data, target, folds, metric)
 
 
