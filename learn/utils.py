@@ -40,7 +40,7 @@ def prepare_classifiers():
 #            'params': [
 #                {
 #                    'max_depth': randint(1, 11),
-#                    'max_features': randint(1, 11),
+#                    'max_features': randint(1, 8),
 #                    'min_samples_split': randint(2, 11),
 #                    'min_samples_leaf': randint(1, 11),
 #                    'bootstrap': [True, False],
@@ -79,7 +79,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     :return: 
     """
 
-    print('-- Data preparation for evaluation method: %s' % method)
+    # print('-- Data preparation for evaluation method: %s' % method)
 
     session_types = {
         SESSION_TYPES['say_truth']: [],
@@ -129,11 +129,11 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
     if method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
         #  duplicate answer with answer_index=1 to answer_index=2
-        ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 1].index
+        ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 2].index
 
         for row in ans1_index:
-            q_fs = data_fs[data_fs[QUESTION_COLUMN] == data_fs.iloc[row, QUESTION_COLUMN]]
-            ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 2].index[0]
+            q_fs = data_fs[data_fs[QUESTION_COLUMN] == data_fs.loc[row, QUESTION_COLUMN]]
+            ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 3].index[0]
 
             data_fs.iloc[ans2_row, len(META_COLUMNS):] = data_fs.iloc[row, len(META_COLUMNS):]
 
@@ -149,7 +149,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
             train_types = list(map(lambda idx: question_types[idx], train_types_idx))
             test_types = list(map(lambda idx: question_types[idx], test_types_idx))
 
-            print('   -- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
+            # print('   -- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
 
             # extract frames with train question types
             train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
@@ -169,7 +169,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
             train_sessions = [s for p in map(lambda idx: session_pairs[idx], train_sessions_idx) for s in p]
             test_sessions = [s for p in map(lambda idx: session_pairs[idx], test_sessions_idx) for s in p]
 
-            print('   -- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
+            # print('   -- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
 
             # extract frames with train sessions
             train_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(train_sessions)].index
@@ -215,7 +215,7 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
 def cv_folds_all_classifiers(data, target, folds, metric=None):
     results = []
     for classifier in prepare_classifiers():
-        print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
+        # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
             results.append({
                 'estimator': classifier['clf'].__class__.__name__,
@@ -225,9 +225,7 @@ def cv_folds_all_classifiers(data, target, folds, metric=None):
     return results
 
 
-def cv_method_all_classifiers(data_path, method, metric=None, take_sessions=None):
-    data_df = pd.read_csv(data_path, index_col=0)
-
+def cv_method_all_classifiers(data_df, method, metric=None, take_sessions=None):
     data = data_df.iloc[:, len(META_COLUMNS):].values
     target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
@@ -240,7 +238,7 @@ def cv_all_methods_all_classifiers(data_path, metric=None, take_sessions=None):
     results = []
 
     for method in SPLIT_METHODS.values():
-        print('Method: {}'.format(method))
+        # print('Method: {}'.format(method))
         
         results.append({
             'method': method,

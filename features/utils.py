@@ -250,12 +250,10 @@ def pca_grouped(df, groups):
     return reduced
 
 
-def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
+def dimension_reduction(pca_dimension, pca_method, top_features):
     if pca_method == PCA_METHODS["global"]:
-        print("Running global PCA...")
+        # print("Running global PCA...")
         pca_features = pca_global(top_features, pca_dimension)
-        print("Saving PCA features to {}...".format(pca_path), end="")
-        pca_features.to_csv(pca_path)
 
     elif pca_method == PCA_METHODS["groups"]:
         groups = {
@@ -278,40 +276,39 @@ def dimension_reduction(pca_dimension, pca_method, pca_path, top_features):
                          top_features.columns)): pca_dimension,
         }
 
-        print("Running PCA for feature groups...")
+        # print("Running PCA for feature groups...")
         pca_features = pca_grouped(top_features, groups)
-
-        print("Saving PCA features to {}...".format(pca_path))
-        pca_features.to_csv(pca_path)
 
     else:
         raise Exception("Unknown PCA method")
 
+    return pca_features
+
 
 def get_all_features_by_groups(raw_df, raw_path=None):
-    print("Splitting answers... ", end="")
+    # print("Splitting answers... ", end="")
     answers_dfs = split_df_to_answers(raw_df)
-    print("Done.")
+    # print("Done.")
 
-    print("Quantizing... ", end="")
+    # print("Quantizing... ", end="")
     quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
-    print("Done.")
+    # print("Done.")
 
-    print("Moments... ", end="")
+    # print("Moments... ", end="")
     all_moments = moments.moments(answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Discrete... ", end="")
+    # print("Discrete... ", end="")
     all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Dynamic... ", end="")
+    # print("Dynamic... ", end="")
     all_dynamic = dynamic.dynamic(quantized_answers_dfs)
-    print("Done.")
+    # print("Done.")
 
-    print("Miscellaneous... ", end="")
+    # print("Miscellaneous... ", end="")
     all_misc = misc.misc(answers_dfs)
-    print("Done.")
+    # print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
 
@@ -353,6 +350,7 @@ def extract_select_tsflesh_features(X):
         features, y, column_id='id', column_sort='timestamp')
 
     return features_filtered_direct
+
 
 def get_cor(df, top_n, method):
     meta = [x for x in META_COLUMNS]
