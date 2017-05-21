@@ -12,8 +12,13 @@ def cv_method_all_learners(raw_path, pca_features, method, metric=None, features
     results = cv_method_all_classifiers(pca_features, method, metric, take_sessions)
 
     temp_list = []
+    
     for x in results:
         temp_df = pd.DataFrame(x['cv_results'].cv_results_)
+        temp_df['real_test_score'] = x['best_estimator_test_score']
+        temp_df['train_types'] = x['train_types']
+        temp_df['val_type'] = x['val_type']
+        temp_df['test_type'] = x['test_type']
         temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
 
     results_df = pd.concat(temp_list)
@@ -23,7 +28,15 @@ def cv_method_all_learners(raw_path, pca_features, method, metric=None, features
     results_df.to_csv(results_path)
 
     # print([['mean_test_score', 'mean_train_score']])
-    print(results_df.sort_values(['mean_test_score'], ascending=False).loc[:, ['mean_test_score', 'mean_train_score']].head(1).values.tolist(), features_params_string)
+    # results_to_print = results_df.sort_values(['real_test_score'], ascending=False)
+    # .loc[:, ['real_test_score', 'mean_test_score', 'mean_train_score']].head(1).values.tolist()
+
+    print(results_df.sort_values(['real_test_score'], ascending=False)
+          .loc[:, ['real_test_score', 'mean_test_score', 'mean_train_score', 'train_types', 'val_types', 'test_type']]
+          .head(1))
+
+    # print('Test: %0.2f, Validation: %0.2f, Train: %0.2f' %
+    # (results_to_print[0][0], results_to_print[0][1], results_to_print[0][2]), features_params_string)
     return results_df
 
 
@@ -53,8 +66,8 @@ def extract_features(
     top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
 
     print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-    utils.get_cor(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
-    utils.get_cor(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
+    utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
+    utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
     print("Saving all features to {}...".format(features_path))
     top_features.to_csv(features_path)
@@ -116,7 +129,6 @@ if __name__ == "__main__":
 
 
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, metric, take_sessions):
-            run = 1
             raw_df = pd.read_csv(args.raw_path)
 
             for au_top_n in range(15, 25):

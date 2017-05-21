@@ -144,21 +144,34 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     if method.startswith('4v1'):
         question_types = list(QUESTION_TYPES.values())
 
-        for i, (train_types_idx, test_types_idx) in enumerate(loo.split(question_types)):
+        # extract one question type to test on
+        for i, (train_val_types_idx, test_types_idx) in enumerate(loo.split(question_types)):
 
-            train_types = list(map(lambda idx: question_types[idx], train_types_idx))
             test_types = list(map(lambda idx: question_types[idx], test_types_idx))
-
-            # print('   -- Fold {}: train question types {}, test question types {}'.format(i, train_types, test_types))
-
-            # extract frames with train question types
-            train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
 
             # extract frames with test question types
             test_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
 
-            # add dataset
-            folds.append((train_indices, test_indices))
+            train_val_types = list(map(lambda idx: question_types[idx], train_val_types_idx))
+
+            temp_folds = []
+
+            # extract one question type to validate on
+            for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
+
+                train_types = list(map(lambda idx: train_val_types[idx], train_types_idx))
+                val_types = list(map(lambda idx: train_val_types[idx], val_types_idx))
+
+                # extract frames with train question types
+                train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
+
+                # extract frames with validation question types
+                val_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
+
+                temp_folds.append((train_indices, train_types, val_indices, val_types))
+
+            # add fold dataset
+            folds.append((temp_folds, (test_indices, test_types)))
 
     elif method == 'SP':
         sessions = data_fs[SESSION_COLUMN].unique()
@@ -212,15 +225,54 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
     return random_search
 
 
-def cv_folds_all_classifiers(data, target, folds, metric=None):
+def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
     results = []
     for classifier in prepare_classifiers():
         # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
-            results.append({
-                'estimator': classifier['clf'].__class__.__name__,
-                'cv_results': find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric)
-            })
+
+            if method != SPLIT_METHODS['session_prediction']:
+
+                train_val_folds, train_val_types, test_folds, test_types = [], [], [], []
+
+                # folds: [([(train,val), ...], test), ...]
+
+                for f in folds:
+                    temp_train_folds, temp_train_types = [], []
+
+                    for t in f[0]:
+                        temp_train_folds.append((t[0], t[2]))
+                        temp_train_types.append((t[1], t[3]))
+
+                    train_val_folds.append(temp_train_folds)
+                    train_val_types.append(temp_train_types)
+                    test_folds.append(f[1][0])
+                    test_types.append(f[1][1])
+
+                for i, test_fold in enumerate(test_folds):
+                    test_data = data[test_fold, :]
+                    test_target = target[test_fold]
+
+                    clf_cv_result = {
+                        'estimator': classifier['clf'].__class__.__name__,
+                        'cv_results': find_params_random_search(classifier['clf'],
+                                                                param_dict, data, target, train_val_folds[i], metric),
+                        'train_types': [q[0] for q in train_val_types[i]],
+                        'val_type': [q[1] for q in train_val_types[i]],
+                        'test_type': test_types[i]
+                    }
+
+                    clf_cv_result['best_estimator_test_score'] = clf_cv_result['cv_results'].best_estimator_.score(test_data, test_target)
+                
+                    results.append(clf_cv_result)
+
+            else:
+                clf_cv_result = {
+                    'estimator': classifier['clf'].__class__.__name__,
+                    'cv_results': find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric)
+                }
+
+                results.append(clf_cv_result)
 
     return results
 
@@ -231,12 +283,7 @@ def cv_method_all_classifiers(data_df, method, metric=None, take_sessions=None):
 
     folds = prepare_folds(data_df, method, take_sessions)
 
-    # split train part of folds to train and test
-    # run prepare_folds on train to get train and validation (=new_folds)
-    # run cv_folds_all_classifiers on new_folds to get best classifier
-    # report test score of best classifier (or maybe top 5) - create it manually and use fit/predict
-
-    return cv_folds_all_classifiers(data, target, folds, metric)
+    return cv_folds_all_classifiers(data, target, folds, metric, method)
 
 
 def cv_all_methods_all_classifiers(data_path, metric=None, take_sessions=None):

@@ -352,18 +352,21 @@ def extract_select_tsflesh_features(X):
     return features_filtered_direct
 
 
-def get_cor(df, top_n, method):
-    meta = [x for x in META_COLUMNS]
+def get_corr_(df, top_n, method):
     if method == 'SP':
         label_col = 'session_type'
     else:
         label_col = 'record_flag'
 
+    meta = [x for x in META_COLUMNS]
     meta.remove(label_col)
+
     data = df.drop(meta, axis=1)
+
     correlation_to_flag = abs(data.corr()[label_col])
-    correlation_to_flag.sort_values(ascending=False)
+    correlation_to_flag = correlation_to_flag.sort_values(ascending=False)
     correlation_to_flag = correlation_to_flag.drop(label_col)
+
     return correlation_to_flag[0:top_n]
 
 
@@ -371,7 +374,7 @@ def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     identifiers = df[META_COLUMNS]
-    top_features = get_cor(df, top_n, method)
+    top_features = get_corr_(df, top_n, method)
     top_features_pd = identifiers.join(df[top_features.keys()])
     return top_features_pd
 
@@ -388,19 +391,26 @@ def normalize_pd_df(df):
 
 def get_top_au(raw_df, au, au_num, method):
     if au == 'daniel':
-        return raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU]), au_num, method)
+        
     elif au == 'mouth':
-        return raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[MOUTH_AU]), au_num, method)
+        
     elif au == 'eyes':
-        return raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU]), au_num, method)
+        
     elif au == 'eyes_area':
-        return raw_df[META_COLUMNS].join(raw_df[EYES_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[EYES_AU]), au_num, method)
+        
     elif au == 'brows':
-        return raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[BROWS_AU]), au_num, method)
+        
     elif au == 'smile':
-        return raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[SMILE_AU]), au_num, method)
+        
     elif au == 'blinks':
-        return raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
+        return take_top_(raw_df[META_COLUMNS].join(raw_df[BLINKS_AU]), au_num, method)
+        
     else:  # elif au == 'top':
         return take_top_(raw_df, au_num, method)
 
