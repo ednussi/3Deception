@@ -154,7 +154,11 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
             train_val_types = list(map(lambda idx: question_types[idx], train_val_types_idx))
 
-            temp_folds = []
+            temp_train_folds, temp_val_folds = [], []
+            temp_test_folds = {
+                    'indices': test_indices,
+                    'types': test_types
+                }
 
             # extract one question type to validate on
             for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
@@ -168,10 +172,22 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
                 # extract frames with validation question types
                 val_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
 
-                temp_folds.append((train_indices, train_types, val_indices, val_types))
+                temp_train_folds.append({
+                    'indices': train_indices,
+                    'types': train_types
+                })
+
+                temp_val_folds.append({
+                    'indices': val_indices,
+                    'types': val_types
+                })
 
             # add fold dataset
-            folds.append((temp_folds, (test_indices, test_types)))
+            folds.append({
+                'train': temp_train_folds,
+                'val': temp_val_folds,
+                'test': temp_test_folds
+            })
 
     elif method == 'SP':
         sessions = data_fs[SESSION_COLUMN].unique()
@@ -235,21 +251,24 @@ def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
 
                 train_val_folds, train_val_types, test_folds, test_types = [], [], [], []
 
-                # folds: [([(train,val), ...], test), ...]
-
                 for f in folds:
-                    temp_train_folds, temp_train_types = [], []
+                    train_val_folds.append(list(zip(map(lambda x: x['indices'], f['train']),
+                                                    map(lambda x: x['indices'], f['val']))))
 
-                    for t in f[0]:
-                        temp_train_folds.append((t[0], t[2]))
-                        temp_train_types.append((t[1], t[3]))
+                    train_val_types.append(list(zip(map(lambda x: x['types'], f['train']),
+                                                    map(lambda x: x['types'], f['val']))))
 
-                    train_val_folds.append(temp_train_folds)
-                    train_val_types.append(temp_train_types)
-                    test_folds.append(f[1][0])
-                    test_types.append(f[1][1])
+                    test_folds.append(f['test']['indices'])
+                    test_types.append(f['test']['types'])
 
                 for i, test_fold in enumerate(test_folds):
+                    # concatenate all validation folds to get train data for testing
+                    # all validation folds sum is equal to all train folds union
+                    train_fold = sum(list(map(lambda x: list(x[1]), train_val_folds[i])), [])
+
+                    train_data = data[train_fold, :]
+                    train_target = target[train_fold]
+
                     test_data = data[test_fold, :]
                     test_target = target[test_fold]
 
@@ -262,7 +281,14 @@ def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
                         'test_type': test_types[i]
                     }
 
-                    clf_cv_result['best_estimator_test_score'] = clf_cv_result['cv_results'].best_estimator_.score(test_data, test_target)
+                    best_c_param = clf_cv_result['cv_results'].cv_results_['params'][clf_cv_result['cv_results'].best_index_]['C']
+
+                    best_estimator = svm.SVC(kernel='linear', C=best_c_param)
+                    best_estimator.fit(train_data, train_target)
+
+                    clf_cv_result['best_mean_val_score'] = clf_cv_result['cv_results'].best_score_
+                    clf_cv_result['best_estimator_train_score'] = best_estimator.score(train_data, train_target)
+                    clf_cv_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
                 
                     results.append(clf_cv_result)
 
