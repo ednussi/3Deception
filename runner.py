@@ -16,9 +16,9 @@ def cv_method_all_learners(raw_path, pca_features, method, metric=None, features
     for x in results:
         temp_df = pd.DataFrame(x['cv_results'].cv_results_)
         temp_df['real_test_score'] = x['best_estimator_test_score']
-        temp_df['train_types'] = x['train_types']
-        temp_df['val_type'] = x['val_type']
-        temp_df['test_type'] = x['test_type']
+        temp_df['train_types'] = str(x['train_types']).replace(',', '')
+        temp_df['val_type'] = str(x['val_type']).replace(',', '')
+        temp_df['test_type'] = str(x['test_type']).replace(',', '')
         temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
 
     results_df = pd.concat(temp_list)
@@ -32,7 +32,10 @@ def cv_method_all_learners(raw_path, pca_features, method, metric=None, features
     # .loc[:, ['real_test_score', 'mean_test_score', 'mean_train_score']].head(1).values.tolist()
 
     print(results_df.sort_values(['real_test_score'], ascending=False)
-          .loc[:, ['real_test_score', 'mean_test_score', 'mean_train_score', 'train_types', 'val_types', 'test_type']]
+          .loc[:, ['real_test_score', 'mean_test_score', 'mean_train_score']]
+          .head(1))
+    print(results_df.sort_values(['real_test_score'], ascending=False)
+          .loc[:, ['test_type', 'val_type', 'train_types']]
           .head(1))
 
     # print('Test: %0.2f, Validation: %0.2f, Train: %0.2f' %
@@ -127,15 +130,16 @@ if __name__ == "__main__":
 
     if args.mega_runner:
 
-
-        def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, metric, take_sessions):
+        def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
+                     learning_method, metric, take_sessions):
             raw_df = pd.read_csv(args.raw_path)
 
             for au_top_n in range(15, 25):
-                top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+                top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 
                 for features_top_n in range(24, 80):
-                    top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+                    top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
+                                                          learning_method, raw_path)
 
                     if pca_method == PCA_METHODS['global']:
                         pca_options = range(5, 11)
@@ -200,83 +204,9 @@ if __name__ == "__main__":
 
                         mega_run(args.raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, args.metric, args.take_sessions)
 
-        # TODO run extract_features and cv_all_learners in lots of "for"s
         # take only YES or only NO from all sessions
-        # last raw answer is really really long
         # take only first pair of sessions
-        # don't learn other classifiers, only SVC
         # try to learn only on second answer (note the dataset may be imbalanced, weight it)
-
-        # ress = []
-
-        # m = args.learning_method
-
-        # # print("Reading {}...".format(raw_path))
-        # raw_df = pd.read_csv(args.raw_path)
-
-        # for au_selection_method in AU_SELECTION_METHODS.values():
-
-        #     for au_top_n in range(10, 25):
-        #         # print("Choosing Top AU with method", au_selection_method)
-        #         top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, m)
-
-        #         for feature_selection_method in FEATURE_SELECTION_METHODS.values():
-
-        #             for features_top_n in range(20, 81):
-        #                 # print("Extracting features with method:", feature_selection_method)
-        #                 top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, m, args.raw_path)
-
-        #                 for pca_method in list(PCA_METHODS.values()) + [None]:
-        #                     pca_opts = range(5, 20)
-
-        #                     for pca_dim in pca_opts:
-        #                         try:
-
-        #                             features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}'.format(
-        #                               path.basename(args.raw_path),
-        #                               au_selection_method,
-        #                               au_top_n,
-        #                               feature_selection_method,
-        #                               features_top_n,
-        #                               pca_dim,
-        #                               pca_method,
-        #                               m
-        #                             )
-
-        #                             features_path = path.join(path.dirname(args.raw_path), "features__" + features_params_string)
-        #                             au_cor_path = path.join(path.dirname(args.raw_path), "au-correlation__" + features_params_string)
-        #                             features_cor_path = path.join(path.dirname(args.raw_path), "features-correlation__" + features_params_string)
-
-        #                             utils.get_cor(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
-        #                             utils.get_cor(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
-        #                             top_features.to_csv(features_path)
-        #                             pca_features = top_features
-
-        #                             # return_path = features_path
-
-        #                             if pca_method is not None:
-        #                                 pca_path = path.join(path.dirname(args.raw_path), "pca_" + features_params_string)
-
-        #                                 pca_features = utils.dimension_reduction(pca_dim, pca_method, pca_path, top_features)
-                                        
-        #                                 # print("Saving PCA features to {}...".format(pca_path), end="")
-        #                                 pca_features.to_csv(pca_path)
-
-        #                                 # return_path = pca_path
-
-        #                             ress.append(
-        #                                 cv_method_all_learners(
-        #                                     args.raw_path,
-        #                                     pca_features,
-        #                                     m,
-        #                                     args.metric,
-        #                                     features_params_string,
-        #                                     args.take_sessions
-        #                                 )
-        #                             )
-
-        #                         except Exception as e:
-        #                             print('---- ERROR ----\r\n' + str(e) + '\r\n')
 
     else:
 
@@ -306,7 +236,6 @@ if __name__ == "__main__":
             args.learning_method,
             features_params_string
         )
-        #features_path = 'pca_new_jonathan.csv'
 
         cv_method_all_learners(
             args.raw_path,
