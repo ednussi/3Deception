@@ -137,7 +137,7 @@ def get_estimator(res_df, test_type, mode='mean_val'):
 def get_majority_scores(raw_path, results_path):
     res_df = pd.read_csv(results_path, index_col=0)
 
-    title = "Compare majority with best mean val estimator"
+    title = "Compare majority with best mean val estimator (" + res_df.learning_method.values[0] + ")"
 
     best_scores, majority_scores = [], []
 
@@ -153,16 +153,16 @@ def get_majority_scores(raw_path, results_path):
 
         majority_data_dfs = [
             extract_features(
-            raw_path,
-            majority_ress[i]['au_method'].values.tolist()[0],
-            int(majority_ress[i]['au_top'].values.tolist()[0]),
-            majority_ress[i]['fe_method'].values.tolist()[0],
-            int(majority_ress[i]['fe_top'].values.tolist()[0]),
-            majority_ress[i]['pca_method'].values.tolist()[0],
-            int(majority_ress[i]['pca_dim'].values.tolist()[0]),
-            majority_ress[i]['learning_method'].values.tolist()[0],
-            '.garbage'
-        ) for i in range(len(majority_ress))]
+                raw_path,
+                majority_ress[i]['au_method'].values.tolist()[0],
+                int(majority_ress[i]['au_top'].values.tolist()[0]),
+                majority_ress[i]['fe_method'].values.tolist()[0],
+                int(majority_ress[i]['fe_top'].values.tolist()[0]),
+                majority_ress[i]['pca_method'].values.tolist()[0],
+                int(majority_ress[i]['pca_dim'].values.tolist()[0]),
+                majority_ress[i]['learning_method'].values.tolist()[0],
+                '.garbage'
+            ) for i in range(len(majority_ress))]
 
         majority_datas = [
             X.iloc[:, len(META_COLUMNS):].values
@@ -171,6 +171,8 @@ def get_majority_scores(raw_path, results_path):
 
         #################################### single best estimators
         best_res, best_estimator = get_estimator(res_df, test_type)
+
+        majority_estimators.append(best_estimator)
 
         best_data_dfs = extract_features(
             raw_path,
@@ -185,15 +187,18 @@ def get_majority_scores(raw_path, results_path):
         )
 
         data = best_data_dfs.iloc[:, len(META_COLUMNS):].values
+
+        majority_datas.append(data)
+
         target = (best_data_dfs[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
         # ################################### train all estimators
         train, test = (best_data_dfs[best_data_dfs.question_type != test_type].index, best_data_dfs[best_data_dfs.question_type == test_type].index)
 
         for i in range(len(majority_estimators)):
-            majority_estimators[i].fit(majority_datas[i][train, :], target[train, :])
+            majority_estimators[i].fit(majority_datas[i][train, :], target[train])
 
-        best_estimator.fit(data[train, :], target[train, :])
+        best_estimator.fit(data[train, :], target[train])
 
         # ################################### test all estimators
         temp_majority_predictions = []
@@ -206,9 +211,9 @@ def get_majority_scores(raw_path, results_path):
         for z in zip(*temp_majority_predictions):
             majority_predictions.append(np.mean(z) > 0.5)
 
-        majority_scores.append(accuracy_score(majority_predictions, target[test, :]))
+        majority_scores.append(accuracy_score(majority_predictions, target[test]))
 
-        score = best_estimator.score(data[test, :], target[test, :])
+        score = best_estimator.score(data[test, :], target[test])
 
         best_scores.append(score)
 
@@ -233,21 +238,21 @@ def get_majority_scores(raw_path, results_path):
 
     plt.legend(loc='best', prop={'size':6})
     plt.xticks(index + bar_width, range(6))
-    plt.savefig(path.join(path.dirname(raw_path), 'learning_curves.png'))
+    plt.savefig(path.join(path.dirname(raw_path), 'majority_vs_best_mean_val (' + res_df.learning_method.values[0] + ').png'))
 
 
 def get_learning_curves_best_mean_val(raw_path, results_path):
     # raw_df = pd.read_csv(raw_path)
     res_df = pd.read_csv(results_path, index_col=0)
 
-    title = "Learning Curves (Linear SVM)"
+    title = "Learning Curves (Linear SVM) (" + res_df.learning_method.values[0] + ")"
 
     plt.figure()
     plt.title(title)
     plt.xlabel("Training examples")
     plt.ylabel("Score")
 
-    for test_type in range(1,6):
+    for test_type in range(1, 6):
         best_res, best_estimator = get_estimator(res_df, test_type)
 
         data_df = extract_features(
@@ -272,8 +277,8 @@ def get_learning_curves_best_mean_val(raw_path, results_path):
                             output_path='best_learning_curve.test_type_' + str(test_type) + '.png',
                             test_type=test_type)
 
-    plt.legend(loc='best', prop={'size':6})
-    plt.savefig(path.join(path.dirname(raw_path), 'learning_curves.png'))
+    plt.legend(loc='best', prop={'size': 6})
+    plt.savefig(path.join(path.dirname(raw_path), 'learning_curves (' + res_df.learning_method.values[0] + ').png'))
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
@@ -443,7 +448,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-MR', '--mega_runner', dest='mega_runner', action='store_true')
 
-    parser.add_argument('-SH', '--show_results', dest='show_results', action='store_true')
+    parser.add_argument('-dp', '--draw_plots', dest='draw_plots', action='store_true')
 
     parser.add_argument('-mj', '--majority_est', dest='majority_est', action='store_true')
 
@@ -536,7 +541,7 @@ if __name__ == "__main__":
         # take only first pair of sessions
         # try to learn only on second answer (note the dataset may be imbalanced, weight it)
 
-    elif args.show_results:
+    elif args.draw_plots:
         if args.results_path is None:
             print('Results path not provided')
             exit(1)
@@ -555,6 +560,7 @@ if __name__ == "__main__":
         if args.pca_method and args.pca_dim is None:
             parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
             exit()
+
 
         features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][normalization={}]'.format(
             path.basename(args.raw_path),

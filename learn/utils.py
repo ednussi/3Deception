@@ -1,3 +1,4 @@
+from collections import Counter
 from time import time
 
 import scipy
@@ -75,8 +76,9 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
         4vs1_SINGLE: same as _A, but learn only on first answer (out of (buffer, first, second))
     
     :param data_df: 
-    :param method: 
-    :return: 
+    :param method:
+    :param take_sessions:
+    :return:
     """
 
     # print('-- Data preparation for evaluation method: %s' % method)
@@ -111,7 +113,6 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
         else:
             raise Exception('Unknown method: %s' % method)
 
-
     # take first n sessions
     if take_sessions is not None:
         data_df = data_df[data_df[SESSION_COLUMN] <= take_sessions]
@@ -126,6 +127,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     dfs.append(temp_df[temp_df[TARGET_COLUMN].astype(int).isin(session_types[SESSION_TYPES['say_lies']])])
 
     data_fs = pd.concat(dfs)
+    data_fs.reset_index(inplace=True, drop=True)
 
     if method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
         #  duplicate answer with answer_index=1 to answer_index=2
@@ -136,6 +138,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
             ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 3].index[0]
 
             data_fs.iloc[ans2_row, len(META_COLUMNS):] = data_fs.iloc[row, len(META_COLUMNS):]
+            data_fs.loc[ans2_row, TARGET_COLUMN] = data_fs.loc[row, TARGET_COLUMN]
 
     folds = []
 
@@ -212,7 +215,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     else:
         raise Exception('Unknown method: %s' % method)
 
-    return folds
+    return folds, data_fs
 
 
 def find_params_random_search(clf, param_dist, data, target, folds, score_metric=None):
@@ -244,6 +247,14 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
 def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
     results = []
     for classifier in prepare_classifiers():
+        # class_weight = dict(Counter(target))
+        # class_weight_sum = max(list(class_weight.values()))
+        #
+        # for x in class_weight.keys():
+        #     class_weight[x] = 1. * class_weight[x] / class_weight_sum
+
+        # classifier['clf'].set_params(class_weight=class_weight)
+
         # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
 
@@ -304,10 +315,10 @@ def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
 
 
 def cv_method_all_classifiers(data_df, method, metric=None, take_sessions=None):
+    folds, data_df = prepare_folds(data_df, method, take_sessions)
+
     data = data_df.iloc[:, len(META_COLUMNS):].values
     target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
-
-    folds = prepare_folds(data_df, method, take_sessions)
 
     return cv_folds_all_classifiers(data, target, folds, metric, method)
 
