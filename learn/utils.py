@@ -247,13 +247,13 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
 def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
     results = []
     for classifier in prepare_classifiers():
-        # class_weight = dict(Counter(target))
-        # class_weight_sum = max(list(class_weight.values()))
-        #
-        # for x in class_weight.keys():
-        #     class_weight[x] = 1. * class_weight[x] / class_weight_sum
+        class_weight = dict(Counter(target))
+        class_weight_sum = max(list(class_weight.values()))
 
-        # classifier['clf'].set_params(class_weight=class_weight)
+        for x in class_weight.keys():
+            class_weight[x] = 1. * class_weight[x] / class_weight_sum
+
+        classifier['clf'].set_params(class_weight=class_weight)
 
         # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
