@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from sklearn import svm
 from sklearn.model_selection import learning_curve
+from sklearn.metrics import accuracy_score
 from features import utils
 from learn.utils import cv_method_all_classifiers, prepare_folds
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS, META_COLUMNS, TARGET_COLUMN, RecordFlags
@@ -53,25 +54,120 @@ def parse_preprocessing_params(filename):
     return {x[0]: x[1] for x in map(lambda x: x.split('='), b)}
 
 
-def get_roc_curves(raw_path, results_path):
-    raw_df = pd.read_csv(raw_path)
-    res_df = pd.read_csv(results_path, index_col=0)
+# def get_roc_curves(raw_path, results_path):
+#     raw_df = pd.read_csv(raw_path)
+#     res_df = pd.read_csv(results_path, index_col=0)
+#
+#     title = "ROC Curves (Linear SVM)"
+#
+#     plt.figure()
+#     plt.xlabel('False Positive Rate')
+#     plt.ylabel('True Positive Rate')
+#     plt.title(title)
+#
+#     for test_type in range(1,6):
+#         # choose best test score out of top 20 best validation scores
+#         best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
+#         best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
+#
+#         best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
+#
+#         data_df = extract_features(
+#             raw_path,
+#             best_res['au_method'].values.tolist()[0],
+#             int(best_res['au_top'].values.tolist()[0]),
+#             best_res['fe_method'].values.tolist()[0],
+#             int(best_res['fe_top'].values.tolist()[0]),
+#             best_res['pca_method'].values.tolist()[0],
+#             int(best_res['pca_dim'].values.tolist()[0]),
+#             best_res['learning_method'].values.tolist()[0],
+#             '.garbage'
+#         )
+#
+#         data = data_df.iloc[:, len(META_COLUMNS):].values
+#         target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+#
+#         train_idx, test_idx = (data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)
+#
+#         fpr = dict()
+#         tpr = dict()
+#         roc_auc = dict()
+#         for i in [True, False]: TODO
+#             fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+#             roc_auc[i] = auc(fpr[i], tpr[i])
+#
+#         # lw = 2
+#         # plt.plot(fpr[2], tpr[2], color='darkorange',
+#         #          lw=lw, label='ROC curve (area = %0.2f)' % roc_auc[2])
+#         # plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+#         # plt.xlim([0.0, 1.0])
+#         # plt.ylim([0.0, 1.05])
+#         # plt.legend(loc="lower right")
+#         # plt.show()
+#
+#     plt.legend(loc='best', prop={'size':6})
+#     plt.savefig(path.join(path.dirname(raw_path), 'learning_curves.png'))
 
-    title = "ROC Curves (Linear SVM)"
 
-    plt.figure()
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(title)
-    
-    for test_type in range(1,6):
+def get_estimator(res_df, test_type, mode='mean_val'):
+    if mode == 'mean_val':
         # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'],
+                                                                                      ascending=False).head(20)
         best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
 
         best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
+        return best_res, best_estimator
 
-        data_df = extract_features(
+    elif mode == 'best_vals':
+        ress = []
+        estimators = []
+
+        for split in range(4):
+            # choose best test score out of top 20 best validation scores
+            best_res = res_df[res_df.test_type == '[' + str(test_type) + ']']\
+                .sort_values(['split' + str(split) + '_test_score'], ascending=False).head(1)
+
+            ress.append(best_res)
+            estimators.append(svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear'))
+
+        return ress, estimators
+
+
+def get_majority_scores(raw_path, results_path):
+    res_df = pd.read_csv(results_path, index_col=0)
+
+    title = "Compare majority with best mean val estimator"
+
+    best_scores, majority_scores = [], []
+
+    for test_type in range(1,6):
+
+        ######################################## majority estimator
+        majority_ress, majority_estimators = get_estimator(res_df, test_type, 'best_vals')
+
+        majority_data_dfs = [
+            extract_features(
+            raw_path,
+            majority_ress[i]['au_method'].values.tolist()[0],
+            int(majority_ress[i]['au_top'].values.tolist()[0]),
+            majority_ress[i]['fe_method'].values.tolist()[0],
+            int(majority_ress[i]['fe_top'].values.tolist()[0]),
+            majority_ress[i]['pca_method'].values.tolist()[0],
+            int(majority_ress[i]['pca_dim'].values.tolist()[0]),
+            majority_ress[i]['learning_method'].values.tolist()[0],
+            '.garbage'
+        ) for i in range(len(majority_ress))]
+
+        majority_datas = [
+            X.iloc[:, len(META_COLUMNS):].values
+            for X in majority_data_dfs
+        ]
+
+        #################################### single best estimators
+        best_res, best_estimator = get_estimator(res_df, test_type)
+
+        best_data_dfs = extract_features(
             raw_path,
             best_res['au_method'].values.tolist()[0],
             int(best_res['au_top'].values.tolist()[0]),
@@ -83,33 +179,60 @@ def get_roc_curves(raw_path, results_path):
             '.garbage'
         )
 
-        data = data_df.iloc[:, len(META_COLUMNS):].values
-        target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+        data = best_data_dfs.iloc[:, len(META_COLUMNS):].values
+        target = (best_data_dfs[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-        train_idx, test_idx = (data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)
+        # ################################### train all estimators
+        train, test = (best_data_dfs[best_data_dfs.question_type != test_type].index, best_data_dfs[best_data_dfs.question_type == test_type].index)
 
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-        for i in [True, False]: TODO
-            fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
-            roc_auc[i] = auc(fpr[i], tpr[i])
+        for i in range(len(majority_estimators)):
+            majority_estimators[i].fit(majority_datas[i][train, :], target[train, :])
 
-        # lw = 2
-        # plt.plot(fpr[2], tpr[2], color='darkorange',
-        #          lw=lw, label='ROC curve (area = %0.2f)' % roc_auc[2])
-        # plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-        # plt.xlim([0.0, 1.0])
-        # plt.ylim([0.0, 1.05])
-        # plt.legend(loc="lower right")
-        # plt.show()
+        best_estimator.fit(data[train, :], target[train, :])
+
+        # ################################### test all estimators
+        temp_majority_predictions = []
+
+        for i in range(len(majority_estimators)):
+            majority_predict = majority_estimators[i].predict(majority_datas[i][test, :])
+            temp_majority_predictions.append(majority_predict)
+
+        majority_predictions = []
+        for z in zip(*temp_majority_predictions):
+            majority_predictions.append(np.mean(z) > 0.5)
+
+        majority_scores.append(accuracy_score(majority_predictions, target[test, :]))
+
+        score = best_estimator.score(data[test, :], target[test, :])
+
+        best_scores.append(score)
+
+    bar_width = 0.2
+    index = np.arange(len(majority_scores))
+
+    fig, ax = plt.subplots()
+
+    plt.title(title)
+    plt.xlabel("Test type")
+    plt.ylabel("Score")
+
+    rects1 = plt.bar(index, best_scores, bar_width,
+                     alpha=0.8,
+                     color='b',
+                     label='Best mean val estimator')
+
+    rects2 = plt.bar(index + bar_width, majority_scores, bar_width,
+                     alpha=0.8,
+                     color='g',
+                     label='Best vals majority estimator')
 
     plt.legend(loc='best', prop={'size':6})
+    plt.xticks(index + bar_width, range(6))
     plt.savefig(path.join(path.dirname(raw_path), 'learning_curves.png'))
 
 
-def get_learning_curves(raw_path, results_path):
-    raw_df = pd.read_csv(raw_path)
+def get_learning_curves_best_mean_val(raw_path, results_path):
+    # raw_df = pd.read_csv(raw_path)
     res_df = pd.read_csv(results_path, index_col=0)
 
     title = "Learning Curves (Linear SVM)"
@@ -120,11 +243,7 @@ def get_learning_curves(raw_path, results_path):
     plt.ylabel("Score")
 
     for test_type in range(1,6):
-        # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
-        best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
-
-        best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
+        best_res, best_estimator = get_estimator(res_df, test_type)
 
         data_df = extract_features(
             raw_path,
@@ -314,6 +433,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-SH', '--show_results', dest='show_results', action='store_true')
 
+    parser.add_argument('-mj', '--majority_est', dest='majority_est', action='store_true')
+
     args = parser.parse_args()
 
     if args.mega_runner:
@@ -404,7 +525,14 @@ if __name__ == "__main__":
             print('Results path not provided')
             exit(1)
 
-        get_learning_curves(args.raw_path, args.results_path)
+        get_learning_curves_best_mean_val(args.raw_path, args.results_path)
+
+    elif args.majority_est:
+        if args.results_path is None:
+            print('Results path not provided')
+            exit(1)
+
+        get_majority_scores(args.raw_path, args.results_path)
 
     else:
 
