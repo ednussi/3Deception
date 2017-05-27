@@ -359,7 +359,9 @@ def get_corr_(df, top_n, method):
     else:
         label_col = 'record_flag'
 
-
+    meta = [x for x in META_COLUMNS]
+    meta.remove(label_col)
+    data = df.drop(meta, axis=1)
 
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag = correlation_to_flag.sort_values(ascending=False)
