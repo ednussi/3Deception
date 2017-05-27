@@ -57,6 +57,13 @@ def show_results(raw_path, results_path):
     raw_df = pd.read_csv(raw_path)
     res_df = pd.read_csv(results_path, index_col=0)
 
+    title = "Learning Curves (Linear SVM)"
+
+    plt.figure()
+    plt.title(title)
+    plt.xlabel("Training examples")
+    plt.ylabel("Score")
+
     for test_type in range(1,6):
         # choose best test score out of top 20 best validation scores
         best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
@@ -66,29 +73,33 @@ def show_results(raw_path, results_path):
 
         data_df = extract_features(
             raw_path,
-            best_res['au_method'],
-            int(best_res['au_top']),
-            best_res['fe_method'],
-            int(best_res['fe_top']),
-            best_res['pca_method'],
-            int(best_res['pca_dim']),
-            best_res['learning_method'],
+            best_res['au_method'].values.tolist()[0],
+            int(best_res['au_top'].values.tolist()[0]),
+            best_res['fe_method'].values.tolist()[0],
+            int(best_res['fe_top'].values.tolist()[0]),
+            best_res['pca_method'].values.tolist()[0],
+            int(best_res['pca_dim'].values.tolist()[0]),
+            best_res['learning_method'].values.tolist()[0],
             '.garbage'
         )
 
         data = data_df.iloc[:, len(META_COLUMNS):].values
         target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-        folds = [data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index]
-
-        title = "Learning Curves (Linear SVM), test type = " + str(test_type)
+        folds = [(data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)]
 
         plot_learning_curve(best_estimator, title, data, target, ylim=(0.5, 1.01), cv=folds,
-                            n_jobs=4, raw_path=raw_path)
+                            n_jobs=4, raw_path=raw_path, 
+                            output_path='best_learning_curve.test_type_' + str(test_type) + '.png',
+                            test_type=test_type)
+
+    plt.legend(loc='best', prop={'size':6})
+    plt.savefig(path.join(path.dirname(raw_path), 'learning_curves.png'))
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
-                        n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5), raw_path=''):
+                        n_jobs=1, train_sizes=np.linspace(.125, 1.0, 8), raw_path='',
+                        output_path='best_learning_curve.png', test_type=0):
     """
     Generate a simple plot of the test and training learning curve.
 
@@ -129,12 +140,12 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
     n_jobs : integer, optional
         Number of jobs to run in parallel (default 1).
     """
-    plt.figure()
-    plt.title(title)
+    # plt.figure()
+    # plt.title(title)
+    # plt.xlabel("Training examples")
+    # plt.ylabel("Score")
     if ylim is not None:
         plt.ylim(*ylim)
-    plt.xlabel("Training examples")
-    plt.ylabel("Score")
     train_sizes, train_scores, test_scores = learning_curve(
         estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
     train_scores_mean = np.mean(train_scores, axis=1)
@@ -148,14 +159,14 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
                      color="r")
     plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
                      test_scores_mean + test_scores_std, alpha=0.1, color="g")
-    plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
-             label="Training score")
-    plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
-             label="Cross-validation score")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color=plt.cm.Paired(test_type / 6.),
+             label="Train, type " + str(test_type))
+    plt.plot(train_sizes, test_scores_mean, 'o-', color=plt.cm.Paired((1. + test_type) / 6. - 1./12),
+             label="Test, type " + str(test_type))
 
-    plt.legend(loc="best")
+    # plt.legend(loc="best")
 
-    plt.savefig(path.join(path.dirname(raw_path), 'best_learning_curve.png'))
+    # plt.savefig(path.join(path.dirname(raw_path), output_path))
     return plt
 
 
