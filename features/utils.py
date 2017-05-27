@@ -5,6 +5,7 @@ import sys
 from sklearn import cluster as sk_cluster
 from constants import RecordFlags
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
 import pandas as pd
 from . import moments, discrete_states, dynamic, misc
 from constants import *
@@ -358,10 +359,7 @@ def get_corr_(df, top_n, method):
     else:
         label_col = 'record_flag'
 
-    meta = [x for x in META_COLUMNS]
-    meta.remove(label_col)
 
-    data = df.drop(meta, axis=1)
 
     correlation_to_flag = abs(data.corr()[label_col])
     correlation_to_flag = correlation_to_flag.sort_values(ascending=False)
@@ -379,14 +377,29 @@ def take_top_(df, top_n, method):
     return top_features_pd
 
 
-def normalize_pd_df(df):
-    # Regular normalization
-    df_norm = (df - df.mean()) / df.std()
-    # Normalize Features to [0,1]
-    # df_norm = (df - df.min()) / (df.max() - df.min())
-    # Normalize Features to [-1,1]
-    # df_norm = 2 * (df - df.min()) / (df.max() - df.min()) - 1
-    return df_norm
+def normalize_pd_df(df, norm_type):
+    data_df = df.iloc[:, len(META_COLUMNS):]
+    identifiers = df[META_COLUMNS]
+
+    if norm_type == 'regular':
+        # Regular normalization
+        df_norm = ((data_df - data_df.mean()) / data_df.std()).fillna(0.0)
+
+    elif norm_type == 'zero-one':
+        # Normalize Features to [0,1]
+        df_norm = ((data_df - data_df.min()) / (data_df.max() - data_df.min())).fillna(0.0)
+
+    elif norm_type == 'one-one':
+        # Normalize Features to [-1,1]
+        df_norm = (2 * (data_df - data_df.min()) / (data_df.max() - data_df.min()) - 1).fillna(0.0)
+
+    elif norm_type == 'l1' or norm_type == 'l2' or norm_type == 'max':
+        df_norm = normalize(data_df, norm=norm_type, axis=0)
+        df_norm = pd.DataFrame(df_norm, columns=data_df.columns, index=data_df.index)
+    else:
+        raise Exception('Unknown regularization type')
+
+    return identifiers.join(df_norm)
 
 
 def get_top_au(raw_df, au, au_num, method):
