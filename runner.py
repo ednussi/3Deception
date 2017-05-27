@@ -44,18 +44,6 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
-    results_df['diff_score'] = (results_df['mean_train_score'] - results_df['mean_test_score']).abs()
-
-    print(results_df.sort_values(['diff_score'], ascending=True)
-          .loc[:, ['best_mean_val_score', 'best_estimator_test_score', 'best_estimator_train_score']]
-          .head(1))
-
-    # print(results_df.sort_values(['real_test_score'], ascending=False)
-    #       .loc[:, ['test_type', 'val_type', 'train_types']]
-    #       .head(1))
-
-    # print('Test: %0.2f, Validation: %0.2f, Train: %0.2f' %
-    # (results_to_print[0][0], results_to_print[0][1], results_to_print[0][2]), features_params_string)
     return results_df
 
 
@@ -66,45 +54,37 @@ def parse_preprocessing_params(filename):
 
 
 def show_results(raw_path, results_path):
-    res_df = pd.read_csv(path.dirname(results_path))
-    best_res = res_df.sort_values(['best_estimator_test_score', 'best_estimator_train_score'], ascending=False).head(1)
+    raw_df = pd.read_csv(raw_path)
+    res_df = pd.read_csv(results_path, index_col=0)
 
-    best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
+    for test_type in range(1,6):
+        # choose best test score out of top 20 best validation scores
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
+        best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
 
-    data_df = extract_features(
-        raw_path,
-        best_res['au-method'],
-        int(best_res['au-top-n']),
-        best_res['fe-method'],
-        int(best_res['fe-top-n']),
-        best_res['pca-method'],
-        int(best_res['pca-dim']),
-        best_res['learning-method'],
-        '.garbage'
-    )
+        best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
 
-    data = data_df.iloc[:, len(META_COLUMNS):].values
-    target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+        data_df = extract_features(
+            raw_path,
+            best_res['au_method'],
+            int(best_res['au_top']),
+            best_res['fe_method'],
+            int(best_res['fe_top']),
+            best_res['pca_method'],
+            int(best_res['pca_dim']),
+            best_res['learning_method'],
+            '.garbage'
+        )
 
-    # TODO folds must be 4v1 and not 3v1v1
-    folds = prepare_folds(data_df, best_res['learning-method'], args.take_sessions)
+        data = data_df.iloc[:, len(META_COLUMNS):].values
+        target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-    title = "Learning Curves (Linear SVM)"
+        folds = [data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index]
 
-    train_val_folds, train_val_types, test_folds, test_types = [], [], [], []
+        title = "Learning Curves (Linear SVM), test type = " + str(test_type)
 
-    for f in folds:
-        train_val_folds.append(zip(map(lambda x: x['indices'], f['train']),
-                                   map(lambda x: x['indices'], f['val'])))
-
-        train_val_types.append(zip(map(lambda x: x['types'], f['train']),
-                                   map(lambda x: x['types'], f['val'])))
-
-        test_folds.append(f['test']['indices'])
-        test_types.append(f['test']['types'])
-
-    plot_learning_curve(best_estimator, title, data, target, ylim=(0.5, 1.01), cv=train_val_folds[0],
-                        n_jobs=4, raw_path=raw_path)
+        plot_learning_curve(best_estimator, title, data, target, ylim=(0.5, 1.01), cv=folds,
+                            n_jobs=4, raw_path=raw_path)
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
@@ -223,7 +203,11 @@ def extract_features(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    # raw input: FS blendshapes time series with some metadata
     parser.add_argument('-i', '--input', dest='raw_path', required=True)
+
+    # results csv
+    parser.add_argument('-r', '--results', dest='results_path')
 
     # AU selection method
     parser.add_argument('-a', '--au_selection_method', dest='au_selection_method', type=str, default='top',
@@ -350,7 +334,11 @@ if __name__ == "__main__":
         # try to learn only on second answer (note the dataset may be imbalanced, weight it)
 
     elif args.show_results:
-        show_results(args.raw_path)
+        if args.results_path is None:
+            print('Results path not provided')
+            exit(1)
+
+        show_results(args.raw_path, args.results_path)
 
     else:
 
