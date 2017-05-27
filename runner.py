@@ -44,9 +44,11 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
-    # print(results_df.sort_values(['best_mean_val_score'], ascending=False)
-    #       .loc[:, ['best_mean_val_score', 'best_estimator_test_score', 'best_estimator_train_score']]
-    #       .head(1))
+    results_df['diff_score'] = (results_df['mean_train_score'] - results_df['mean_test_score']).abs()
+
+    print(results_df.sort_values(['diff_score'], ascending=True)
+          .loc[:, ['best_mean_val_score', 'best_estimator_test_score', 'best_estimator_train_score']]
+          .head(1))
 
     # print(results_df.sort_values(['real_test_score'], ascending=False)
     #       .loc[:, ['test_type', 'val_type', 'train_types']]
@@ -272,7 +274,7 @@ if __name__ == "__main__":
                      learning_method, metric, take_sessions):
             raw_df = pd.read_csv(args.raw_path)
 
-            for au_top_n in range(16, 25):
+            for au_top_n in range(24, 15, -1):
                 top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 
                 for features_top_n in range(20, 90, 2):
@@ -280,7 +282,7 @@ if __name__ == "__main__":
                                                           learning_method, raw_path)
 
                     if pca_method == PCA_METHODS['global']:
-                        pca_options = range(7, 31)
+                        pca_options = range(30, 6, -1)
                     else:
                         pca_options = range(3, 6)
 
@@ -311,7 +313,6 @@ if __name__ == "__main__":
                             )
                         except Exception as e:
                             print('----\t[Error]\t' + str(e))
-                            raise e
 
 
         if args.au_selection_method is None:
