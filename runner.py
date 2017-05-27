@@ -141,6 +141,11 @@ def get_majority_scores(raw_path, results_path):
 
     best_scores, majority_scores = [], []
 
+    plt.figure()
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(title)
+
     for test_type in range(1,6):
 
         ######################################## majority estimator
@@ -353,7 +358,8 @@ def extract_features(
         pca_method,
         pca_dimension,
         learning_method,
-        features_params_string
+        features_params_string,
+        norm
 ):
 
     features_path = path.join(path.dirname(raw_path), "features__" + features_params_string)
@@ -362,6 +368,10 @@ def extract_features(
 
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
+
+    if norm != 'NO':
+        print("Normalizing with {} method...".format(norm))
+        raw_df = utils.normalize_pd_df(raw_df, norm)
 
     print("Choosing Top AU with method", au_selection_method)
     top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
@@ -426,6 +436,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-m', '--metric', dest='metric', type=str, default=None)
 
+    parser.add_argument('-n', '--norm', dest='norm', type=str, default='NO')
+
     parser.add_argument('-ts', '--take_sessions', dest='take_sessions', type=int, default=None,
                         choices=list(range(2, 21, 2)))
 
@@ -442,8 +454,12 @@ if __name__ == "__main__":
         timestamp = time.time()
 
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
-                     learning_method, metric, take_sessions):
+                     learning_method, metric, take_sessions, norm):
             raw_df = pd.read_csv(args.raw_path)
+
+            if norm != 'NO':
+                print("Normalizing with {} method...".format(norm))
+                raw_df = utils.normalize_pd_df(raw_df, norm)
 
             for au_top_n in range(24, 15, -1):
                 top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
@@ -462,7 +478,7 @@ if __name__ == "__main__":
 
                             ext_features = utils.dimension_reduction(pca_dim, pca_method, top_features)
 
-                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}]'.format(
+                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][normalization={}]'.format(
                                 path.basename(raw_path),
                                 au_selection_method,
                                 au_top_n,
@@ -470,7 +486,8 @@ if __name__ == "__main__":
                                 features_top_n,
                                 pca_dim,
                                 pca_method,
-                                learning_method
+                                learning_method,
+                                norm
                             )
 
                             cv_method_all_learners(
@@ -484,7 +501,6 @@ if __name__ == "__main__":
                             )
                         except Exception as e:
                             print('----\t[Error]\t' + str(e))
-
 
         if args.au_selection_method is None:
             print('No AU selection method provided')
@@ -514,7 +530,7 @@ if __name__ == "__main__":
                     else:  # use given learning method
                         learning_method = args.learning_method
 
-                        mega_run(args.raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, args.metric, args.take_sessions)
+                        mega_run(args.raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, args.metric, args.take_sessions, args.norm)
 
         # take only YES or only NO from all sessions
         # take only first pair of sessions
@@ -540,7 +556,7 @@ if __name__ == "__main__":
             parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
             exit()
 
-        features_params_string = 'input_{}_au-method_{}_au-top-n_{}_f-method_{}_f-top-n_{}_pca-dim_{}_pca-method_{}_learning-method_{}.csv'.format(
+        features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][normalization={}]'.format(
             path.basename(args.raw_path),
             args.au_selection_method,
             args.au_top_n,
@@ -548,7 +564,8 @@ if __name__ == "__main__":
             args.features_top_n,
             args.pca_dim,
             args.pca_method,
-            args.learning_method
+            args.learning_method,
+            args.norm
         )
 
         ext_features = extract_features(
@@ -560,7 +577,8 @@ if __name__ == "__main__":
             args.pca_method,
             args.pca_dim,
             args.learning_method,
-            features_params_string
+            features_params_string,
+            args.norm
         )
 
         cv_method_all_learners(
