@@ -201,6 +201,59 @@ def get_majority_scores(raw_path, results_path):
     plt.savefig(path.join(path.dirname(raw_path), 'majority_vs_best_mean_val (' + res_df.learning_method.values[0] + ').png'))
 
 
+def get_params_graphs(raw_path, results_path):
+    res_df = pd.read_csv(results_path, index_col=0)
+
+    title = "PCA dimension (Linear SVM) (" + res_df.learning_method.values[0] + ")"
+
+    plt.figure()
+    plt.title(title)
+    plt.xlabel("PCA dimension")
+    plt.ylabel("Score")
+
+    for test_type in range(1, 6):
+
+        res_test = res_df[res_df.test_type == '[' + str(test_type) + ']']
+
+        plt.scatter(res_test.pca_dim, res_test.mean_test_score, color=plt.cm.Paired((2*test_type + 1) / 12.),
+                 label='Test type ' + str(test_type))
+
+    plt.legend(loc='best', prop={'size': 6})
+    plt.savefig(path.join(path.dirname(raw_path), 'pca_dimension (' + res_df.learning_method.values[0] + ').png'))
+
+    title = "Top Action Units number (Linear SVM) (" + res_df.learning_method.values[0] + ")"
+
+    plt.figure()
+    plt.title(title)
+    plt.xlabel("Top-n AUs")
+    plt.ylabel("Score")
+
+    for test_type in range(1, 6):
+        res_test = res_df[res_df.test_type == '[' + str(test_type) + ']']
+
+        plt.scatter(res_test.au_top, res_test.mean_test_score, color=plt.cm.Paired((2 * test_type + 1) / 12.),
+                 label='Test type ' + str(test_type))
+
+    plt.legend(loc='best', prop={'size': 6})
+    plt.savefig(path.join(path.dirname(raw_path), 'au_top_n (' + res_df.learning_method.values[0] + ').png'))
+
+    title = "Top Features number (Linear SVM) (" + res_df.learning_method.values[0] + ")"
+
+    plt.figure()
+    plt.title(title)
+    plt.xlabel("Top-n Features")
+    plt.ylabel("Score")
+
+    for test_type in range(1, 6):
+        res_test = res_df[res_df.test_type == '[' + str(test_type) + ']']
+
+        plt.scatter(res_test.fe_top, res_test.mean_test_score, color=plt.cm.Paired((2 * test_type + 1) / 12.),
+                 label='Test type ' + str(test_type))
+
+    plt.legend(loc='best', prop={'size': 6})
+    plt.savefig(path.join(path.dirname(raw_path), 'fe_top_n (' + res_df.learning_method.values[0] + ').png'))
+
+
 def get_roc_curves(raw_path, results_path):
     # raw_df = pd.read_csv(raw_path)
     res_df = pd.read_csv(results_path, index_col=0)
@@ -586,6 +639,7 @@ if __name__ == "__main__":
 
         get_learning_curves_best_mean_val(args.raw_path, args.results_path)
         get_roc_curves(args.raw_path, args.results_path)
+        # get_params_graphs(args.raw_path, args.results_path)
 
     elif args.majority_est:
         if args.results_path is None:
