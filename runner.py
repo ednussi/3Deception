@@ -59,91 +59,6 @@ def parse_preprocessing_params(filename):
     return {x[0]: x[1] for x in map(lambda x: x.split('='), b)}
 
 
-def get_rates(actives, scores):
-
-    tpr = [0.0]  # true positive rate
-    fpr = [0.0]  # false positive rate
-    nractives = len(actives)
-    nrdecoys = len(scores) - len(actives)
-
-    foundactives = 0.0
-    founddecoys = 0.0
-    for idx, (id, score) in enumerate(scores):
-        if id in actives:
-            foundactives += 1.0
-        else:
-            founddecoys += 1.0
-
-        tpr.append(foundactives / float(nractives))
-        fpr.append(founddecoys / float(nrdecoys))
-
-    return tpr, fpr
-
-
-def get_roc_curves(raw_path, results_path):
-    # raw_df = pd.read_csv(raw_path)
-    res_df = pd.read_csv(results_path, index_col=0)
-
-    title = "ROC Curves (Linear SVM) (" + res_df.learning_method.values[0] + ")"
-
-    plt.figure()
-
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-
-    plt.title(title)
-
-    plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
-
-    for test_type in range(1, 6):
-        # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
-        best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
-
-        data_df = extract_features(
-            raw_path,
-            best_res['au_method'].values.tolist()[0],
-            int(best_res['au_top'].values.tolist()[0]),
-            best_res['fe_method'].values.tolist()[0],
-            int(best_res['fe_top'].values.tolist()[0]),
-            best_res['pca_method'].values.tolist()[0],
-            int(best_res['pca_dim'].values.tolist()[0]),
-            best_res['learning_method'].values.tolist()[0],
-            '.garbage'
-        )
-
-        data = data_df.iloc[:, len(META_COLUMNS):].values
-        target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
-
-        train_idx, test_idx = (data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)
-
-        best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
-
-        class_weight = dict(Counter(target))
-        class_weight_sum = max(list(class_weight.values()))
-
-        for x in class_weight.keys():
-            class_weight[x] = 1. * class_weight[x] / class_weight_sum
-
-        best_estimator.set_params(class_weight=class_weight)
-
-        best_estimator.fit(data[train_idx, :], target[train_idx])
-
-        y_test = target[test_idx]
-        y_score = best_estimator.decision_function(data[test_idx, :])
-
-        # Compute ROC curve and ROC area for each class
-        tpr, fpr = get_rates(np.where(y_test == True)[0], np.vstack([np.array(range(40)), y_score]).T)
-
-        plt.plot(fpr, tpr, color=plt.cm.Paired(test_type / 6.),
-                 label='ROC curve (' + best_res['learning_method'].values.tolist()[0] + ')')
-
-    plt.legend(loc='best', prop={'size': 6})
-    plt.savefig(path.join(path.dirname(raw_path), "roc_curves (" + res_df.learning_method.values[0] + ").png"))
-
-
 def get_estimator(res_df, test_type, mode='mean_val'):
     if mode == 'mean_val':
         # choose best test score out of top 20 best validation scores
@@ -284,6 +199,84 @@ def get_majority_scores(raw_path, results_path):
     plt.legend(loc='best', prop={'size':6})
     plt.xticks(index + bar_width, range(6))
     plt.savefig(path.join(path.dirname(raw_path), 'majority_vs_best_mean_val (' + res_df.learning_method.values[0] + ').png'))
+
+
+def get_roc_curves(raw_path, results_path):
+    # raw_df = pd.read_csv(raw_path)
+    res_df = pd.read_csv(results_path, index_col=0)
+
+    title = "ROC Curves (Linear SVM) (" + res_df.learning_method.values[0] + ")"
+
+    plt.figure()
+
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+
+    plt.title(title)
+
+    plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
+
+    mean_tpr = 0.0
+    mean_fpr = np.linspace(0, 1, 100)
+
+    for test_type in range(1, 6):
+        # choose best test score out of top 20 best validation scores
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(20)
+        best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
+
+        data_df = extract_features(
+            raw_path,
+            best_res['au_method'].values.tolist()[0],
+            int(best_res['au_top'].values.tolist()[0]),
+            best_res['fe_method'].values.tolist()[0],
+            int(best_res['fe_top'].values.tolist()[0]),
+            best_res['pca_method'].values.tolist()[0],
+            int(best_res['pca_dim'].values.tolist()[0]),
+            best_res['learning_method'].values.tolist()[0],
+            '.garbage'
+        )
+
+        data = data_df.iloc[:, len(META_COLUMNS):].values
+        target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+
+        train_idx, test_idx = (data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)
+
+        best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], probability=True, kernel='linear')
+
+        class_weight = dict(Counter(target))
+        class_weight_sum = max(list(class_weight.values()))
+
+        for x in class_weight.keys():
+            class_weight[x] = 1. * class_weight[x] / class_weight_sum
+
+        best_estimator.set_params(class_weight=class_weight)
+
+        best_estimator.fit(data[train_idx, :], target[train_idx])
+
+        y_test = target[test_idx]
+        probas = best_estimator.predict_proba(data[test_idx, :])
+
+        # Compute ROC curve and ROC area for each class
+        fpr, tpr, thresholds = roc_curve(y_test, probas[:, 1])
+        roc_auc = auc(fpr, tpr)
+
+        mean_tpr += np.interp(mean_fpr, fpr, tpr)
+        mean_tpr[0] = 0.0
+
+        plt.plot(fpr, tpr, color=plt.cm.Paired((2*test_type + 1) / 12.),
+                 label='ROC curve (test type ' + str(test_type) + ', area ' + str(roc_auc) + ')')
+
+    mean_tpr /= 5
+    mean_tpr[-1] = 1.0
+    mean_roc_auc = auc(mean_fpr, mean_tpr)
+
+    plt.plot(mean_fpr, mean_tpr, color='g', linestyle='--',
+             label='ROC curve (mean, area ' + str(mean_roc_auc) + ')')
+
+    plt.legend(loc='best', prop={'size': 6})
+    plt.savefig(path.join(path.dirname(raw_path), "roc_curves (" + res_df.learning_method.values[0] + ").png"))
 
 
 def get_learning_curves_best_mean_val(raw_path, results_path):
@@ -591,7 +584,7 @@ if __name__ == "__main__":
             print('Results path not provided')
             exit(1)
 
-        # get_learning_curves_best_mean_val(args.raw_path, args.results_path)
+        get_learning_curves_best_mean_val(args.raw_path, args.results_path)
         get_roc_curves(args.raw_path, args.results_path)
 
     elif args.majority_est:
