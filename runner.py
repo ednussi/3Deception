@@ -16,13 +16,19 @@ from features import utils
 from learn.utils import cv_method_all_classifiers, prepare_folds
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS, META_COLUMNS, TARGET_COLUMN, RecordFlags
 
+"""
+Example Running Command:
+python3 runner.py -i 3deception-data/lilach/lilach.csv -a top -an 24 -f all -fn 80 -pm global -p 8 -lm 4v1_A
+
+Mega Runner:
+python3 runner.py -i 3deception-data/lilach/lilach.csv -n zero-one -a top -f all -pm global -MR
+"""
 
 def cv_method_all_learners(raw_path, ext_features, method, metric=None, features_params_string='', take_sessions=None, timestamp=''):
     # print("Cross validating all learners...")
     results = cv_method_all_classifiers(ext_features, method, metric, take_sessions)
 
     temp_list = []
-
     pp_params = parse_preprocessing_params(features_params_string)
     
     for x in results:
@@ -40,6 +46,7 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
         temp_df['learning-method'] = pp_params['learning-method']
         temp_df['pca-dim'] = pp_params['pca-dim']
         temp_df['pca-method'] = pp_params['pca-method']
+        temp_df['norm'] = pp_params['norm']
 
         temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
 
@@ -444,7 +451,6 @@ def extract_features(
 
     return top_features
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -480,12 +486,14 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--pca_dim', dest='pca_dim', type=int, default=None)
 
     # Folding/learning method
+    #
     parser.add_argument('-lm', '--learning_method', dest='learning_method', type=str,
                         default=SPLIT_METHODS['4_vs_1_all_session_types'],
                         choices=list(SPLIT_METHODS.values()))
 
     parser.add_argument('-m', '--metric', dest='metric', type=str, default=None)
 
+    # regular, zero-one, one-one, l1, l2, max
     parser.add_argument('-n', '--norm', dest='norm', type=str, default='NO')
 
     parser.add_argument('-ts', '--take_sessions', dest='take_sessions', type=int, default=None,
@@ -528,7 +536,7 @@ if __name__ == "__main__":
 
                             ext_features = utils.dimension_reduction(pca_dim, pca_method, top_features)
 
-                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][normalization={}]'.format(
+                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
                                 path.basename(raw_path),
                                 au_selection_method,
                                 au_top_n,
@@ -608,7 +616,7 @@ if __name__ == "__main__":
             exit()
 
 
-        features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][normalization={}]'.format(
+        features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
             path.basename(args.raw_path),
             args.au_selection_method,
             args.au_top_n,
