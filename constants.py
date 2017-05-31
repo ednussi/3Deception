@@ -135,3 +135,15 @@ EYES_AU = ['EyeBlink_L', 'EyeBlink_R', 'EyeSquint_L', 'EyeSquint_R', 'EyeDown_L'
 BROWS_AU = ['BrowsD_L', 'BrowsD_R', 'BrowsU_C', 'BrowsU_L', 'BrowsU_R']
 SMILE_AU = ['MouthSmile_L', 'MouthSmile_R']
 BLINKS_AU = ['EyeBlink_L', 'EyeBlink_R']
+
+SUBJECTS = [
+    'alon',
+    'arielt',
+    'asaph',
+    'inbar',
+    'liav',
+    'lilach',
+    'maayan',
+    'omri',
+    'yuval'
+]
