@@ -350,6 +350,8 @@ def get_learning_curves_best_mean_val(raw_path, results_path):
     plt.xlabel("Training examples")
     plt.ylabel("Score")
 
+    folds = []
+
     for test_type in range(1, 6):
         best_res, best_estimator = get_estimator(res_df, test_type)
 
@@ -368,15 +370,49 @@ def get_learning_curves_best_mean_val(raw_path, results_path):
         data = data_df.iloc[:, len(META_COLUMNS):].values
         target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-        folds = [(data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)]
+        folds.append((data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index))
 
-        plot_learning_curve(best_estimator, title, data, target, ylim=(0.5, 1.01), cv=folds,
-                            n_jobs=4, raw_path=raw_path, 
-                            output_path='best_learning_curve.test_type_' + str(test_type) + '.png',
-                            test_type=test_type)
+    plot_learning_curve(best_estimator, title, data, target, ylim=(0.5, 1.01), cv=folds,
+                        n_jobs=4, raw_path=raw_path, 
+                        output_path='best_learning_curve.test_type_' + str(test_type) + '.png',
+                        test_type=test_type)
 
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig(path.join(path.dirname(raw_path), 'learning_curves (' + res_df.learning_method.values[0] + ').png'))
+
+
+def aggregated_learning_graph():
+    _, _, _, _, accs = [], [], [], [], []
+
+    for s in subjects:
+        for mi, m in enumerate(methods):
+            p = 'questionnaire/data/{}/results.{}.csv'.format(s, m)
+            if os.path.isfile(p):
+                print('opening', p)
+                d = pd.read_csv(p, index_col=0)
+                for it, tt in enumerate(['[1]', '[2]', '[3]', '[4]', '[5]']):
+                    dd = d[d['test_type'] == tt]
+                    dd = dd.loc[:, ['mean_test_score', 'pca_dim', 'fe_top', 'au_top']].sort_values(['mean_test_score'], ascending=False).head(5)
+                    pdim += dd.pca_dim.values.tolist()
+                    aun += dd.au_top.values.tolist()
+                    fen += dd.fe_top.values.tolist()
+                    accs += dd.mean_test_score.values.tolist()
+                    colors += [plt.cm.tab20c(1. / ((1+it) * (1 + mi % 4)))] * 5
+
+    plt.figure()
+    plt.ylabel("Score")
+    plt.scatter(pdim, accs, color=colors)
+    plt.savefig('1.png')
+
+    plt.figure()
+    plt.ylabel("Score")
+    plt.scatter(aun, accs, color=colors)
+    plt.savefig('2.png')
+
+    plt.figure()
+    plt.ylabel("Score")
+    plt.scatter(fen, accs, color=colors)
+    plt.savefig('3.png')
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
@@ -441,10 +477,9 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
                      color="r")
     plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
                      test_scores_mean + test_scores_std, alpha=0.1, color="g")
-    plt.plot(train_sizes, train_scores_mean, 'o-', color=plt.cm.Paired(test_type / 6.),
-             label="Train, type " + str(test_type))
-    plt.plot(train_sizes, test_scores_mean, 'o-', color=plt.cm.Paired((1. + test_type) / 6. - 1./12),
-             label="Test, type " + str(test_type))
+
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Train")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Test")
 
     # plt.legend(loc="best")
 
@@ -472,12 +507,12 @@ def extract_features(
     print("Reading {}...".format(raw_path))
     raw_df = pd.read_csv(raw_path)
 
-    if norm != 'NO':
-        print("Normalizing with {} method...".format(norm))
-        raw_df = utils.normalize_pd_df(raw_df, norm)
-
     print("Choosing Top AU with method", au_selection_method)
     top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+
+    if norm != 'NO':
+        print("Normalizing with {} method...".format(norm))
+        top_AU = utils.normalize_pd_df(top_AU, norm)
 
     print("Extracting features with method:", feature_selection_method)
     top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
@@ -646,7 +681,7 @@ if __name__ == "__main__":
             exit(1)
 
         get_learning_curves_best_mean_val(args.raw_path, args.results_path)
-        get_roc_curves(args.raw_path, args.results_path)
+        # get_roc_curves(args.raw_path, args.results_path)
         # get_params_graphs(args.raw_path, args.results_path)
 
     elif args.majority_est:
