@@ -214,7 +214,8 @@ def plot_all_params_dist(method='4v1_A'):
     plt.fill_between(au_top[0], au_top_accs_stack_mean - au_top_accs_stack_std, au_top_accs_stack_mean + au_top_accs_stack_std, alpha=0.1, color="r")
     plt.plot(au_top[0], au_top_accs_stack_mean, '-', color="g", label="Score")
 
-    plt.savefig('all_au_top_n (' + method + ').png')
+    # plt.savefig('all_au_top_n (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_au_top_n (' + method + ').png'))
 
     prepare_plot("Top Features number (Linear SVM) (" + method + ")", "Top-n AUs",
                  "Score")
@@ -222,7 +223,8 @@ def plot_all_params_dist(method='4v1_A'):
     plt.fill_between(fe_top[0], fe_top_accs_stack_mean - fe_top_accs_stack_std, fe_top_accs_stack_mean + fe_top_accs_stack_std, alpha=0.1, color="r")
     plt.plot(fe_top[0], fe_top_accs_stack_mean, '-', color="g", label="Score")
 
-    plt.savefig('all_features_top_n (' + method + ').png')
+    # plt.savefig('all_features_top_n (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_features_top_n (' + method + ').png'))
 
     prepare_plot("PCA dimension (Linear SVM) (" + method + ")", "Top-n AUs",
                  "Score")
@@ -230,7 +232,8 @@ def plot_all_params_dist(method='4v1_A'):
     plt.fill_between(pca_dims[0], pca_dims_accs_stack_mean - pca_dims_accs_stack_std, pca_dims_accs_stack_mean + pca_dims_accs_stack_std, alpha=0.1, color="r")
     plt.plot(pca_dims[0], pca_dims_accs_stack_mean, '-', color="g", label="Score")
 
-    plt.savefig('all_pca_dims (' + method + ').png')
+    # plt.savefig('all_pca_dims (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_pca_dims (' + method + ').png'))
 
 
 def get_roc_curve_single_subject(raw_path, results_path):
@@ -372,7 +375,8 @@ def plot_all_roc_curves(method='4v1_A'):
         plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20), label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
     
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('all_mean_roc_curves (' + method + ').png')
+    # plt.savefig('all_mean_roc_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_mean_roc_curves (' + method + ').png'))
 
     title = "Best ROC Curves (Linear SVM) (" + method + ")"
     prepare_plot(title, "False Positive Rate", "True Positive Rate")
@@ -386,7 +390,8 @@ def plot_all_roc_curves(method='4v1_A'):
         plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20), label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
     
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('all_best_roc_curves (' + method + ').png')
+    # plt.savefig('all_best_roc_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_best_roc_curves (' + method + ').png'))
 
 
 def get_learning_curve_single_subject(raw_path, results_path, test_types=range(1, 6)):
@@ -517,7 +522,8 @@ def plot_all_learning_curves(method='4v1_A'):
         plt.plot(train_sizes, tsm, color=plt.cm.tab20(1. * i / 20), label="Test (subject {})".format(i))
     
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('all_mean_learning_curves (' + method + ').png')
+    # plt.savefig('all_mean_learning_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_mean_learning_curves (' + method + ').png'))
 
     title = "Best Learning Curves (Linear SVM) (" + method + ")"
     prepare_plot(title, "Training examples", "Score")
@@ -530,7 +536,8 @@ def plot_all_learning_curves(method='4v1_A'):
         plt.plot(train_sizes, bt, color=plt.cm.tab20(1. * i / 20), label="Test (subject {}, type {})".format(i, btype))
     
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('all_best_learning_curves (' + method + ').png')
+    # plt.savefig('all_best_learning_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'all_best_learning_curves (' + method + ').png'))
 
     title = "Mean of Mean Learning Curves  (Linear SVM) (" + method + ")"
     prepare_plot(title, "Training examples", "Score")
@@ -548,7 +555,8 @@ def plot_all_learning_curves(method='4v1_A'):
     plt.plot(train_sizes, test_scores_mean_stack, color="g", label="Test")
 
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('mean_of_mean_learning_curves (' + method + ').png')
+    # plt.savefig('mean_of_mean_learning_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'mean_of_mean_learning_curves (' + method + ').png'))
 
     title = "Mean of Best Learning Curves  (Linear SVM) (" + method + ")"
     prepare_plot(title, "Training examples", "Score")
@@ -561,7 +569,8 @@ def plot_all_learning_curves(method='4v1_A'):
     plt.plot(train_sizes, best_test_scores_stack, color="g", label="Test")
 
     plt.legend(loc='best', prop={'size': 6})
-    plt.savefig('mean_of_best_learning_curves (' + method + ').png')
+    # plt.savefig('mean_of_best_learning_curves (' + method + ').png')
+    plt.savefig(path.join(r'/cs/engproj/3deception/grisha/3deception/graphs', 'mean_of_best_learning_curves (' + method + ').png'))
 
 
 def get_learning_curve(estimator, X, y, ylim=None, cv=None, n_jobs=4, train_sizes=np.linspace(.125, 1.0, 8)):
@@ -645,17 +654,17 @@ def extract_features(
     top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
 
     print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-    utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
-    utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
+    # utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
+    # utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
     print("Saving all features to {}...".format(features_path))
-    top_features.to_csv(features_path)
+    # top_features.to_csv(features_path)
 
     if pca_method is not None:
         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
 
         top_features = utils.dimension_reduction(pca_dimension, pca_method, top_features)
-        top_features.to_csv(pca_path)
+        # top_features.to_csv(pca_path)
 
     return top_features
 
