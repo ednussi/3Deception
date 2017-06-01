@@ -48,9 +48,8 @@ def get_estimator(res_df, test_type, mode='mean_cv'):
     """
     if mode == 'mean_cv':
         # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'],
-                                                                                      ascending=False).head(20)
-        best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(1)
+        # best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
 
         best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
 
@@ -563,40 +562,6 @@ def plot_all_learning_curves(method='4v1_A'):
 
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig('mean_of_best_learning_curves (' + method + ').png')
-    
-
-def get_pa():
-    _, _, _, _, accs = [], [], [], [], []
-
-    for s in subjects:
-        for mi, m in enumerate(methods):
-            p = 'questionnaire/data/{}/results.{}.csv'.format(s, m)
-            if path.isfile(p):
-                print('opening', p)
-                d = pd.read_csv(p, index_col=0)
-                for it, tt in enumerate(['[1]', '[2]', '[3]', '[4]', '[5]']):
-                    dd = d[d['test_type'] == tt]
-                    dd = dd.loc[:, ['mean_test_score', 'pca_dim', 'fe_top', 'au_top']].sort_values(['mean_test_score'], ascending=False).head(5)
-                    pdim += dd.pca_dim.values.tolist()
-                    aun += dd.au_top.values.tolist()
-                    fen += dd.fe_top.values.tolist()
-                    accs += dd.mean_test_score.values.tolist()
-                    colors += [plt.cm.tab20c(1. / ((1+it) * (1 + mi % 4)))] * 5
-
-    plt.figure()
-    plt.ylabel("Score")
-    plt.scatter(pdim, accs, color=colors)
-    plt.savefig('1.png')
-
-    plt.figure()
-    plt.ylabel("Score")
-    plt.scatter(aun, accs, color=colors)
-    plt.savefig('2.png')
-
-    plt.figure()
-    plt.ylabel("Score")
-    plt.scatter(fen, accs, color=colors)
-    plt.savefig('3.png')
 
 
 def get_learning_curve(estimator, X, y, ylim=None, cv=None, n_jobs=4, train_sizes=np.linspace(.125, 1.0, 8)):

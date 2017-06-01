@@ -31,7 +31,7 @@ def prepare_classifiers():
             'params': [
                 {
                     'C': scipy.stats.expon(scale=100),
-#                    'gamma': scipy.stats.expon(scale=.1),
+                    # 'gamma': scipy.stats.expon(scale=.1),
                     'kernel': ['linear']
                 }
             ]
