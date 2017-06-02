@@ -676,35 +676,35 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
         temp_df['test_type'] = str(x['test_type']).replace(',', '')
         temp_df['best_estimator_train_score'] = x['best_estimator_train_score']
         temp_df['best_estimator_test_score'] = x['best_estimator_test_score']
-        temp_df['au-method'] = pp_params['au-method']
-        temp_df['au-top-n'] = pp_params['au-top-n']
-        temp_df['fe-method'] = pp_params['fe-method']
-        temp_df['fe-top-n'] = pp_params['fe-top-n']
-        temp_df['learning-method'] = pp_params['learning-method']
-        temp_df['pca-dim'] = pp_params['pca-dim']
-        temp_df['pca-method'] = pp_params['pca-method']
+        temp_df['au_method'] = pp_params['au-method']
+        temp_df['au_top_n'] = pp_params['au-top-n']
+        temp_df['fe_method'] = pp_params['fe-method']
+        temp_df['fe_top_n'] = pp_params['fe-top-n']
+        temp_df['learning_method'] = pp_params['learning-method']
+        temp_df['pca_dim'] = pp_params['pca-dim']
+        temp_df['pca_method'] = pp_params['pca-method']
         temp_df['norm'] = pp_params['norm']
 
         temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
 
     results_df = pd.concat(temp_list)
 
-    results_path = path.join(path.dirname(raw_path), "results." + timestamp + '.csv')
+    results_path = path.join(path.dirname(raw_path), 'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
 
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
-    # a1 = results_df[results_df.test_type == '[1]']
-    # a2 = results_df[results_df.test_type == '[2]']
-    # a3 = results_df[results_df.test_type == '[3]']
-    # a4 = results_df[results_df.test_type == '[4]']
-    # a5 = results_df[results_df.test_type == '[5]']
+#    a1 = results_df[results_df.test_type == '[1]']
+#    a2 = results_df[results_df.test_type == '[2]']
+#    a3 = results_df[results_df.test_type == '[3]']
+#    a4 = results_df[results_df.test_type == '[4]']
+#    a5 = results_df[results_df.test_type == '[5]']
 
-    # print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    # print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    # print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    # print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    # print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+#    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+#    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+#    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+#    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+#    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
 
     return results_df
 
@@ -775,15 +775,15 @@ if __name__ == "__main__":
                 print("Normalizing with {} method...".format(norm))
                 raw_df = utils.normalize_pd_df(raw_df, norm)
 
-            for au_top_n in range(24, 15, -1):
+            for au_top_n in range(51, 41, -1):
                 top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 
-                for features_top_n in range(20, 90, 2):
+                for features_top_n in range(18, 31):
                     top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
                                                           learning_method, raw_path)
 
                     if pca_method == PCA_METHODS['global']:
-                        pca_options = range(30, 6, -1)
+                        pca_options = range(18, 31)
                     else:
                         pca_options = range(3, 6)
 
