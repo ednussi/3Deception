@@ -360,12 +360,20 @@ def get_corr_(df, top_n, method):
         label_col = 'record_flag'
 
     meta = [x for x in META_COLUMNS]
+
     meta.remove(label_col)
+
+    if method.startswith('SP'):  # in case of session prediction, we need record flag to filter only answer frames
+        meta.remove(TARGET_COLUMN)
+
     data = df.drop(meta, axis=1)
 
     correlation_to_flag = abs(data[data.record_flag.astype(int).isin(ANSWER_FLAGS)].corr()[label_col])
     correlation_to_flag = correlation_to_flag.sort_values(ascending=False)
-    correlation_to_flag = correlation_to_flag.drop(label_col)
+    correlation_to_flag = correlation_to_flag.drop([label_col])
+
+    if method.startswith('SP'):  # drop record flag now
+        correlation_to_flag = correlation_to_flag.drop([TARGET_COLUMN])
 
     return correlation_to_flag[0:top_n]
 

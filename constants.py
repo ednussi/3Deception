@@ -59,11 +59,15 @@ QUESTION_TYPES = {
 
 SPLIT_METHODS = {
     '4_vs_1_all_session_types': '4v1_A',
-    '4_vs_1_truth_session_types': '4v1_T',
-    '4_vs_1_truth_session_types_2s': '4v1_T_2',
-    '4_vs_1_lies_session_types': '4v1_F',
+    '4_vs_1_all_session_types_2sessions': '4v1_A.2s',
+    '4_vs_1_all_session_types_yes': '4v1_Y',
+    '4_vs_1_all_session_types_no': '4v1_N',
     '4_vs_1_ast_single_answer': '4v1_SINGLE',
-    'session_prediction': 'SP'
+    '4_vs_1_ast_single_answer_2sessions': '4v1_SINGLE.2s',
+    'session_prediction': 'SP',
+    'session_prediction_yes': 'SP_Y',
+    'session_prediction_no': 'SP_N',
+    'session_prediction_2sessions': 'SP.2s'
 }
 
 
