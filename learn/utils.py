@@ -1,14 +1,13 @@
 from collections import Counter
-from time import time
+from itertools import product
 
-import scipy
 import pandas as pd
-from scipy.stats import randint, uniform
+import scipy
+from scipy.stats import randint
 from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import ShuffleSplit
 
 from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
     SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN
@@ -68,13 +67,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     """
     Splits features to list of folds 
     according to learning method.
-    Each fold is a tuple (train_indices, test_indices)
-    
-    Supported methods:
-        4vs1_A: learn on answers of 4 types of questions and predict every answer in 5th
-        4vs1_T/4vs1_F: same as _A, but learn and predict only answers where "Yes"/"No" was said accordingly
-        4vs1_SINGLE: same as _A, but learn only on first answer (out of (buffer, first, second))
-    
+
     :param data_df: 
     :param method:
     :param take_sessions:
@@ -83,37 +76,8 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
     # print('-- Data preparation for evaluation method: %s' % method)
 
-    session_types = {
-        SESSION_TYPES['say_truth']: [],
-        SESSION_TYPES['say_lies']: []
-    }
+    session_types = set_yes_no_types(method)  # take first n sessions
 
-    if method.startswith('4v1'):
-        if method == SPLIT_METHODS['4_vs_1_all_session_types'] or \
-           method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
-            session_types[SESSION_TYPES['say_truth']] = [
-                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
-                RecordFlags.RECORD_FLAG_ANSWER_FALSE
-            ]
-            session_types[SESSION_TYPES['say_lies']] = [
-                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
-                RecordFlags.RECORD_FLAG_ANSWER_FALSE
-            ]
-
-        elif method == SPLIT_METHODS['4_vs_1_truth_session_types']:
-            # Only learn on answers where "YES" was (should have been) answered
-            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
-            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-
-        elif method == SPLIT_METHODS['4_vs_1_lies_session_types']:
-            # Only learn on answers where "NO" was (should have been) answered
-            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
-            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
-
-        else:
-            raise Exception('Unknown method: %s' % method)
-
-    # take first n sessions
     if take_sessions is not None:
         data_df = data_df[data_df[SESSION_COLUMN] <= take_sessions]
 
@@ -131,22 +95,15 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
     if method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
         #  duplicate answer with answer_index=1 to answer_index=2
-        ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 2].index
-
-        for row in ans1_index:
-            q_fs = data_fs[data_fs[QUESTION_COLUMN] == data_fs.loc[row, QUESTION_COLUMN]]
-            ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 3].index[0]
-
-            data_fs.iloc[ans2_row, len(META_COLUMNS):] = data_fs.iloc[row, len(META_COLUMNS):]
-            data_fs.loc[ans2_row, TARGET_COLUMN] = data_fs.loc[row, TARGET_COLUMN]
+        data_fs = duplicate_second_answer(data_fs)
 
     folds = []
 
     loo = LeaveOneOut()
 
-    if method.startswith('4v1'):
-        question_types = list(QUESTION_TYPES.values())
+    question_types = list(QUESTION_TYPES.values())
 
+    if method.startswith('4v1') or method.startswith('SP'):
         # extract one question type to test on
         for i, (train_val_types_idx, test_types_idx) in enumerate(loo.split(question_types)):
 
@@ -159,9 +116,9 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
             temp_train_folds, temp_val_folds = [], []
             temp_test_folds = {
-                    'indices': test_indices,
-                    'types': test_types
-                }
+                'indices': test_indices,
+                'types': test_types
+            }
 
             # extract one question type to validate on
             for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
@@ -192,30 +149,237 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
                 'test': temp_test_folds
             })
 
-    elif method == 'SP':
-        sessions = data_fs[SESSION_COLUMN].unique()
-        session_pairs = list(zip(sessions[::2], sessions[1::2]))
+    # elif method.startswith('SP'):
+    #     # extract one question type to test on
+    #     for i, (train_val_types_idx, test_types_idx) in enumerate(loo.split(question_types)):
+    #
+    #         test_types = list(map(lambda idx: question_types[idx], test_types_idx))
+    #
+    #         # extract frames with test question types
+    #         test_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
+    #
+    #         train_val_types = list(map(lambda idx: question_types[idx], train_val_types_idx))
+    #
+    #         temp_train_folds, temp_val_folds = [], []
+    #         temp_test_folds = {
+    #             'indices': test_indices,
+    #             'types': test_types
+    #         }
+    #
+    #         # extract one question type to validate on
+    #         for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
+    #             train_types = list(map(lambda idx: train_val_types[idx], train_types_idx))
+    #             val_types = list(map(lambda idx: train_val_types[idx], val_types_idx))
+    #
+    #             # extract frames with train question types
+    #             train_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
+    #
+    #             # extract frames with validation question types
+    #             val_indices = data_fs[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
+    #
+    #             temp_train_folds.append({
+    #                 'indices': train_indices,
+    #                 'types': train_types
+    #             })
+    #
+    #             temp_val_folds.append({
+    #                 'indices': val_indices,
+    #                 'types': val_types
+    #             })
+    #
+    #         # add fold dataset
+    #         folds.append({
+    #             'train': temp_train_folds,
+    #             'val': temp_val_folds,
+    #             'test': temp_test_folds
+    #         })
 
-        for i, (train_sessions_idx, test_sessions_idx) in enumerate(loo.split(session_pairs)):
+    elif method.startswith('SSP'):
+        sessions_with_types = data_df.loc[:, ['session', 'session_type']].drop_duplicates()
+        session_pairs = product(sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_truth']].index,
+                                sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_lies']].index)
 
-            train_sessions = [s for p in map(lambda idx: session_pairs[idx], train_sessions_idx) for s in p]
-            test_sessions = [s for p in map(lambda idx: session_pairs[idx], test_sessions_idx) for s in p]
+        test_sessions_options = [(sessions_with_types.loc[p[0]].session, sessions_with_types.loc[p[1]].session)
+                                 for p in session_pairs]
 
-            # print('   -- Fold {}: train sessions {}, test sessions {}'.format(i, train_sessions, test_sessions))
-
-            # extract frames with train sessions
-            train_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(train_sessions)].index
-
-            # extract frames with test sessions
+        # extract one session of each type to test on (2 sessions)
+        for test_sessions in test_sessions_options:
+            # extract frames with test question types
             test_indices = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)].index
 
-            # add data split
-            folds.append((train_indices, test_indices))
+            temp_train_folds, temp_val_folds = [], []
+            temp_test_folds = {
+                'indices': test_indices,
+                'types': data_fs.session_type.unique().tolist()  # all session types are in train and in test
+            }
+
+            rs = ShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+
+            train_val_df = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+
+            # extract one question type to validate on
+            for train_idx, val_idx in rs.split(train_val_df):
+
+                train_types = train_val_df.session_type.unique().tolist()
+                val_types = train_val_df.session_type.unique().tolist()
+
+                # extract frames with train question types
+                train_indices = data_fs.loc[train_idx, :].index
+
+                # extract frames with validation question types
+                val_indices = data_fs.loc[val_idx, :].index
+
+                temp_train_folds.append({
+                    'indices': train_indices,
+                    'types': train_types
+                })
+
+                temp_val_folds.append({
+                    'indices': val_indices,
+                    'types': val_types
+                })
+
+            # add fold dataset
+            folds.append({
+                'train': temp_train_folds,
+                'val': temp_val_folds,
+                'test': temp_test_folds
+            })
+
+    elif method.startswith('QSP'):
+        sessions_with_types = data_df.loc[:, ['session', 'session_type']].drop_duplicates()
+        session_pairs = product(sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_truth']].index,
+                                sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_lies']].index)
+
+        test_sessions_options = [(sessions_with_types.loc[p[0]].session, sessions_with_types.loc[p[1]].session)
+                                 for p in session_pairs]
+
+        # extract one session of each type to test on (2 sessions)
+        for test_sessions in test_sessions_options:
+
+            for i, (train_val_types_idx, test_types_idx) in enumerate(loo.split(question_types)):
+                test_types = list(map(lambda idx: question_types[idx], test_types_idx))
+                train_val_types = list(map(lambda idx: question_types[idx], train_val_types_idx))
+
+                # extract frames with test question types
+                test_session_slice = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+                test_indices = test_session_slice[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
+
+                temp_train_folds, temp_val_folds = [], []
+                temp_test_folds = {
+                    'indices': test_indices,
+                    'types': test_types
+                }
+
+                rs = ShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+
+                train_val_df = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+
+                # extract one question type to validate on
+                for train_idx, val_idx in rs.split(train_val_df):
+
+                    # extract one question type to validate on
+                    for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
+                        train_types = list(map(lambda idx: train_val_types[idx], train_types_idx))
+                        val_types = list(map(lambda idx: train_val_types[idx], val_types_idx))
+
+                        # extract frames with train question types
+                        train_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+                        train_indices = train_session_slice[train_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
+
+                        # extract frames with train question types
+                        val_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+                        val_indices = val_session_slice[val_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
+
+                        temp_train_folds.append({
+                            'indices': train_indices,
+                            'types': train_types
+                        })
+
+                        temp_val_folds.append({
+                            'indices': val_indices,
+                            'types': val_types
+                        })
+
+                # add fold dataset
+                folds.append({
+                    'train': temp_train_folds,
+                    'val': temp_val_folds,
+                    'test': temp_test_folds
+                })
 
     else:
-        raise Exception('Unknown method: %s' % method)
+        raise Exception('[prepare_folds] Unknown method: {}'.format(method))
 
     return folds, data_fs
+
+
+def duplicate_second_answer(data_fs):
+    ans1_index = data_fs[data_fs[ANSWER_INDEX_COLUMN] == 2].index
+    for row in ans1_index:
+        q_fs = data_fs[data_fs[QUESTION_COLUMN] == data_fs.loc[row, QUESTION_COLUMN]]
+        ans2_row = q_fs[q_fs[ANSWER_INDEX_COLUMN] == 3].index[0]
+
+        data_fs.iloc[ans2_row, len(META_COLUMNS):] = data_fs.iloc[row, len(META_COLUMNS):]
+        data_fs.loc[ans2_row, TARGET_COLUMN] = data_fs.loc[row, TARGET_COLUMN]
+
+    return data_fs
+
+
+def set_yes_no_types(method):
+    session_types = {
+        SESSION_TYPES['say_truth']: [],
+        SESSION_TYPES['say_lies']: []
+    }
+    if method.startswith('4v1'):
+        if method == SPLIT_METHODS['4_vs_1_all_session_types'] or \
+                        method == SPLIT_METHODS['4_vs_1_ast_single_answer']:
+            session_types[SESSION_TYPES['say_truth']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
+            session_types[SESSION_TYPES['say_lies']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
+
+        elif method == SPLIT_METHODS['4_vs_1_all_session_types_yes']:
+            # Only learn on answers where "YES" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+
+        elif method == SPLIT_METHODS['4_vs_1_all_session_types_no']:
+            # Only learn on answers where "NO" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
+
+        else:
+            raise Exception('Unknown method: %s' % method)
+
+    else:  # session prediction
+        if method == SPLIT_METHODS['session_prediction_leave_qtype_out_yes'] or \
+           method == SPLIT_METHODS['session_prediction_leave_stype_out_yes']:
+            # Only learn on answers where "YES" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+
+        elif method == SPLIT_METHODS['session_prediction_leave_qtype_out_no'] or \
+           method == SPLIT_METHODS['session_prediction_leave_stype_out_no']:
+            # Only learn on answers where "NO" was (should have been) answered
+            session_types[SESSION_TYPES['say_truth']] = [RecordFlags.RECORD_FLAG_ANSWER_FALSE]
+            session_types[SESSION_TYPES['say_lies']] = [RecordFlags.RECORD_FLAG_ANSWER_TRUE]
+
+        else:
+            session_types[SESSION_TYPES['say_truth']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
+            session_types[SESSION_TYPES['say_lies']] = [
+                RecordFlags.RECORD_FLAG_ANSWER_TRUE,
+                RecordFlags.RECORD_FLAG_ANSWER_FALSE
+            ]
+
+    return session_types
 
 
 def find_params_random_search(clf, param_dist, data, target, folds, score_metric=None):
@@ -237,7 +401,7 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
         n_iter=n_iter_search,
         scoring=score_metric,
         cv=folds,
-        n_jobs=4
+        n_jobs=8
     )
     
     random_search.fit(data, target)
@@ -247,67 +411,59 @@ def find_params_random_search(clf, param_dist, data, target, folds, score_metric
 def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
     results = []
     for classifier in prepare_classifiers():
-        class_weight = dict(Counter(target))
-        class_weight_sum = max(list(class_weight.values()))
-
-        for x in class_weight.keys():
-            class_weight[x] = 1. * class_weight[x] / class_weight_sum
-
-        classifier['clf'].set_params(class_weight=class_weight)
+        
+        if method.startswith('4v1_'):
+            class_weight = dict(Counter(target))
+            class_weight_sum = max(list(class_weight.values()))
+            
+            for x in class_weight.keys():
+                class_weight[x] = 1. * class_weight[x] / class_weight_sum
+            print(class_weight)
+            classifier['clf'].set_params(class_weight=class_weight)
 
         # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
         for param_dict in classifier['params']:
 
-            if method != SPLIT_METHODS['session_prediction']:
+            train_val_folds, train_val_types, test_folds, test_types = [], [], [], []
 
-                train_val_folds, train_val_types, test_folds, test_types = [], [], [], []
+            for f in folds:
+                train_val_folds.append(list(zip(map(lambda x: x['indices'], f['train']),
+                                                map(lambda x: x['indices'], f['val']))))
 
-                for f in folds:
-                    train_val_folds.append(list(zip(map(lambda x: x['indices'], f['train']),
-                                                    map(lambda x: x['indices'], f['val']))))
+                train_val_types.append(list(zip(map(lambda x: x['types'], f['train']),
+                                                map(lambda x: x['types'], f['val']))))
 
-                    train_val_types.append(list(zip(map(lambda x: x['types'], f['train']),
-                                                    map(lambda x: x['types'], f['val']))))
+                test_folds.append(f['test']['indices'])
+                test_types.append(f['test']['types'])
 
-                    test_folds.append(f['test']['indices'])
-                    test_types.append(f['test']['types'])
+            for i, test_fold in enumerate(test_folds):
+                # concatenate all validation folds to get train data for testing
+                # all validation folds sum is equal to all train folds union
+                train_fold = sum(list(map(lambda x: list(x[1]), train_val_folds[i])), [])
 
-                for i, test_fold in enumerate(test_folds):
-                    # concatenate all validation folds to get train data for testing
-                    # all validation folds sum is equal to all train folds union
-                    train_fold = sum(list(map(lambda x: list(x[1]), train_val_folds[i])), [])
+                train_data = data[train_fold, :]
+                train_target = target[train_fold]
 
-                    train_data = data[train_fold, :]
-                    train_target = target[train_fold]
+                test_data = data[test_fold, :]
+                test_target = target[test_fold]
 
-                    test_data = data[test_fold, :]
-                    test_target = target[test_fold]
-
-                    clf_cv_result = {
-                        'estimator': classifier['clf'].__class__.__name__,
-                        'cv_results': find_params_random_search(classifier['clf'],
-                                                                param_dict, data, target, train_val_folds[i], metric),
-                        'train_types': [q[0] for q in train_val_types[i]],
-                        'val_type': [q[1] for q in train_val_types[i]],
-                        'test_type': test_types[i]
-                    }
-
-                    best_c_param = clf_cv_result['cv_results'].cv_results_['params'][clf_cv_result['cv_results'].best_index_]['C']
-
-                    best_estimator = svm.SVC(kernel='linear', C=best_c_param)
-                    best_estimator.fit(train_data, train_target)
-
-                    clf_cv_result['best_mean_val_score'] = clf_cv_result['cv_results'].best_score_
-                    clf_cv_result['best_estimator_train_score'] = best_estimator.score(train_data, train_target)
-                    clf_cv_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
-                
-                    results.append(clf_cv_result)
-
-            else:
                 clf_cv_result = {
                     'estimator': classifier['clf'].__class__.__name__,
-                    'cv_results': find_params_random_search(classifier['clf'], param_dict, data, target, folds, metric)
+                    'cv_results': find_params_random_search(classifier['clf'],
+                                                            param_dict, data, target, train_val_folds[i], metric),
+                    'train_types': [q[0] for q in train_val_types[i]],
+                    'val_type': [q[1] for q in train_val_types[i]],
+                    'test_type': test_types[i]
                 }
+
+                best_c_param = clf_cv_result['cv_results'].cv_results_['params'][clf_cv_result['cv_results'].best_index_]['C']
+
+                best_estimator = svm.SVC(kernel='linear', C=best_c_param)
+                best_estimator.fit(train_data, train_target)
+
+                clf_cv_result['best_mean_val_score'] = clf_cv_result['cv_results'].best_score_
+                clf_cv_result['best_estimator_train_score'] = best_estimator.score(train_data, train_target)
+                clf_cv_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
 
                 results.append(clf_cv_result)
 
@@ -318,7 +474,15 @@ def cv_method_all_classifiers(data_df, method, metric=None, take_sessions=None):
     folds, data_df = prepare_folds(data_df, method, take_sessions)
 
     data = data_df.iloc[:, len(META_COLUMNS):].values
-    target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
+
+    if method == 'SP':
+        target_true = 1
+        target_col = 'session_type'
+    else:
+        target_true = RecordFlags.RECORD_FLAG_ANSWER_TRUE
+        target_col = 'record_flag'
+
+    target = (data_df[target_col] == target_true).values
 
     return cv_folds_all_classifiers(data, target, folds, metric, method)
 

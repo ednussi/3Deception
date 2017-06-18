@@ -689,22 +689,24 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
 
     results_df = pd.concat(temp_list)
 
-    results_path = path.join(path.dirname(raw_path), 'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
+    results_path = path.join(path.dirname(raw_path), 'results.{}.{}.csv'.format(pp_params['learning-method'], pp_params['norm']))
 
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
-#    a1 = results_df[results_df.test_type == '[1]']
-#    a2 = results_df[results_df.test_type == '[2]']
-#    a3 = results_df[results_df.test_type == '[3]']
-#    a4 = results_df[results_df.test_type == '[4]']
-#    a5 = results_df[results_df.test_type == '[5]']
+    results_df['bete'] = results_df.best_estimator_test_score
 
-#    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    a1 = results_df[results_df.test_type == '[1]']
+    a2 = results_df[results_df.test_type == '[2]']
+    a3 = results_df[results_df.test_type == '[3]']
+    a4 = results_df[results_df.test_type == '[4]']
+    a5 = results_df[results_df.test_type == '[5]']
+
+    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
 
     return results_df
 
@@ -723,29 +725,28 @@ if __name__ == "__main__":
                         choices=list(AU_SELECTION_METHODS.values()))
 
     # Number of top correlated AUs to use if au_choice='top' selected
-    parser.add_argument('-an', '--au_top_n', dest='au_top_n', type=int, default=24)
+    parser.add_argument('-A', '--au_top_n', dest='au_top_n', type=int, default=24)
 
     # Feature selection method
     parser.add_argument('-f', '--feature_selection_method', dest='feature_selection_method', type=str, default=None,
                         choices=list(FEATURE_SELECTION_METHODS.values()))
 
     # Number of top correlated features to use
-    parser.add_argument('-fn', '--features_top_n', dest='features_top_n', type=int, default=24)
+    parser.add_argument('-F', '--features_top_n', dest='features_top_n', type=int, default=24)
 
     # Dimensionality reduction method.
     # 'global' runs PCA on all data
     # 'grouped' runs on each group of features separately (predefined in extract_features())
-    parser.add_argument('-pm', '--pca_method', dest='pca_method', type=str, default=None,
+    parser.add_argument('-p', '--pca_method', dest='pca_method', type=str, default=None,
                         choices=[None] + list(PCA_METHODS.values()))
 
     # Dimension after reduction.
     # If reduction is global, this is the final dimension
     # If reduction is by groups, this is a dimension for each group
-    parser.add_argument('-p', '--pca_dim', dest='pca_dim', type=int, default=None)
+    parser.add_argument('-P', '--pca_dim', dest='pca_dim', type=int, default=None)
 
     # Folding/learning method
-    #
-    parser.add_argument('-lm', '--learning_method', dest='learning_method', type=str,
+    parser.add_argument('-l', '--learning_method', dest='learning_method', type=str,
                         default=SPLIT_METHODS['4_vs_1_all_session_types'],
                         choices=list(SPLIT_METHODS.values()))
 
@@ -754,12 +755,15 @@ if __name__ == "__main__":
     # regular, zero-one, one-one, l1, l2, max
     parser.add_argument('-n', '--norm', dest='norm', type=str, default='NO')
 
-    parser.add_argument('-ts', '--take_sessions', dest='take_sessions', type=int, default=None,
+    # only take X first sessions for training/test
+    parser.add_argument('-t', '--take_sessions', dest='take_sessions', type=int, default=None,
                         choices=list(range(2, 21, 2)))
 
-    parser.add_argument('-MR', '--mega_runner', dest='mega_runner', action='store_true')
+    # Mega runner: run a lot of different top-au/top-feat/pca-dim combinations
+    parser.add_argument('-R', '--mega_runner', dest='mega_runner', action='store_true')
 
-    parser.add_argument('-dp', '--draw_plots', dest='draw_plots', action='store_true')
+    # plot learning curves, roc curves, and params distribution
+    parser.add_argument('-d', '--draw_plots', dest='draw_plots', action='store_true')
 
     args = parser.parse_args()
 
@@ -775,15 +779,15 @@ if __name__ == "__main__":
                 print("Normalizing with {} method...".format(norm))
                 raw_df = utils.normalize_pd_df(raw_df, norm)
 
-            for au_top_n in range(51, 41, -1):
+            for au_top_n in range(51, 40, -1):
                 top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 
-                for features_top_n in range(18, 31):
+                for features_top_n in range(18, 32):
                     top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
                                                           learning_method, raw_path)
 
                     if pca_method == PCA_METHODS['global']:
-                        pca_options = range(18, 31)
+                        pca_options = range(18, 32)
                     else:
                         pca_options = range(3, 6)
 
