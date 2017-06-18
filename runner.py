@@ -694,17 +694,19 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
+    results_df['bete'] = results_df.best_estimator_test_score
+
     a1 = results_df[results_df.test_type == '[1]']
     a2 = results_df[results_df.test_type == '[2]']
     a3 = results_df[results_df.test_type == '[3]']
     a4 = results_df[results_df.test_type == '[4]']
     a5 = results_df[results_df.test_type == '[5]']
 
-    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
+    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'bete']])
 
     return results_df
 

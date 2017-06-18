@@ -87,7 +87,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     """
     pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(path.basename(raw_path))
     
-    if raw_path is not None and path.isfile(pickle_path):
+    if False:  # if raw_path is not None and path.isfile(pickle_path):
         question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
 
     else:
@@ -98,7 +98,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
             q = q_df.copy()
             for au in q.iloc[:, SKIP_COLUMNS:]:
                 q.loc[:, au] = sk_cluster \
-                    .KMeans(n_clusters=n_clusters, random_state=1) \
+                    .KMeans(n_clusters=n_clusters, random_state=1, n_jobs=-1) \
                     .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
             question_quantized_dfs.append(q)
