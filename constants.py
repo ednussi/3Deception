@@ -58,20 +58,31 @@ QUESTION_TYPES = {
 }
 
 SPLIT_METHODS = {
+    # train on 4 question types, test on 5th,
+    # target is answer_flag
     '4_vs_1_all_session_types': '4v1_A',
-    '4_vs_1_all_session_types_2sessions': '4v1_A.2s',
-
     '4_vs_1_all_session_types_yes': '4v1_Y',
     '4_vs_1_all_session_types_no': '4v1_N',
+    '4_vs_1_ast_single_answer': '4v1_SINGLE',  # replace 3rd answer with 2nd
 
-    '4_vs_1_ast_single_answer': '4v1_SINGLE',
-    '4_vs_1_ast_single_answer_2sessions': '4v1_SINGLE.2s',
+    # train on 4 question types, test on 5th,
+    # target is session type
+    'session_prediction_leave_qtype_out': 'SP',
+    'session_prediction_leave_qtype_out_yes': 'SP_Y',
+    'session_prediction_leave_qtype_out_no': 'SP_N',
 
-    'session_prediction': 'SP',
-    'session_prediction_2sessions': 'SP.2s',
+    # train on 2n-2 sessions of both types, test on 2 other sessions,
+    # target is session type
+    'session_prediction_leave_stype_out': 'SSP',
+    'session_prediction_leave_stype_out_yes': 'SSP_Y',
+    'session_prediction_leave_stype_out_no': 'SSP_N',
 
-    'session_prediction_yes': 'SP_Y',
-    'session_prediction_no': 'SP_N'
+    # train on 4 question types from 2n-2 sessions of both types,
+    # test on 5th question type from 2 other sessions,
+    # target is session type
+    'session_prediction_leave_both_out': 'QSP',
+    'session_prediction_leave_both_out_yes': 'QSP_Y',
+    'session_prediction_leave_both_out_no': 'QSP_N',
 }
 
 
