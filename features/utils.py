@@ -429,6 +429,40 @@ def get_top_au(raw_df, au, au_num, method):
     else:  # elif au == 'top':
         return take_top_(raw_df, au_num, method)
 
+def get_top_au2(raw_df, test_df, au, au_num, method):
+    
+    if au == 'daniel':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU]
+
+    elif au == 'mouth':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
+        
+    elif au == 'eyes':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
+        
+    elif au == 'eyes_area':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AU])
+        
+    elif au == 'brows':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
+        
+    elif au == 'smile':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
+        
+    elif au == 'blinks':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
+        
+    else:  # elif au == 'top':
+        raw_df_au = raw_df
+
+    # top_features_num - How many features u want
+    # return pandas of name of feature and its correlation
+    identifiers = raw_df_au[META_COLUMNS]
+    top_features = get_corr_(raw_df_au, top_n, method)
+    top_features_pd = identifiers.join(raw_df_au[top_features.keys()])
+    test_top_features_pd = identifiers.join(test_df[top_features.keys()])
+
+    return top_features_pd, test_top_features_pd
 
 def partition(lst):
     n = 4  # number of groups
