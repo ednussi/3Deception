@@ -440,7 +440,7 @@ def get_top_au(raw_df, au, au_num, method):
 def get_top_au2(raw_df, test_df, au, au_num, method):
     
     if au == 'daniel':
-        raw_df_au = raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU]
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
 
     elif au == 'mouth':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])

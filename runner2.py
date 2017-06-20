@@ -624,41 +624,55 @@ def extract_features(
         pca_dimension,
         learning_method,
         features_params_string,
+        take_sessions,
         norm='NO'
 ):
 
-    features_path = path.join(path.dirname(raw_path), "features__" + features_params_string)
-    au_cor_path = path.join(path.dirname(raw_path), "au-correlation__" + features_params_string)
-    features_cor_path = path.join(path.dirname(raw_path), "features-correlation__" + features_params_string)
+    folds = prepare_folds(raw_path, learning_method, take_sessions)
 
-    print("Reading {}...".format(raw_path))
-    raw_df = pd.read_csv(raw_path)
+    # For each fold
+    top_feat_list = []
+    for i,fold in enumerate(folds):
+        print('In fold {} out of {}'.format(i,len(folds)))
+        train = fold['train']
+        val = fold['val']
+        test = fold['test']
 
-    print("Choosing Top AU with method", au_selection_method)
-    top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+        # test_q_types = test['types'][0]
+        # train_q_types = [1,2,3,4,5]
+        # train_q_types.remove(test_q_types)
 
-    if norm != 'NO':
-        print("Normalizing with {} method...".format(norm))
-        top_AU = utils.normalize_pd_df(top_AU, norm)
+        not_test_indices = [x for x in train[0]['indices']] + [x for x val[0]['indices']]
+        train_val_df = raw_df.iloc[not_test_indices,:]
 
-    print("Extracting features with method:", feature_selection_method)
-    top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+        print("Choosing Top AU with method", au_selection_method)
+        top_AU, top_AU_test = utils.get_top_au2(train_val_df,test, au_selection_method, au_top_n, learning_method)
 
-    print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-    utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
-    utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
+        if norm != 'NO':
+            print("Normalizing with {} method...".format(norm))
+            top_AU = utils.normalize_pd_df(top_AU, norm)
+            top_AU_test = utils.normalize_pd_df(top_AU_test, norm)
 
-    print("Saving all features to {}...".format(features_path))
-    top_features.to_csv(features_path)
+        print("Extracting features with method:", feature_selection_method)
+        top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+        top_features_test = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
+        
+        print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
+        utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
+        utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
-    if pca_method is not None:
-        pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+        print("Saving all features to {}...".format(features_path))
+        top_features.to_csv(features_path)
 
-        top_features = utils.dimension_reduction(pca_dimension, pca_method, top_features)
-        top_features.to_csv(pca_path)
+        if pca_method is not None:
+            pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
 
-    return top_features
+            top_features = utils.dimension_reduction(pca_dimension, pca_method, top_features)
+            top_features.to_csv(pca_path)
 
+        top_feat_list.append(top_features)
+
+    return top_feat_list
 
 def cv_method_all_learners(raw_path, ext_features, method, metric=None, features_params_string='', take_sessions=None,
                            timestamp=''):
@@ -903,23 +917,24 @@ if __name__ == "__main__":
         )
 
 #"""
-#import os
-#os.chdir('/cs/engproj/3deception/eran/3deception')
-#import argparse
-#import pandas as pd
-#import path as path
-#from features import utils
-#raw_path = 'new_jonathan.csv'
-#features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
-#au_selection_method = 'top'
-#au_top_n = 24
-#feature_selection_method = 'groups'
-#features_top_n = 80
-#pca_method = 'groups'
-#pca_dim = 6
-#learning_method ='4v1_T'
-#print("Reading {}...".format(raw_path))
-#raw_df = pd.read_csv(raw_path)
+# import os
+# os.chdir('/cs/engproj/3deception/eran/3deception')
+# import argparse
+# import pandas as pd
+# from os import path
+# from features import utils
+# raw_path = 'questionnaire/data/omri/fs_shapes.1495611637.0109568.csv'
+# features_path = path.join(path.dirname(raw_path), "features_" + path.basename(raw_path))
+# au_selection_method = 'top'
+# au_top_n = 24
+# feature_selection_method = 'groups'
+# features_top_n = 80
+# pca_method = 'groups'
+# pca_dim = 6
+# learning_method ='4v1_T'
+# print("Reading {}...".format(raw_path))
+# raw_df = pd.read_csv(raw_path)
+
 #print("Choosing Top AU with method", au_selection_method)
 #top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
 #print("Extracting features with method:", feature_selection_method)
@@ -930,44 +945,8 @@ if __name__ == "__main__":
 
 
 
-# For each fold
-for i,fold in enumerate(folds):
-    print('In fold {} out of {}'.format(i,len(folds)))
-    train = fold['train']
-    val = fold['val']
-    test = fold['test']
 
-    # test_q_types = test['types'][0]
-    # train_q_types = [1,2,3,4,5]
-    # train_q_types.remove(test_q_types)
 
-    not_test_indices = [x for x in train[0]['indices']] + [x for x val[0]['indices']]
-    train_val_df = raw_df.iloc[not_test_indices,:]
-
-    print("Choosing Top AU with method", au_selection_method)
-    top_AU, top_AU_test = utils.get_top_au2(train_val_df,test, au_selection_method, au_top_n, learning_method)
-
-    if norm != 'NO':
-        print("Normalizing with {} method...".format(norm))
-        top_AU = utils.normalize_pd_df(top_AU, norm)
-        top_AU_test = utils.normalize_pd_df(top_AU_test, norm)
-
-    print("Extracting features with method:", feature_selection_method)
-    top_features = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
-    top_features_test = utils.get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path)
-    
-    print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-    utils.get_corr_(top_AU, au_top_n, au_selection_method).to_csv(au_cor_path)
-    utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
-
-    print("Saving all features to {}...".format(features_path))
-    top_features.to_csv(features_path)
-
-    if pca_method is not None:
-        pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
-
-        top_features = utils.dimension_reduction(pca_dimension, pca_method, top_features)
-        top_features.to_csv(pca_path)
 
 
 
