@@ -470,9 +470,7 @@ def cv_folds_all_classifiers(data, target, folds, metric=None, method='4v1_A'):
     return results
 
 
-def cv_method_all_classifiers(data_df, method, metric=None, take_sessions=None):
-    folds, data_df = prepare_folds(data_df, method, take_sessions)
-
+def cv_method_all_classifiers(folds, data_df, method, metric=None):
     data = data_df.iloc[:, len(META_COLUMNS):].values
 
     if method == 'SP':
