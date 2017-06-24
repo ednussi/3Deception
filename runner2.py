@@ -628,7 +628,7 @@ def extract_features(
         norm='NO'
 ):
 
-    folds = prepare_folds(raw_path, learning_method, take_sessions)
+    folds, data_fs = prepare_folds(raw_path, learning_method, take_sessions)
 
     # For each fold
     top_feat_list = []
@@ -934,6 +934,21 @@ if __name__ == "__main__":
 # learning_method ='4v1_T'
 # print("Reading {}...".format(raw_path))
 # raw_df = pd.read_csv(raw_path)
+# take_sessions = 2
+# from collections import Counter
+# from itertools import product
+
+# import pandas as pd
+# import scipy
+# from scipy.stats import randint
+# from sklearn import svm
+# from sklearn.model_selection import LeaveOneOut
+# from sklearn.model_selection import RandomizedSearchCV
+# from sklearn.model_selection import ShuffleSplit
+
+# from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
+#     SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN
+
 
 #print("Choosing Top AU with method", au_selection_method)
 #top_AU = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
