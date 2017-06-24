@@ -466,9 +466,10 @@ def get_top_au2(raw_df, test_df, au, au_num, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
     identifiers = raw_df_au[META_COLUMNS]
-    top_features = get_corr_(raw_df_au, top_n, method)
+    top_features = get_corr_(raw_df_au, au_num, method)
     top_features_pd = identifiers.join(raw_df_au[top_features.keys()])
-    test_top_features_pd = identifiers.join(test_df[top_features.keys()])
+    test_identifiers = test_df[META_COLUMNS]
+    test_top_features_pd = test_identifiers.join(test_df[top_features.keys()])
 
     return top_features_pd, test_top_features_pd
 
