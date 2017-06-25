@@ -653,7 +653,7 @@ def extract_features(
         test_indices = [x for x in test['indices']]
         test_df = data_fs.iloc[test_indices, :]
 
-        print("Choosing Top AU with method", au_selection_method)
+        print("Choosing Top AU with method:", au_selection_method)
         top_au, top_au_test = utils.get_top_au2(train_val_df, test_df, au_selection_method, au_top_n, learning_method)
 
         if norm != 'NO':

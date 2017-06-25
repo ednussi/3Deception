@@ -86,7 +86,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     Returns:
         list of quantized data frames
     """
-    pickle_path = 'pickles/{}.pickle'.format(hashlib.md5(raw_path.encode('utf-8')).hexdigest())
+    pickle_path = 'pickles/{}.pickle'.format(hashlib.md5((str(len(question_dfs)) + raw_path).encode('utf-8')).hexdigest())
 
     if raw_path is not None and path.isfile(pickle_path):
         question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
@@ -288,29 +288,29 @@ def dimension_reduction(pca_dimension, pca_method, top_features):
 
 
 def get_all_features_by_groups(raw_df, raw_path=None):
-    # print("Splitting answers... ", end="")
+    print("Splitting answers... ", end="")
     answers_dfs = split_df_to_answers(raw_df)
-    # print("Done.")
+    print("Done.")
 
-    # print("Quantizing... ", end="")
+    print("Quantizing... ", end="")
     quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
-    # print("Done.")
+    print("Done.")
 
-    # print("Moments... ", end="")
+    print("Moments... ", end="")
     all_moments = moments.moments(answers_dfs)
-    # print("Done.")
+    print("Done.")
 
-    # print("Discrete... ", end="")
+    print("Discrete... ", end="")
     all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
-    # print("Done.")
+    print("Done.")
 
-    # print("Dynamic... ", end="")
+    print("Dynamic... ", end="")
     all_dynamic = dynamic.dynamic(quantized_answers_dfs)
-    # print("Done.")
+    print("Done.")
 
-    # print("Miscellaneous... ", end="")
+    print("Miscellaneous... ", end="")
     all_misc = misc.misc(answers_dfs)
-    # print("Done.")
+    print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
 
