@@ -1,6 +1,7 @@
 import os.path as path
 import itertools
 import numpy as np
+import hashlib
 import sys
 from sklearn import cluster as sk_cluster
 from constants import RecordFlags
@@ -85,9 +86,9 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     Returns:
         list of quantized data frames
     """
-    pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(path.basename(raw_path))
-    
-    if False:  # if raw_path is not None and path.isfile(pickle_path):
+    pickle_path = 'pickles/{}__quantized_answers_df.pickle'.format(hashlib.md5(raw_path.encode('utf-8')).hexdigest())
+
+    if raw_path is not None and path.isfile(pickle_path):
         question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
 
     else:
