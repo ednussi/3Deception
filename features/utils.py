@@ -88,7 +88,7 @@ def quantize(question_dfs, n_clusters, raw_path=None):
     """
     pickle_path = 'pickles/{}.pickle'.format(hashlib.md5((str(len(question_dfs)) + raw_path).encode('utf-8')).hexdigest())
 
-    if raw_path is not None and path.isfile(pickle_path):
+    if False:  # raw_path is not None and path.isfile(pickle_path):
         question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
 
     else:
