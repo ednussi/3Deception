@@ -1,10 +1,8 @@
 import os.path as path
 import itertools
 import numpy as np
-import hashlib
 import sys
 from sklearn import cluster as sk_cluster
-from constants import RecordFlags
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 import pandas as pd
@@ -25,42 +23,7 @@ def split_df_to_answers(df):
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df = answers_df[answers_df.answer_index != 1]
 
-    return [t[1] for t in answers_df.groupby(GROUPBY_COLUMNS)]
-
-
-def cv_split_df_to_answers(df):
-    """
-    Split raw data frame by questions and answers, 
-    skip first answer for every question (buffer item).
-    
-    Split 5 existing questions to cross-validation dataset:
-     3 questions for training, 1 for validation, 1 for test
-    """
-    for test_question_number in df.question_type.unique():
-
-        if test_question_number == 0:
-            continue
-
-        train_validation_questions = df[df.question_type != test_question_number]
-
-        test_questions = df[df.question_type == test_question_number]
-
-        for validation_question_number in train_validation_questions.question_type.unique():
-
-            if validation_question_number == 0:
-                continue
-
-            train_questions = \
-                train_validation_questions[train_validation_questions.question_type != validation_question_number]
-
-            validation_questions = \
-                train_validation_questions[train_validation_questions.question_type == validation_question_number]
-
-            train = split_df_to_answers(train_questions)
-            validation = split_df_to_answers(validation_questions)
-            test = split_df_to_answers(test_questions)
-
-            yield (train, validation, test)
+    return [t for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
 
 def scale(val):
@@ -75,39 +38,53 @@ def scale(val):
     return ((val - min(val)) / (max(val) - min(val))) * (top - bot) + bot
 
 
-def quantize(question_dfs, n_clusters, raw_path=None):
+def quantize(answer_dfs, n_clusters, raw_path=None):
     """
     Quantize values in data frames using K-means
     Args:
         raw_path:
-        question_dfs: data frames, note that first two columns are not quantized
+        answer_dfs: data frames, note that first two columns are not quantized
         n_clusters: number of clusters
 
     Returns:
         list of quantized data frames
     """
-    pickle_path = 'pickles/{}.pickle'.format(hashlib.md5((str(len(question_dfs)) + raw_path).encode('utf-8')).hexdigest())
 
-    if False:  # raw_path is not None and path.isfile(pickle_path):
-        question_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
+    pickle_path = 'pickles/{}.pickle'.format(raw_path)
 
-    else:
-        question_quantized_dfs = []
+    # check if this raw input was already quantized
+    if raw_path is not None and path.isfile(pickle_path):
 
-        for i, q_df in enumerate(question_dfs):
+        # get all quantized answers from pickle
+        all_answer_quantized_dfs = pickle.load(open(pickle_path, 'rb'))
 
-            q = q_df.copy()
+    else:  # quantize all answers from raw input
+
+        all_answer_quantized_dfs = []
+
+        raw_df = pd.read_csv(raw_path)
+
+        all_answer_dfs = split_df_to_answers(raw_df)
+
+        for i, q in all_answer_dfs:
+
             for au in q.iloc[:, SKIP_COLUMNS:]:
                 q.loc[:, au] = sk_cluster \
                     .KMeans(n_clusters=n_clusters, random_state=1, n_jobs=10) \
                     .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
-            question_quantized_dfs.append(q)
+            all_answer_quantized_dfs.append((i, q))
 
         if raw_path is not None and not path.isfile(pickle_path):
-            pickle.dump(question_quantized_dfs, open(pickle_path, 'wb'))
+            pickle.dump(all_answer_quantized_dfs, open(pickle_path, 'wb'))
 
-    return question_quantized_dfs
+    # get needed answers' ids
+    needed_answers = list(filter(lambda x: x[0], answer_dfs))
+
+    # leave only needed answers
+    answer_quantized_dfs = list(filter(lambda t: t[0] in needed_answers, all_answer_quantized_dfs))
+
+    return answer_quantized_dfs
 
 
 def runs_of_ones_list(bits):
