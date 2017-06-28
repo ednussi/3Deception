@@ -17,13 +17,13 @@ ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANS
 
 def split_df_to_answers(df):
     """
-    Split raw data frame by questions and answers, 
+    Split raw data frame by questions and answers,
     skip first answer for every question (buffer item)
     """
     answers_df = df[df.record_flag.astype(int).isin(ANSWER_FLAGS)]
     answers_df = answers_df[answers_df.answer_index != 1]
 
-    return [t for t in answers_df.groupby(GROUPBY_COLUMNS)]
+    return [(t[0], t[1]) for t in answers_df.groupby(GROUPBY_COLUMNS)]
 
 
 def scale(val):
@@ -50,7 +50,7 @@ def quantize(answer_dfs, n_clusters, raw_path=None):
         list of quantized data frames
     """
 
-    pickle_path = 'pickles/{}.pickle'.format(raw_path)
+    pickle_path = 'pickles/{}.pickle'.format(raw_path.replace('/','_'))
 
     # check if this raw input was already quantized
     if raw_path is not None and path.isfile(pickle_path):
@@ -80,7 +80,8 @@ def quantize(answer_dfs, n_clusters, raw_path=None):
 
     # get needed answers' ids
     needed_answers = list(filter(lambda x: x[0], answer_dfs))
-
+    print(needed_answers)
+    print(list(map(lambda t: t[0], all_answer_quantized_dfs)))
     # leave only needed answers
     answer_quantized_dfs = list(filter(lambda t: t[0] in needed_answers, all_answer_quantized_dfs))
 
