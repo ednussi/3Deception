@@ -50,7 +50,7 @@ def quantize(answer_dfs, n_clusters, raw_path=None):
         list of quantized data frames
     """
 
-    pickle_path = 'pickles/{}.pickle'.format(raw_path.replace('/','_'))
+    pickle_path = path.join('pickles', '{}.pickle'.format(raw_path.replace('/','_')))
 
     # check if this raw input was already quantized
     if raw_path is not None and path.isfile(pickle_path):
@@ -79,11 +79,12 @@ def quantize(answer_dfs, n_clusters, raw_path=None):
             pickle.dump(all_answer_quantized_dfs, open(pickle_path, 'wb'))
 
     # get needed answers' ids
-    needed_answers = list(filter(lambda x: x[0], answer_dfs))
-    print(needed_answers)
-    print(list(map(lambda t: t[0], all_answer_quantized_dfs)))
+    needed_answers = list(map(lambda x: x[0], answer_dfs))
+
     # leave only needed answers
-    answer_quantized_dfs = list(filter(lambda t: t[0] in needed_answers, all_answer_quantized_dfs))
+    answer_quantized_dfs = filter(lambda t: t[0] in needed_answers, all_answer_quantized_dfs)
+
+    answer_quantized_dfs = list(map(lambda t: t[1], answer_quantized_dfs))
 
     return answer_quantized_dfs
 
@@ -274,6 +275,9 @@ def get_all_features_by_groups(raw_df, raw_path=None):
     quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
     print("Done.")
 
+    # remove unneeded indices
+    answers_dfs = list(map(lambda t: t[1], answers_dfs))
+
     print("Moments... ", end="")
     all_moments = moments.moments(answers_dfs)
     print("Done.")
@@ -416,36 +420,63 @@ def get_top_au(raw_df, au, au_num, method):
     else:  # elif au == 'top':
         return take_top_(raw_df, au_num, method)
 
-def get_top_au2(raw_df, test_df, au, au_num, method):
-    
+def get_top_by_method(raw_df,au, au_num, method):
     if au == 'daniel':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
 
     elif au == 'mouth':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
-        
+
     elif au == 'eyes':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
-        
+
     elif au == 'eyes_area':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AU])
-        
+
     elif au == 'brows':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
-        
+
     elif au == 'smile':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
-        
+
     elif au == 'blinks':
         raw_df_au = raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
-        
+
     else:  # elif au == 'top':
         raw_df_au = raw_df
 
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
+    return get_corr_(raw_df_au, au_num, method)
+
+
+def get_top_au2(raw_df, test_df, au, au_num, method):
+    if au == 'daniel':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[GOOD_DANIEL_AU])
+
+    elif au == 'mouth':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[MOUTH_AU])
+
+    elif au == 'eyes':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AREA_AU])
+
+    elif au == 'eyes_area':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[EYES_AU])
+
+    elif au == 'brows':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[BROWS_AU])
+
+    elif au == 'smile':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[SMILE_AU])
+
+    elif au == 'blinks':
+        raw_df_au = raw_df[META_COLUMNS].join(raw_df[BLINKS_AU])
+
+    else:  # elif au == 'top':
+        raw_df_au = raw_df
+
+    top_features = get_top_by_method(raw_df,au, au_num, method)
     identifiers = raw_df_au[META_COLUMNS]
-    top_features = get_corr_(raw_df_au, au_num, method)
     top_features_pd = identifiers.join(raw_df_au[top_features.keys()])
     test_identifiers = test_df[META_COLUMNS]
     test_top_features_pd = test_identifiers.join(test_df[top_features.keys()])

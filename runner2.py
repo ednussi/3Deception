@@ -8,10 +8,8 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from sklearn import svm
-from sklearn.metrics import auc
-from sklearn.metrics import roc_curve
+from sklearn.metrics import auc, roc_curve, accuracy_score
 from sklearn.model_selection import learning_curve
-from sklearn.metrics import accuracy_score
 from features import utils
 from learn.utils import cv_method_all_classifiers, prepare_folds
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS, META_COLUMNS, \
@@ -20,6 +18,9 @@ from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_
 """
 Example Running Command:
 python3 runner.py -i 3deception-data/lilach/lilach.csv -a top -an 24 -f all -fn 80 -pm global -p 8 -lm 4v1_A
+
+Arguments:
+-i questionnaire/data/alon/fs_shapes.not_quantized.csv -a top -A 51 -f all -F 34 -p global -P 20 -l SP -n max
 
 Mega Runner:
 python3 runner.py -i 3deception-data/lilach/lilach.csv -n zero-one -a top -f all -pm global -MR
@@ -48,7 +49,8 @@ def get_estimator(res_df, test_type, mode='mean_cv'):
     """
     if mode == 'mean_cv':
         # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(1)
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'],
+                                                                                      ascending=False).head(1)
         # best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
 
         best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], kernel='linear')
@@ -61,7 +63,7 @@ def get_estimator(res_df, test_type, mode='mean_cv'):
 
         for split in range(4):
             # choose best test score out of top 20 best validation scores
-            best_res = res_df[res_df.test_type == '[' + str(test_type) + ']']\
+            best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'] \
                 .sort_values(['split' + str(split) + '_test_score'], ascending=False).head(1)
 
             results.append(best_res)
@@ -102,7 +104,7 @@ def get_params_dist_single_subject(raw_path, results_path):
         # AU top-n options and their mean accuracies
         au_top_opts = res_df.au_top.unique().tolist()
         au_mean_accs = []
-        
+
         for au_top_opt in au_top_opts:
             au_mean_accs.append(res_test[res_test.au_top == au_top_opt].mean_test_score.mean())
 
@@ -112,7 +114,7 @@ def get_params_dist_single_subject(raw_path, results_path):
         # Features top-n options and their mean accuracies
         fe_top_opts = res_df.fe_top.unique().tolist()
         fe_mean_accs = []
-        
+
         for fe_top_opt in fe_top_opts:
             fe_mean_accs.append(res_test[res_test.fe_top == fe_top_opt].mean_test_score.mean())
 
@@ -122,7 +124,7 @@ def get_params_dist_single_subject(raw_path, results_path):
         # PCA dimension options and their mean accuracies
         pca_dim_opts = res_df.pca_dim.unique().tolist()
         pca_dim_mean_accs = []
-        
+
         for pca_dim_opt in pca_dim_opts:
             pca_dim_mean_accs.append(res_test[res_test.pca_dim == pca_dim_opt].mean_test_score.mean())
 
@@ -136,15 +138,16 @@ def plot_params_dist_single_subject(raw_path, results_path):
     res_df = pd.read_csv(results_path, index_col=0)
 
     au_top, au_top_acc, fe_top, fe_top_acc, pca_dims, pca_dims_acc = get_params_dist_single_subject(raw_path, res_df)
-    
+
     prepare_plot("Top Action Units number (Linear SVM) (" + res_df.learning_method.values[0] + ")", "Top-n AUs",
                  "Score")
 
     au_top_acc_stack = np.vstack(au_top_acc)
     au_top_acc_mean = au_top_acc_stack.mean(axis=0)
     au_top_acc_std = au_top_acc_stack.std(axis=0)
-    
-    plt.fill_between(au_top[0], au_top_acc_mean - au_top_acc_std, au_top_acc_mean + au_top_acc_std, alpha=0.1, color="r")
+
+    plt.fill_between(au_top[0], au_top_acc_mean - au_top_acc_std, au_top_acc_mean + au_top_acc_std,
+                     alpha=0.1, color="r")
     plt.plot(au_top[0], au_top_acc_mean, '-', color="g", label="Score")
 
     plt.savefig(path.join(path.dirname(raw_path), 'au_top_n (' + res_df.learning_method.values[0] + ').png'))
@@ -155,8 +158,9 @@ def plot_params_dist_single_subject(raw_path, results_path):
     fe_top_acc_stack = np.vstack(fe_top_acc)
     fe_top_acc_mean = fe_top_acc_stack.mean(axis=0)
     fe_top_acc_std = fe_top_acc_stack.std(axis=0)
-    
-    plt.fill_between(fe_top[0], fe_top_acc_mean - fe_top_acc_std, fe_top_acc_mean + fe_top_acc_std, alpha=0.1, color="r")
+
+    plt.fill_between(fe_top[0], fe_top_acc_mean - fe_top_acc_std, fe_top_acc_mean + fe_top_acc_std,
+                     alpha=0.1, color="r")
     plt.plot(fe_top[0], fe_top_acc_mean, '-', color="g", label="Score")
 
     plt.savefig(path.join(path.dirname(raw_path), 'features_top_n (' + res_df.learning_method.values[0] + ').png'))
@@ -167,8 +171,9 @@ def plot_params_dist_single_subject(raw_path, results_path):
     pca_dims_acc_stack = np.vstack(pca_dims_acc)
     pca_dims_acc_mean = pca_dims_acc_stack.mean(axis=0)
     pca_dims_acc_std = pca_dims_acc_stack.std(axis=0)
-    
-    plt.fill_between(pca_dims[0], pca_dims_acc_mean - pca_dims_acc_std, pca_dims_acc_mean + pca_dims_acc_std, alpha=0.1, color="r")
+
+    plt.fill_between(pca_dims[0], pca_dims_acc_mean - pca_dims_acc_std,
+                     pca_dims_acc_mean + pca_dims_acc_std, alpha=0.1, color="r")
     plt.plot(pca_dims[0], pca_dims_acc_mean, '-', color="g", label="Score")
 
     plt.savefig(path.join(path.dirname(raw_path), 'pca_dims (' + res_df.learning_method.values[0] + ').png'))
@@ -184,10 +189,10 @@ def plot_all_params_dist(method='4v1_A'):
         subj_results_path = path.join(subj_dir, 'results.{}.csv'.format(method))
 
         if (path.isfile(subj_results_path)):
-
             print('-- Processing {}...'.format(subj_results_path))
 
-            au_top, au_top_acc, fe_top, fe_top_acc, pca_dims, pca_dims_acc = get_params_dist_single_subject(subj_raw_path, subj_results_path)
+            au_top, au_top_acc, fe_top, fe_top_acc, pca_dims, pca_dims_acc = \
+                get_params_dist_single_subject(subj_raw_path, subj_results_path)
 
             au_tops.append(au_top)
             fe_tops.append(fe_top)
@@ -199,7 +204,7 @@ def plot_all_params_dist(method='4v1_A'):
     au_top_accs_stack = np.vstack(au_top_accs)
     fe_top_accs_stack = np.vstack(fe_top_accs)
     pca_dims_accs_stack = np.vstack(pca_dims_accs)
-    
+
     au_top_accs_stack_mean = au_top_accs_stack.mean(axis=0)
     fe_top_accs_stack_mean = fe_top_accs_stack.mean(axis=0)
     pca_dims_accs_stack_mean = pca_dims_accs_stack.mean(axis=0)
@@ -211,7 +216,8 @@ def plot_all_params_dist(method='4v1_A'):
     prepare_plot("Top Action Units number (Linear SVM) (" + method + ")", "Top-n AUs",
                  "Score")
 
-    plt.fill_between(au_top[0], au_top_accs_stack_mean - au_top_accs_stack_std, au_top_accs_stack_mean + au_top_accs_stack_std, alpha=0.1, color="r")
+    plt.fill_between(au_top[0], au_top_accs_stack_mean - au_top_accs_stack_std,
+                     au_top_accs_stack_mean + au_top_accs_stack_std, alpha=0.1, color="r")
     plt.plot(au_top[0], au_top_accs_stack_mean, '-', color="g", label="Score")
 
     plt.savefig('all_au_top_n (' + method + ').png')
@@ -219,7 +225,8 @@ def plot_all_params_dist(method='4v1_A'):
     prepare_plot("Top Features number (Linear SVM) (" + method + ")", "Top-n AUs",
                  "Score")
 
-    plt.fill_between(fe_top[0], fe_top_accs_stack_mean - fe_top_accs_stack_std, fe_top_accs_stack_mean + fe_top_accs_stack_std, alpha=0.1, color="r")
+    plt.fill_between(fe_top[0], fe_top_accs_stack_mean - fe_top_accs_stack_std,
+                     fe_top_accs_stack_mean + fe_top_accs_stack_std, alpha=0.1, color="r")
     plt.plot(fe_top[0], fe_top_accs_stack_mean, '-', color="g", label="Score")
 
     plt.savefig('all_features_top_n (' + method + ').png')
@@ -227,7 +234,8 @@ def plot_all_params_dist(method='4v1_A'):
     prepare_plot("PCA dimension (Linear SVM) (" + method + ")", "Top-n AUs",
                  "Score")
 
-    plt.fill_between(pca_dims[0], pca_dims_accs_stack_mean - pca_dims_accs_stack_std, pca_dims_accs_stack_mean + pca_dims_accs_stack_std, alpha=0.1, color="r")
+    plt.fill_between(pca_dims[0], pca_dims_accs_stack_mean - pca_dims_accs_stack_std,
+                     pca_dims_accs_stack_mean + pca_dims_accs_stack_std, alpha=0.1, color="r")
     plt.plot(pca_dims[0], pca_dims_accs_stack_mean, '-', color="g", label="Score")
 
     plt.savefig('all_pca_dims (' + method + ').png')
@@ -252,7 +260,8 @@ def get_roc_curve_single_subject(raw_path, results_path):
 
     for test_type in range(1, 6):
         # choose best test score out of top 20 best validation scores
-        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'], ascending=False).head(1)
+        best_res = res_df[res_df.test_type == '[' + str(test_type) + ']'].sort_values(['mean_test_score'],
+                                                                                      ascending=False).head(1)
         # best_res = best_res.sort_values(['best_estimator_test_score'], ascending=False).head(1)
 
         data_df = extract_features(
@@ -270,7 +279,8 @@ def get_roc_curve_single_subject(raw_path, results_path):
         data = data_df.iloc[:, len(META_COLUMNS):].values
         target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-        train_idx, test_idx = (data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index)
+        train_idx, test_idx = (data_df[data_df.question_type != test_type].index,
+                               data_df[data_df.question_type == test_type].index)
 
         best_estimator = svm.SVC(C=best_res['param_C'].values.tolist()[0], probability=True, kernel='linear')
 
@@ -326,11 +336,11 @@ def plot_roc_curve_single_subject(raw_path, results_path):
     for i, x in enumerate(zip(fprs, tprs, roc_aucs)):
         fpr, tpr, roc_auc = x
 
-        plt.plot(fpr, tpr, color=plt.cm.Paired((2*i + 1) / 12.),
-                 label='ROC curve (test type ' + str(i+1) + ', area ' + str(roc_auc) + ')')
+        plt.plot(fpr, tpr, color=plt.cm.Paired((2 * i + 1) / 12.),
+                 label='ROC curve (test type ' + str(i + 1) + ', area ' + str(roc_auc) + ')')
 
     plt.plot(mean_fpr, mean_tpr, color='g', linestyle='--', label='ROC curve (mean, area ' + str(mean_roc_auc) + ')')
-    
+
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig(path.join(path.dirname(raw_path), "roc_curves (" + res_df.learning_method.values[0] + ").png"))
 
@@ -345,10 +355,9 @@ def plot_all_roc_curves(method='4v1_A'):
         subj_results_path = path.join(subj_dir, 'results.{}.csv'.format(method))
 
         if (path.isfile(subj_results_path)):
-
             print('-- Processing {}...'.format(subj_results_path))
 
-            _, _, _, subj_mean_fpr, subj_mean_tpr, subj_mean_roc_auc, subj_best_fpr, subj_best_tpr, subj_best_roc_auc =\
+            _, _, _, subj_mean_fpr, subj_mean_tpr, subj_mean_roc_auc, subj_best_fpr, subj_best_tpr, subj_best_roc_auc = \
                 get_roc_curve_single_subject(subj_raw_path, subj_results_path)
 
             mean_fprs.append(subj_mean_fpr)
@@ -359,32 +368,33 @@ def plot_all_roc_curves(method='4v1_A'):
             best_tprs.append(subj_best_tpr)
             best_roc_aucs.append(subj_best_roc_auc)
 
-
     title = "Mean ROC Curves (Linear SVM) (" + method + ")"
     prepare_plot(title, "False Positive Rate", "True Positive Rate")
-    
+
     # plot y=x random guess line
     plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
 
     for i, x in enumerate(zip(mean_fprs, mean_tprs, mean_roc_aucs)):
         fpr, tpr, roc_auc = x
-        
-        plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20), label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
-    
+
+        plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20),
+                 label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
+
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig('all_mean_roc_curves (' + method + ').png')
 
     title = "Best ROC Curves (Linear SVM) (" + method + ")"
     prepare_plot(title, "False Positive Rate", "True Positive Rate")
-    
+
     # plot y=x random guess line
     plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
-    
+
     for i, x in enumerate(zip(best_fprs, best_tprs, best_roc_aucs)):
         fpr, tpr, roc_auc = x
-        
-        plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20), label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
-    
+
+        plt.plot(fpr, tpr, color=plt.cm.tab20(1. * i / 20),
+                 label='ROC curve (subject ' + str(i) + ', area ' + str(roc_auc) + ')')
+
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig('all_best_roc_curves (' + method + ').png')
 
@@ -422,7 +432,8 @@ def get_learning_curve_single_subject(raw_path, results_path, test_types=range(1
         data = data_df.iloc[:, len(META_COLUMNS):].values
         target = (data_df[TARGET_COLUMN] == RecordFlags.RECORD_FLAG_ANSWER_TRUE).values
 
-        folds.append((data_df[data_df.question_type != test_type].index, data_df[data_df.question_type == test_type].index))
+        folds.append((data_df[data_df.question_type != test_type].index,
+                      data_df[data_df.question_type == test_type].index))
 
         _, train_scores_mean, test_scores_mean, train_scores_std, test_scores_std = \
             get_learning_curve(best_estimator, data, target, ylim=(0.5, 1.01), cv=folds, n_jobs=4)
@@ -449,7 +460,8 @@ def get_learning_curve_single_subject(raw_path, results_path, test_types=range(1
     best_train_scores = train_scores_means[best_type]
     best_test_scores = test_scores_means[best_type]
 
-    return train_sizes, train_scores_mean_fin, test_scores_mean_fin, train_scores_std_fin, test_scores_std_fin, best_train_scores, best_test_scores, best_type
+    return train_sizes, train_scores_mean_fin, test_scores_mean_fin, train_scores_std_fin, test_scores_std_fin, \
+           best_train_scores, best_test_scores, best_type
 
 
 def plot_learning_curves_single_subject(raw_path, results_path):
@@ -459,16 +471,16 @@ def plot_learning_curves_single_subject(raw_path, results_path):
 
     prepare_plot(title, "Training examples", "Score")
 
-    train_sizes, train_scores_mean_fin, test_scores_mean_fin, train_scores_std_fin, test_scores_std_fin, _, _, _ =\
+    train_sizes, train_scores_mean_fin, test_scores_mean_fin, train_scores_std_fin, test_scores_std_fin, _, _, _ = \
         get_learning_curve_single_subject(raw_path, res_df)
 
     plt.grid()
-    
+
     plt.fill_between(train_sizes, train_scores_mean_fin - train_scores_std_fin,
                      train_scores_mean_fin + train_scores_std_fin, alpha=0.1, color="r")
     plt.fill_between(train_sizes, test_scores_mean_fin - test_scores_std_fin,
                      test_scores_mean_fin + test_scores_std_fin, alpha=0.1, color="g")
-    
+
     plt.plot(train_sizes, train_scores_mean_fin, '-', color="r", label="Train")
     plt.plot(train_sizes, test_scores_mean_fin, '-', color="g", label="Test")
 
@@ -486,10 +498,10 @@ def plot_all_learning_curves(method='4v1_A'):
         subj_results_path = path.join(subj_dir, 'results.{}.csv'.format(method))
 
         if (path.isfile(subj_results_path)):
-
             print('-- Processing {}...'.format(subj_results_path))
 
-            _, subj_train_scores_mean, subj_test_scores_mean, subj_train_scores_std, subj_test_scores_std, subj_best_train_scores, subj_best_test_scores, subj_best_type =\
+            _, subj_train_scores_mean, subj_test_scores_mean, subj_train_scores_std, subj_test_scores_std, \
+            subj_best_train_scores, subj_best_test_scores, subj_best_type = \
                 get_learning_curve_single_subject(subj_raw_path, subj_results_path)
 
             train_scores_means.append(subj_train_scores_mean)
@@ -509,13 +521,13 @@ def plot_all_learning_curves(method='4v1_A'):
 
     for i, x in enumerate(zip(train_scores_means, test_scores_means, train_scores_stds, test_scores_stds)):
         sm, tsm, ss, tss = x
-        
-        plt.fill_between(train_sizes, sm - ss, sm + ss, alpha=0.1, color=plt.cm.tab20(1. * (i+1) / 20))
+
+        plt.fill_between(train_sizes, sm - ss, sm + ss, alpha=0.1, color=plt.cm.tab20(1. * (i + 1) / 20))
         plt.fill_between(train_sizes, tsm - tss, tsm + tss, alpha=0.1, color=plt.cm.tab20(1. * i / 20))
-        
-        plt.plot(train_sizes, sm, color=plt.cm.tab20(1. * (i+1) / 20), label="Train (subject {})".format(i))
+
+        plt.plot(train_sizes, sm, color=plt.cm.tab20(1. * (i + 1) / 20), label="Train (subject {})".format(i))
         plt.plot(train_sizes, tsm, color=plt.cm.tab20(1. * i / 20), label="Test (subject {})".format(i))
-    
+
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig('all_mean_learning_curves (' + method + ').png')
 
@@ -525,10 +537,12 @@ def plot_all_learning_curves(method='4v1_A'):
 
     for i, x in enumerate(zip(best_train_scores, best_test_scores, best_types)):
         b, bt, btype = x
-        
-        plt.plot(train_sizes, b, color=plt.cm.tab20(1. * (i+1) / 20), label="Train (subject {}, type {})".format(i, btype))
-        plt.plot(train_sizes, bt, color=plt.cm.tab20(1. * i / 20), label="Test (subject {}, type {})".format(i, btype))
-    
+
+        plt.plot(train_sizes, b, color=plt.cm.tab20(1. * (i + 1) / 20),
+                 label="Train (subject {}, type {})".format(i, btype))
+        plt.plot(train_sizes, bt, color=plt.cm.tab20(1. * i / 20),
+                 label="Test (subject {}, type {})".format(i, btype))
+
     plt.legend(loc='best', prop={'size': 6})
     plt.savefig('all_best_learning_curves (' + method + ').png')
 
@@ -541,9 +555,11 @@ def plot_all_learning_curves(method='4v1_A'):
     train_scores_std_stack = np.vstack(train_scores_stds).mean(axis=0)
     test_scores_std_stack = np.vstack(test_scores_stds).mean(axis=0)
 
-    plt.fill_between(train_sizes, train_scores_mean_stack - train_scores_std_stack, train_scores_mean_stack + train_scores_std_stack, alpha=0.1, color=plt.cm.tab20(1. * (i+1) / 20))
-    plt.fill_between(train_sizes, test_scores_mean_stack - test_scores_std_stack, test_scores_mean_stack + test_scores_std_stack, alpha=0.1, color=plt.cm.tab20(1. * i / 20))
-    
+    plt.fill_between(train_sizes, train_scores_mean_stack - train_scores_std_stack,
+                     train_scores_mean_stack + train_scores_std_stack, alpha=0.1, color=plt.cm.tab20(1. * (i + 1) / 20))
+    plt.fill_between(train_sizes, test_scores_mean_stack - test_scores_std_stack,
+                     test_scores_mean_stack + test_scores_std_stack, alpha=0.1, color=plt.cm.tab20(1. * i / 20))
+
     plt.plot(train_sizes, train_scores_mean_stack, color="b", label="Train")
     plt.plot(train_sizes, test_scores_mean_stack, color="g", label="Test")
 
@@ -556,7 +572,7 @@ def plot_all_learning_curves(method='4v1_A'):
 
     best_train_scores_stack = np.vstack(best_train_scores).mean(axis=0)
     best_test_scores_stack = np.vstack(best_test_scores).mean(axis=0)
-    
+
     plt.plot(train_sizes, best_train_scores_stack, color="b", label="Train")
     plt.plot(train_sizes, best_test_scores_stack, color="g", label="Test")
 
@@ -643,18 +659,32 @@ def extract_features(
         features_cor_path = path.join(path.dirname(raw_path),
                                       "[fold{}][features-correlation]".format(i, features_params_string))
 
-        print('In fold {} out of {}'.format(i,len(folds)))
+        print('In fold {} out of {}'.format(i, len(folds)))
         train = fold['train']
         val = fold['val']
         test = fold['test']
 
         not_test_indices = [x for x in train[0]['indices']] + [x for x in val[0]['indices']]
         train_val_df = data_fs.iloc[not_test_indices, :]
+
         test_indices = [x for x in test['indices']]
         test_df = data_fs.iloc[test_indices, :]
 
         print("Choosing Top AU with method:", au_selection_method)
+        # top_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n, learning_method)
+        #
+        # # train_df =
+        # # val_df =
+        #
+        # for combo in train:
+        #     train_indices = [x for x in combo['indices']]
+        #
+        #
+        #
+
         top_au, top_au_test = utils.get_top_au2(train_val_df, test_df, au_selection_method, au_top_n, learning_method)
+        # This is top au for the entire fold
+        # each fold contain n-1 (4 in 'SP') differnet train/val combinations
 
         if norm != 'NO':
             print("Normalizing with {} method...".format(norm))
@@ -667,7 +697,7 @@ def extract_features(
 
         top_features_test = utils.get_top_features(top_au_test, feature_selection_method, features_top_n,
                                                    learning_method, raw_path)
-        
+
         print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
         utils.get_corr_(top_au, au_top_n, au_selection_method).to_csv(au_cor_path)
         utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
@@ -686,7 +716,7 @@ def extract_features(
 
         top_feat_list.append((top_features, top_features_test))
 
-    return top_feat_list
+    return top_feat_list, folds
 
 
 def cv_method_all_learners(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
@@ -754,17 +784,22 @@ def cv_method_all_learners(raw_path, folded_features, method, metric=None, fpstr
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
 
-#    a1 = results_df[results_df.test_type == '[1]']
-#    a2 = results_df[results_df.test_type == '[2]']
-#    a3 = results_df[results_df.test_type == '[3]']
-#    a4 = results_df[results_df.test_type == '[4]']
-#    a5 = results_df[results_df.test_type == '[5]']
+    #    a1 = results_df[results_df.test_type == '[1]']
+    #    a2 = results_df[results_df.test_type == '[2]']
+    #    a3 = results_df[results_df.test_type == '[3]']
+    #    a4 = results_df[results_df.test_type == '[4]']
+    #    a5 = results_df[results_df.test_type == '[5]']
 
-#    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-#    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:, ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    #    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
+    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    #    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
+    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    #    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
+    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    #    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
+    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
+    #    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
+    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
 
     return results_df
 
@@ -827,6 +862,7 @@ if __name__ == "__main__":
 
         timestamp = time.time()
 
+
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
                      learning_method, metric, take_sessions, norm):
             raw_df = pd.read_csv(args.raw_path)
@@ -852,7 +888,8 @@ if __name__ == "__main__":
 
                             ext_features = utils.dimension_reduction(pca_dim, pca_method, top_features)
 
-                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
+                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}]' \
+                                                     '[pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
                                 path.basename(raw_path),
                                 au_selection_method,
                                 au_top_n,
@@ -875,6 +912,7 @@ if __name__ == "__main__":
                             )
                         except Exception as e:
                             print('----\t[Error]\t' + str(e))
+
 
         if args.au_selection_method is None:
             print('No AU selection method provided')
@@ -904,11 +942,12 @@ if __name__ == "__main__":
                     else:  # use given learning method
                         learning_method = args.learning_method
 
-                        mega_run(args.raw_path, au_selection_method, feature_selection_method, pca_method, learning_method, args.metric, args.take_sessions, args.norm)
+                        mega_run(args.raw_path, au_selection_method, feature_selection_method, pca_method,
+                                 learning_method, args.metric, args.take_sessions, args.norm)
 
-        # take only YES or only NO from all sessions
-        # take only first pair of sessions
-        # try to learn only on second answer (note the dataset may be imbalanced, weight it)
+                        # take only YES or only NO from all sessions
+                        # take only first pair of sessions
+                        # try to learn only on second answer (note the dataset may be imbalanced, weight it)
 
     elif args.draw_plots:
         if args.raw_path is not None and args.results_path is not None:
@@ -927,8 +966,8 @@ if __name__ == "__main__":
             parser.error("PCA method (-pm/--pca_method) requires dimension (-p/--pca_dim)")
             exit()
 
-
-        features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
+        features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}][pca-dim={}]' \
+                                 '[pca-method={}][learning-method={}][norm={}]'.format(
             path.basename(args.raw_path),
             args.au_selection_method,
             args.au_top_n,
@@ -940,7 +979,7 @@ if __name__ == "__main__":
             args.norm
         )
 
-        ext_features = extract_features(
+        ext_features, folds = extract_features(
             args.raw_path,
             args.au_selection_method,
             args.au_top_n,
@@ -963,7 +1002,8 @@ if __name__ == "__main__":
             args.take_sessions
         )
 
-#"""
+#
+# """
 # import os
 # os.chdir('/cs/engproj/3deception/grisha/3deception')
 # import argparse
@@ -993,10 +1033,6 @@ if __name__ == "__main__":
 # pca_method,
 # learning_method,
 # norm)
-#
-
-
-
 
 # def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 #     """
@@ -1303,9 +1339,6 @@ if __name__ == "__main__":
 #
 #     return session_types
 
-
-
-
 # raw_df = pd.read_csv(raw_path)
 #
 # folds, data_fs = prepare_folds(raw_df, learning_method, take_sessions)
@@ -1331,12 +1364,3 @@ if __name__ == "__main__":
 #
 #     print("Choosing Top AU with method", au_selection_method)
 #     top_au, top_au_test = utils.get_top_au2(train_val_df, test, au_selection_method, au_top_n, learning_method)
-
-
-
-
-
-
-
-
-
