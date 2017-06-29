@@ -689,13 +689,43 @@ def extract_features(
     return top_feat_list
 
 
-def cv_method_all_learners(raw_path, ext_features, method, metric=None, features_params_string='', take_sessions=None,
+def cv_method_all_learners(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
                            timestamp=''):
+    # folded_features structure:
+    #   folded_features = [x1..x5]
+    #     xi = ([y1..y4], test_df)
+    #       yi = (train_df, val_df)
+    # each [train|val|test]_df contains all 7 metadata columns
+
+    # convert folded_features to single dataframe and indices
+
+    # dataframe: combining one train_df with its val_df and test_df gives all the data
+    features_df = folded_features[0][0][0].join(folded_features[0][0][1])  # train and validation
+    features_df = features_df.join(folded_features[0][1])
+
+    features_df.reset_index(inplace=True, drop=True)
+
+    folds = []
+
+    for ff in folded_features:
+        f = {
+            'train': [],  # list of train subfolds
+            'val': [],  # list of val subfolds
+            'test': []  # single test subfold
+        }
+
+        for sf in ff[0]:
+            pass
+
+        
+
+        folds.append(f)
+
     # print("Cross validating all learners...")
     results = cv_method_all_classifiers(ext_features, method, metric, take_sessions)
 
     temp_list = []
-    pp_params = parse_preprocessing_params(features_params_string)
+    pp_params = parse_preprocessing_params(fpstr)
 
     for x in results:
         temp_df = pd.DataFrame(x['cv_results'].cv_results_)
@@ -718,7 +748,8 @@ def cv_method_all_learners(raw_path, ext_features, method, metric=None, features
 
     results_df = pd.concat(temp_list)
 
-    results_path = path.join(path.dirname(raw_path), 'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
+    results_path = path.join(path.dirname(raw_path),
+                             'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
 
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
