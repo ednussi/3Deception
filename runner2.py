@@ -19,6 +19,9 @@ from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_
 Example Running Command:
 python3 runner.py -i 3deception-data/lilach/lilach.csv -a top -an 24 -f all -fn 80 -pm global -p 8 -lm 4v1_A
 
+Arguments:
+-i questionnaire/data/alon/fs_shapes.not_quantized.csv -a top -A 51 -f all -F 34 -p global -P 20 -l SP -n max
+
 Mega Runner:
 python3 runner.py -i 3deception-data/lilach/lilach.csv -n zero-one -a top -f all -pm global -MR
 """
@@ -663,11 +666,25 @@ def extract_features(
 
         not_test_indices = [x for x in train[0]['indices']] + [x for x in val[0]['indices']]
         train_val_df = data_fs.iloc[not_test_indices, :]
+
         test_indices = [x for x in test['indices']]
         test_df = data_fs.iloc[test_indices, :]
 
         print("Choosing Top AU with method:", au_selection_method)
+        # top_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n, learning_method)
+        #
+        # # train_df =
+        # # val_df =
+        #
+        # for combo in train:
+        #     train_indices = [x for x in combo['indices']]
+        #
+        #
+        #
+
         top_au, top_au_test = utils.get_top_au2(train_val_df, test_df, au_selection_method, au_top_n, learning_method)
+        # This is top au for the entire fold
+        # each fold contain n-1 (4 in 'SP') differnet train/val combinations
 
         if norm != 'NO':
             print("Normalizing with {} method...".format(norm))
@@ -699,7 +716,7 @@ def extract_features(
 
         top_feat_list.append((top_features, top_features_test))
 
-    return top_feat_list
+    return top_feat_list, folds
 
 
 def cv_method_all_learners(raw_path, ext_features, method, metric=None, features_params_string='', take_sessions=None,
@@ -933,7 +950,7 @@ if __name__ == "__main__":
             args.norm
         )
 
-        ext_features = extract_features(
+        ext_features, folds = extract_features(
             args.raw_path,
             args.au_selection_method,
             args.au_top_n,
