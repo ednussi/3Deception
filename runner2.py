@@ -664,6 +664,7 @@ def extract_features(
         val = fold['val']
         test = fold['test']
 
+        # first train + val indices cover all of the train+val data for this fold
         not_test_indices = [x for x in train[0]['indices']] + [x for x in val[0]['indices']]
         train_val_df = data_fs.iloc[not_test_indices, :]
 
@@ -723,38 +724,22 @@ def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_ses
               timestamp=''):
     # folded_features structure:
     #   folded_features = [x1..xN]
-    #     xi = ([y1..yM], test_df)
-    #       yi = (train_df, val_df)
-    # each [train|val|test]_df contains all metadata columns
+    #     xi = (train_val_df, test_df)
+    # each [train_val|test]_df contains all metadata columns
 
     # convert folded_features to single dataframe and fold indices for cv_method_all_classifiers
 
     # dataframe: combining one train_df with its val_df and test_df gives all the data
-    features_df = folded_features[0][0][0]  # train
-    features_df = features_df.join(folded_features[0][0][1])  # validation
-    features_df = features_df.join(folded_features[0][1])  # test
+
+    features_df = folded_features[0][0]  # train + validation
+    features_df = features_df.append(folded_features[0][1])  # test
 
     features_df.reset_index(inplace=True, drop=True)
 
-    folds = []
-
-    for f in folded_features:  # folds
-        ff = {
-            'train': [],  # list of train subfolds
-            'val': [],  # list of val subfolds
-            'test': []  # single test subfold
-        }
-
-        for sf in ff[0]:  # subfolds
-            ff['train'].append(sf[0])
-            ff['val'].append(sf[1])
-
-        ff['test'].append(f[1])
-
-        folds.append(ff)
+    folds, features_df = prepare_folds(features_df, method, take_sessions)
 
     # print("Cross validating all learners...")
-    results = cv_method_all_classifiers(folds, folded_features, method, metric, take_sessions)
+    results = cv_method_all_classifiers(folds, features_df, method, metric)
 
     temp_list = []
     pp_params = parse_preprocessing_params(fpstr)

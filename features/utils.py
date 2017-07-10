@@ -180,15 +180,15 @@ def pca_global(df, dim):
     Global dimensionality reduction on all features in df
     """
 
-    # turn data into np array without the ordering columns
-    data = df.iloc[:, len(META_COLUMNS):].values.T
+    # turn data into np array without metadata columns
+    data = df.iloc[:, len(META_COLUMNS):].values
 
     # run PCA
     pca = PCA(n_components=dim, copy=True, whiten=True)
     pca.fit(data)
 
     # return to DataFrame of proper size
-    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(pca.components_.T)], axis=1)
+    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(pca.components_)], axis=1)
     reduced.index = df.index
 
     return reduced
