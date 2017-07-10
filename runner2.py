@@ -719,40 +719,42 @@ def extract_features(
     return top_feat_list, folds
 
 
-def cv_method_all_learners(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
-                           timestamp=''):
+def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
+              timestamp=''):
     # folded_features structure:
-    #   folded_features = [x1..x5]
-    #     xi = ([y1..y4], test_df)
+    #   folded_features = [x1..xN]
+    #     xi = ([y1..yM], test_df)
     #       yi = (train_df, val_df)
-    # each [train|val|test]_df contains all 7 metadata columns
+    # each [train|val|test]_df contains all metadata columns
 
-    # convert folded_features to single dataframe and indices
+    # convert folded_features to single dataframe and fold indices for cv_method_all_classifiers
 
     # dataframe: combining one train_df with its val_df and test_df gives all the data
-    features_df = folded_features[0][0][0].join(folded_features[0][0][1])  # train and validation
-    features_df = features_df.join(folded_features[0][1])
+    features_df = folded_features[0][0][0]  # train
+    features_df = features_df.join(folded_features[0][0][1])  # validation
+    features_df = features_df.join(folded_features[0][1])  # test
 
     features_df.reset_index(inplace=True, drop=True)
 
     folds = []
 
-    for ff in folded_features:
-        f = {
+    for f in folded_features:  # folds
+        ff = {
             'train': [],  # list of train subfolds
             'val': [],  # list of val subfolds
             'test': []  # single test subfold
         }
 
-        for sf in ff[0]:
-            pass
+        for sf in ff[0]:  # subfolds
+            ff['train'].append(sf[0])
+            ff['val'].append(sf[1])
 
-        
+        ff['test'].append(f[1])
 
-        folds.append(f)
+        folds.append(ff)
 
     # print("Cross validating all learners...")
-    results = cv_method_all_classifiers(ext_features, method, metric, take_sessions)
+    results = cv_method_all_classifiers(folds, folded_features, method, metric, take_sessions)
 
     temp_list = []
     pp_params = parse_preprocessing_params(fpstr)
@@ -901,7 +903,7 @@ if __name__ == "__main__":
                                 norm
                             )
 
-                            cv_method_all_learners(
+                            cv_method(
                                 raw_path,
                                 ext_features,
                                 learning_method,
@@ -993,7 +995,7 @@ if __name__ == "__main__":
             args.norm
         )
 
-        cv_method_all_learners(
+        cv_method(
             args.raw_path,
             ext_features,
             args.learning_method,
