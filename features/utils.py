@@ -184,11 +184,11 @@ def pca_global(df, dim):
     data = df.iloc[:, len(META_COLUMNS):].values
 
     # run PCA
-    pca = PCA(n_components=dim, copy=True, whiten=True)
-    pca.fit(data)
+    pca = PCA(n_components=dim, copy=True, whiten=False)
+    data_reduced = pca.fit_transform(data)
 
     # return to DataFrame of proper size
-    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(pca.components_)], axis=1)
+    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(data_reduced)], axis=1)
     reduced.index = df.index
 
     return reduced

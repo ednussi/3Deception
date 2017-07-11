@@ -659,7 +659,7 @@ def extract_features(
         features_cor_path = path.join(path.dirname(raw_path),
                                       "[fold{}][features-correlation]".format(i, features_params_string))
 
-        print('In fold {} out of {}'.format(i, len(folds)))
+        print('In fold {} out of {}'.format(i+1, len(folds)))
         train = fold['train']
         val = fold['val']
         test = fold['test']
