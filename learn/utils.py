@@ -478,7 +478,7 @@ def cv_method_all_classifiers(folds, data_df, method, metric=None):
     return cv_folds_all_classifiers(data, target, folds, metric, method)
 
 
-def cv_method_all_classifiers_by_data(folds, method, metric=None):
+def cv_method_linear_svm_by_data(folds, method, metric=None):
     if method == 'SP':
         target_true = 1
         target_col = 'session_type'
@@ -486,73 +486,79 @@ def cv_method_all_classifiers_by_data(folds, method, metric=None):
         target_true = RecordFlags.RECORD_FLAG_ANSWER_TRUE
         target_col = 'record_flag'
 
-    return cv_folds_all_classifiers_by_data(folds, target_col, target_true, metric, method)
+    return cv_folds_linear_svm_by_data(folds, target_col, target_true, metric, method)
 
 
-def cv_folds_all_classifiers_by_data(folds, target_col, target_true, metric=None, method='4v1_A'):
+def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, method='4v1_A'):
     results = []
-    for classifier in prepare_classifiers():
 
-        if method.startswith('4v1_'):
-            class_weight = dict(Counter(target))
-            class_weight_sum = max(list(class_weight.values()))
+    # if method.startswith('4v1_'): TODO:
+    #     class_weight = dict(Counter(target))
+    #     class_weight_sum = max(list(class_weight.values()))
+    #
+    #     for x in class_weight.keys():
+    #         class_weight[x] = 1. * class_weight[x] / class_weight_sum
+    #     print(class_weight)
+    #     classifier['clf'].set_params(class_weight=class_weight)
 
-            for x in class_weight.keys():
-                class_weight[x] = 1. * class_weight[x] / class_weight_sum
-            print(class_weight)
-            classifier['clf'].set_params(class_weight=class_weight)
+    # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
 
-        # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
-        for param_dict in classifier['params']:
+    # iterate over all test options
+    for fold in folds:  # fold is [([(train1_1, val1_1), ...], test1), ...]
 
-            # iterate over all test options
-            for fold in folds:  # fold is [([(train1_1, val1_1), ...], test1), ...]
+        train_val_data_with_target = fold[0][0].append(fold[0][1], ignore_index=True)
+        train_val_data = train_val_data_with_target.iloc[:, len(META_COLUMNS):].values
+        train_val_target = train_val_data_with_target[target_col] == target_true
 
-                # test data for the fold
-                fold_test = fold[1]
+        test_data_with_target = fold[1]
+        test_data = test_data_with_target.iloc[:, len(META_COLUMNS):].values
+        test_target = test_data_with_target[target_col] == target_true
 
-                cv_results = []
+        cv_results = []
 
-                for c_iteration in range(50):
+        for _ in range(50):
 
-                    c_param = pd.np.random.exponential(scale=100)  # generate c parameter
-                    clf = svm.SVC(C=c_param, kernel='linear')
+            c_param = pd.np.random.exponential(scale=100)  # generate c parameter
+            clf = svm.SVC(C=c_param, kernel='linear')
 
-                    cv_iter_result = {'c_param': c_param}
+            cv_train_scores, cv_val_scores = [], []
 
-                    cv_train_scores, cv_val_scores = [], []
+            # iterate over all train/val subfolds
+            for train, val in fold[0]:
 
-                    # iterate over all train/val subfolds
-                    for train, val in fold[0]:
+                train_data = train.iloc[:, len(META_COLUMNS):].values
+                train_target = train[target_col] == target_true
 
-                        train_data = train.iloc[:, len(META_COLUMNS):]
-                        train_target = train[target_col] == target_true
+                val_data = val.iloc[:, len(META_COLUMNS):].values
+                val_target = val[target_col] == target_true
 
-                        val_data = val.iloc[:, len(META_COLUMNS):]
-                        val_target = val[target_col] == target_true
+                # train classifier
+                clf.fit(train_data, train_target)
+                cv_train_scores.append(clf.score(val_data, val_target))
+                cv_val_scores.append(clf.score(val_data, val_target))
 
-                        # train classifier
-                        clf.fit(train_data, train_target)
-                        cv_train_scores.append(clf.score(val_data, val_target))
-                        cv_val_scores.append(clf.score(val_data, val_target))
+            cv_iter_result = {
+                'c_param': c_param,
+                'mean_train_score': pd.np.array(cv_train_scores).mean(),
+                'mean_val_score': pd.np.array(cv_val_scores).mean()
+            }
 
-                    cv_iter_result['mean_train_score'] = pd.np.array(cv_train_scores).mean()
-                    cv_iter_result['mean_val_score'] = pd.np.array(cv_val_scores).mean()
+            cv_results.append(cv_iter_result)
+            # TODO: need to also add types etc etc, see which fields are in use later
 
-                    cv_results.append(cv_iter_result)
-                    # TODO: need to also add types etc etc, see which fields are in use later
+        cv_results = pd.DataFrame(cv_results)
 
-                best_c_param = \
-                clf_cv_result['cv_results'].cv_results_['params'][clf_cv_result['cv_results'].best_index_]['C']
+        fold_best_result = cv_results.sort_values(['mean_val_score'], ascending=False).head(1)
+        fold_best_result = {x[0]: x[1].values.tolist()[0] for x in dict(fold_best_result).items()}
+        best_c_param = fold_best_result['c_param']
 
-                best_estimator = svm.SVC(kernel='linear', C=best_c_param)
-                best_estimator.fit(train_data, train_target)
+        best_estimator = svm.SVC(kernel='linear', C=best_c_param)
+        best_estimator.fit(train_val_data, train_val_target)
 
-                clf_cv_result['best_mean_val_score'] = clf_cv_result['cv_results'].best_score_
-                clf_cv_result['best_estimator_train_score'] = best_estimator.score(train_data, train_target)
-                clf_cv_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
+        fold_best_result['best_estimator_train_score'] = best_estimator.score(train_val_data, train_val_target)
+        fold_best_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
 
-                results.append(clf_cv_result)
+        results.append(fold_best_result)
 
     return results
 
