@@ -648,8 +648,7 @@ def extract_features(
     folds, data_fs = prepare_folds(raw_df, learning_method, take_sessions)
 
     # For each fold
-    top_feat_list = []
-
+    master_fold_list = []
     for i, fold in enumerate(folds):
 
         features_path = path.join(path.dirname(raw_path),
@@ -668,56 +667,189 @@ def extract_features(
         not_test_indices = [x for x in train[0]['indices']] + [x for x in val[0]['indices']]
         train_val_df = data_fs.iloc[not_test_indices, :]
 
+        # Get AU to use in this fold
+        print('Get top AU to be use in fold')
+        train_val_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n,
+                                                     feature_selection_method)
+        top_au_train_val = utils.return_top_by_features(train_val_df, train_val_au_names.keys())
+        if norm != 'NO':
+            top_au_train_val = utils.normalize_pd_df(top_au_train_val, norm)
+
+        # Get top Features to use this fold
+        print('Get top Features to be use in fold')
+        top_features_train_val = utils.get_top_features(top_au_train_val, feature_selection_method, features_top_n,
+                                                        learning_method, raw_path)
+        train_val_features_names = top_features_train_val.columns[len(META_COLUMNS):]
+
+        # RUN FOR TRAIN & FOLD
+        print('Using top AU,Features to run on Train & Val')
+        subfold_train_val_list =[]
+        for j in range(len(fold['train'])):
+            print('In subfold {} out of {}'.format(j + 1, len(fold['train'])))
+
+            fold_sub_train_ind = train[j]['indices']
+            fold_sub_val_ind = val[j]['indices']
+
+            fold_train_df = data_fs.iloc[fold_sub_train_ind, :]
+            fold_val_df = data_fs.iloc[fold_sub_val_ind, :]
+
+            top_au_train = utils.return_top_by_features(fold_train_df, train_val_au_names)
+            top_au_val = utils.return_top_by_features(fold_val_df, train_val_au_names)
+
+            if norm != 'NO':
+                top_au_train = utils.normalize_pd_df(top_au_train, norm)
+                top_au_val = utils.normalize_pd_df(top_au_val, norm)
+
+            top_features_train = utils.get_top_features_precomputed(top_au_train, train_val_features_names, raw_path)
+            top_features_val = utils.get_top_features_precomputed(top_au_val, train_val_features_names, raw_path)
+
+            if learning_method == 'QSP':
+                pca_dimension = 10
+
+            if pca_method is not None:
+                pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+
+                # Combine train and val for PCA
+                top_features_train_val = top_features_train.append(top_features_val)
+                top_features_train_val = utils.dimension_reduction(pca_dimension, pca_method, top_features_train_val)
+
+                # Seperate and save
+                top_features_train = top_features_train_val.iloc[:len(top_features_train), :]
+                top_features_val = top_features_train_val.iloc[len(top_features_val) + 1:, :]
+
+                top_features_train.to_csv('[train]' + pca_path)
+                top_features_val.to_csv('[val]' + pca_path)
+
+            subfold_train_val_list.append((top_features_train, top_features_val))
+
+        # RUN FOR TEST
+        print('Using top AU,Features to run on Test')
+
         test_indices = [x for x in test['indices']]
         test_df = data_fs.iloc[test_indices, :]
 
         print("Choosing Top AU with method:", au_selection_method)
-        # top_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n, learning_method)
-        #
-        # # train_df =
-        # # val_df =
-        #
-        # for combo in train:
-        #     train_indices = [x for x in combo['indices']]
-        #
-        #
-        #
-
-        top_au, top_au_test = utils.get_top_au2(train_val_df, test_df, au_selection_method, au_top_n, learning_method)
-        # This is top au for the entire fold
-        # each fold contain n-1 (4 in 'SP') differnet train/val combinations
+        top_au_test = utils.return_top_by_features(test_df, train_val_au_names)
 
         if norm != 'NO':
             print("Normalizing with {} method...".format(norm))
-            top_au = utils.normalize_pd_df(top_au, norm)
             top_au_test = utils.normalize_pd_df(top_au_test, norm)
 
         print("Extracting features with method:", feature_selection_method)
-        top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
-                                              learning_method, raw_path)
-
-        top_features_test = utils.get_top_features(top_au_test, feature_selection_method, features_top_n,
-                                                   learning_method, raw_path)
+        top_features_test = utils.get_top_features_precomputed(top_au_test, train_val_features_names, raw_path)
 
         print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-        utils.get_corr_(top_au, au_top_n, au_selection_method).to_csv(au_cor_path)
-        utils.get_corr_(top_features, features_top_n, feature_selection_method).to_csv(features_cor_path)
+        utils.get_corr_(top_au_test, au_top_n, au_selection_method).to_csv('[test]' + au_cor_path)
+        utils.get_corr_(top_features_test, features_top_n, feature_selection_method).to_csv('[test]' + features_cor_path)
 
-        print("Saving all features to {}...".format(features_path))
-        top_features.to_csv(features_path)
+        print("Running PCA...")
+        if learning_method == 'QSP':
+            pca_dimension = min(top_features_train_val.shape[0],top_features_test.shape[0])
 
         if pca_method is not None:
             pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
-
-            top_features = utils.dimension_reduction(pca_dimension, pca_method, top_features)
-            top_features.to_csv(pca_path)
-
             top_features_test = utils.dimension_reduction(pca_dimension, pca_method, top_features_test)
-            top_features_test.to_csv(pca_path)
+            top_features_test.to_csv('[test]' + pca_path)
 
-        top_feat_list.append((top_features, top_features_test))
+        master_fold_list.append((subfold_train_val_list, top_features_test))
+        print("Finished fold")
+    print("Finished Extract Features")
+    return master_fold_list
 
-    return top_feat_list, folds
+    #
+    #
+    #
+    #
+    #     train_df = data_fs.iloc[train_indices, :]
+    #     val_df = data_fs.iloc[val_indices, :]
+    #
+    #     test_indices = [x for x in test['indices']]
+    #     test_df = data_fs.iloc[test_indices, :]
+    #
+    #     print("Choosing Top AU with method:", au_selection_method)
+    #     # top_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n, learning_method)
+    #     #
+    #     # # train_df =
+    #     # # val_df =
+    #     #
+    #     # for combo in train:
+    #     #     train_indices = [x for x in combo['indices']]
+    #     #
+    #     #
+    #     # Get the top features from correlation of both train and val
+    #
+    #     top_au_train= utils.return_top_by_features(train_df, train_val_au_names)
+    #     top_au_val = utils.return_top_by_features(val_df, train_val_au_names)
+    #     top_au_test = utils.return_top_by_features(test_df, train_val_au_names)
+    #
+    #     # top_au = utils.get_top_n_corr(train_val_df, features_top_n, feature_selection_method)
+    #     #
+    #     # top_au_train, top_au_test = utils.get_top_au2(train_df, test_df, au_selection_method, au_top_n, learning_method)
+    #     # top_au_val, _ = utils.get_top_au2(val_df, test_df, au_selection_method, au_top_n, learning_method)
+    #     # top_au_train_val_df , _ = utils.get_top_au2(train_val_df, test_df, au_selection_method, au_top_n, learning_method)
+    #
+    #
+    #     # This is top au for the entire fold
+    #     # each fold contain n-1 (4 in 'SP') different train/val combinations
+    #
+    #     top_au_train_val = top_au_train.append(top_au_val)
+    #
+    #
+    #
+    #     if norm != 'NO':
+    #         print("Normalizing with {} method...".format(norm))
+    #         top_au_train_val = utils.normalize_pd_df(top_au_train_val, norm)
+    #         top_au_train = utils.normalize_pd_df(top_au_train, norm)
+    #         top_au_val = utils.normalize_pd_df(top_au_val, norm)
+    #         top_au_test = utils.normalize_pd_df(top_au_test, norm)
+    #
+    #     print("Extracting features with method:", feature_selection_method)
+    #     top_features_train_val = utils.get_top_features(top_au_train_val, feature_selection_method, features_top_n,learning_method, raw_path)
+    #     train_val_features_names = top_features_train_val.columns[len(META_COLUMNS):]
+    #
+    #     top_features_train = utils.get_top_features_precomputed(top_au_train, train_val_features_names, raw_path)
+    #     top_features_val = utils.get_top_features_precomputed(top_au_val, train_val_features_names, raw_path)
+    #     top_features_test = utils.get_top_features_precomputed(top_au_test, train_val_features_names, raw_path)
+    #
+    #     # top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
+    #     #                                       learning_method, raw_path)
+    #     #
+    #     # top_features_pd = identifiers.join(df[top_features.keys()])
+    #     #
+    #     # top_features_test = utils.get_top_features(top_au_test, feature_selection_method, features_top_n,
+    #     #                                            learning_method, raw_path)
+    #
+    #     print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
+    #     utils.get_corr_(top_au_train_val, au_top_n, au_selection_method).to_csv('[train_val]' + au_cor_path)
+    #     utils.get_corr_(top_features_train, features_top_n, feature_selection_method).to_csv('[train]' + features_cor_path)
+    #
+    #     print("Saving all features to {}...".format(features_path))
+    #     top_features_train.append(top_features_val).append(top_features_test).to_csv(features_path)
+    #
+    #     # Cannot produce more n_components then n_samples thus using PCA cannot reduce to a size larger than the min(Samples,Features)
+    #     # TODO MORE correct to run on all size of samples and chose minimum
+    #     if learning_method == 'QSP':
+    #         pca_dimension = min(top_features_train_val.shape[0],top_features_test.shape[0])
+    #
+    #     if pca_method is not None:
+    #         pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+    #
+    #         top_features_train_val = top_features_train.append(top_features_val)
+    #         top_features_train_val = utils.dimension_reduction(pca_dimension, pca_method, top_features_train_val)
+    #
+    #         top_features_train = top_features_train_val.iloc[:len(top_features_train), :]
+    #         top_features_val = top_features_train_val.iloc[len(top_features_val) + 1:, :]
+    #
+    #         top_features_train.to_csv('[train]' + pca_path)
+    #         top_features_val.to_csv('[val]' + pca_path)
+    #
+    #         top_features_test = utils.dimension_reduction(pca_dimension, pca_method, top_features_test)
+    #         top_features_test.to_csv('[test]' + pca_path)
+    #
+    #     master_df = top_features_train.append(top_features_val.append(top_features_test))
+    #     top_feat_list.append((top_features_train, top_features_val, top_features_test))
+    #
+    # return top_feat_list, folds
 
 
 def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
@@ -730,6 +862,17 @@ def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_ses
     # convert folded_features to single dataframe and fold indices for cv_method_all_classifiers
 
     # dataframe: combining one train_df with its val_df and test_df gives all the data
+
+    features_df = pd.DataFrame(columns=folded_features[0][0].columns)
+    for f in folded_features:
+        train_val = f[0]
+        # train = train_val.shape[0]/4
+        # val =
+        # test = f[1]
+        # meta
+
+
+
 
     features_df = folded_features[0][0]  # train + validation
     features_df = features_df.append(folded_features[0][1])  # test

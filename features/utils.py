@@ -361,6 +361,15 @@ def get_corr_(df, top_n, method):
     return correlation_to_flag[0:top_n]
 
 
+def get_top_n_corr(df, top_n, method):
+    # top_features_num - How many features u want
+    # return pandas of name of feature and its correlation
+    return get_corr_(df, top_n, method)
+
+def return_top_by_features(df, top_features):
+    identifiers = df[META_COLUMNS]
+    return identifiers.join(df[top_features])
+
 def take_top_(df, top_n, method):
     # top_features_num - How many features u want
     # return pandas of name of feature and its correlation
@@ -488,6 +497,10 @@ def partition(lst):
     division = len(lst) / n
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
+
+def get_top_features_precomputed(top_AU_df, features_names, raw_path=None):
+    all_features = get_all_features(top_AU_df, raw_path)
+    return return_top_by_features(all_features, features_names).fillna(0.0)
 
 def get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path=None):
     if feature_selection_method == 'all':

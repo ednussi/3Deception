@@ -65,10 +65,10 @@ def prepare_classifiers():
 
 def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     """
-    Splits features to list of folds 
+    Splits features to list of folds
     according to learning method.
 
-    :param data_df: 
+    :param data_df:
     :param method:
     :param take_sessions:
     :return:
@@ -195,7 +195,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     #         })
 
     elif method.startswith('SSP'):
-        sessions_with_types = data_df.loc[:, ['session', 'session_type']].drop_duplicates()
+        sessions_with_types = data_fs.loc[:, ['session', 'session_type']].drop_duplicates()
         session_pairs = product(sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_truth']].index,
                                 sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_lies']].index)
 
@@ -247,7 +247,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
             })
 
     elif method.startswith('QSP'):
-        sessions_with_types = data_df.loc[:, ['session', 'session_type']].drop_duplicates()
+        sessions_with_types = data_fs.loc[:, ['session', 'session_type']].drop_duplicates()
         session_pairs = product(sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_truth']].index,
                                 sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_lies']].index)
 
@@ -263,7 +263,7 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
 
                 # extract frames with test question types
                 test_session_slice = data_fs[data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
-                test_indices = test_session_slice[data_fs[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
+                test_indices = test_session_slice[test_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(test_types)].index
 
                 temp_train_folds, temp_val_folds = [], []
                 temp_test_folds = {
@@ -271,35 +271,28 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
                     'types': test_types
                 }
 
-                rs = ShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
-
-                train_val_df = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
-
                 # extract one question type to validate on
-                for train_idx, val_idx in rs.split(train_val_df):
+                for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
+                    train_types = list(map(lambda idx: train_val_types[idx], train_types_idx))
+                    val_types = list(map(lambda idx: train_val_types[idx], val_types_idx))
 
-                    # extract one question type to validate on
-                    for j, (train_types_idx, val_types_idx) in enumerate(loo.split(train_val_types)):
-                        train_types = list(map(lambda idx: train_val_types[idx], train_types_idx))
-                        val_types = list(map(lambda idx: train_val_types[idx], val_types_idx))
+                    # extract frames with train question types
+                    train_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+                    train_indices = train_session_slice[train_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
 
-                        # extract frames with train question types
-                        train_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
-                        train_indices = train_session_slice[train_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(train_types)].index
+                    # extract frames with train question types
+                    val_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
+                    val_indices = val_session_slice[val_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
 
-                        # extract frames with train question types
-                        val_session_slice = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
-                        val_indices = val_session_slice[val_session_slice[QUESTION_TYPE_COLUMN].astype(int).isin(val_types)].index
+                    temp_train_folds.append({
+                        'indices': train_indices,
+                        'types': train_types
+                    })
 
-                        temp_train_folds.append({
-                            'indices': train_indices,
-                            'types': train_types
-                        })
-
-                        temp_val_folds.append({
-                            'indices': val_indices,
-                            'types': val_types
-                        })
+                    temp_val_folds.append({
+                        'indices': val_indices,
+                        'types': val_types
+                    })
 
                 # add fold dataset
                 folds.append({
