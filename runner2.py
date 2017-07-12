@@ -992,11 +992,28 @@ if __name__ == "__main__":
 
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
                      learning_method, metric, take_sessions, norm):
-            raw_df = pd.read_csv(args.raw_path)
 
-            if norm != 'NO':
-                print("Normalizing with {} method...".format(norm))
-                raw_df = utils.normalize_pd_df(raw_df, norm)
+            print('Start Mega Run')
+            print('Loading CSV...',end='')
+            raw_df = pd.read_csv(raw_path)
+            print('Done')
+            
+            print('Preparing Folds...', end='')
+            folds, data_fs = prepare_folds(raw_df, learning_method, take_sessions)
+            print('Done')
+
+            for features_top_n in range(18, 80, 2):
+                for pca_dimension in range(17, 30):
+
+
+
+
+
+
+
+
+
+            raw_df = pd.read_csv(args.raw_path)
 
             for au_top_n in range(51, 41, -1):
                 top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
