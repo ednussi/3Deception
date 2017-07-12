@@ -693,8 +693,8 @@ def extract_features(
             fold_train_df = data_fs.iloc[fold_sub_train_ind, :]
             fold_val_df = data_fs.iloc[fold_sub_val_ind, :]
 
-            top_au_train = utils.return_top_by_features(fold_train_df, train_val_au_names)
-            top_au_val = utils.return_top_by_features(fold_val_df, train_val_au_names)
+            top_au_train = utils.return_top_by_features(fold_train_df, train_val_au_names.keys())
+            top_au_val = utils.return_top_by_features(fold_val_df, train_val_au_names.keys())
 
             if norm != 'NO':
                 top_au_train = utils.normalize_pd_df(top_au_train, norm)
@@ -710,15 +710,12 @@ def extract_features(
                 pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
 
                 # Combine train and val for PCA
-                top_features_train_val = top_features_train.append(top_features_val)
+                top_features_train_val = top_features_train.append(top_features_val, ignore_index=True)
                 top_features_train_val = utils.dimension_reduction(pca_dimension, pca_method, top_features_train_val)
 
                 # Seperate and save
                 top_features_train = top_features_train_val.iloc[:len(top_features_train), :]
                 top_features_val = top_features_train_val.iloc[len(top_features_val) + 1:, :]
-
-                top_features_train.to_csv('[train]' + pca_path)
-                top_features_val.to_csv('[val]' + pca_path)
 
             subfold_train_val_list.append((top_features_train, top_features_val))
 
@@ -729,7 +726,7 @@ def extract_features(
         test_df = data_fs.iloc[test_indices, :]
 
         print("Choosing Top AU with method:", au_selection_method)
-        top_au_test = utils.return_top_by_features(test_df, train_val_au_names)
+        top_au_test = utils.return_top_by_features(test_df, train_val_au_names.keys())
 
         if norm != 'NO':
             print("Normalizing with {} method...".format(norm))
@@ -739,8 +736,8 @@ def extract_features(
         top_features_test = utils.get_top_features_precomputed(top_au_test, train_val_features_names, raw_path)
 
         print("Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
-        utils.get_corr_(top_au_test, au_top_n, au_selection_method).to_csv('[test]' + au_cor_path)
-        utils.get_corr_(top_features_test, features_top_n, feature_selection_method).to_csv('[test]' + features_cor_path)
+        utils.get_corr_(top_au_test, au_top_n, au_selection_method).to_csv(au_cor_path)
+        utils.get_corr_(top_features_test, features_top_n, feature_selection_method).to_csv(features_cor_path)
 
         print("Running PCA...")
         if learning_method == 'QSP':
@@ -749,7 +746,7 @@ def extract_features(
         if pca_method is not None:
             pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
             top_features_test = utils.dimension_reduction(pca_dimension, pca_method, top_features_test)
-            top_features_test.to_csv('[test]' + pca_path)
+            top_features_test.to_csv(pca_path)
 
         master_fold_list.append((subfold_train_val_list, top_features_test))
         print("Finished fold")
