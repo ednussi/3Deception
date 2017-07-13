@@ -506,7 +506,7 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
     # iterate over all test options
     for fold in folds:  # fold is [([(train1_1, val1_1), ...], test1), ...]
 
-        train_val_data_with_target = fold[0][0].append(fold[0][1], ignore_index=True)
+        train_val_data_with_target = fold[0][0][0].append(fold[0][0][1], ignore_index=True)
         train_val_data = train_val_data_with_target.iloc[:, len(META_COLUMNS):].values
         train_val_target = train_val_data_with_target[target_col] == target_true
 

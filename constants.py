@@ -1,5 +1,14 @@
 from enum import IntEnum
 
+CURRENT_VERBOSITY = 100
+
+
+def verbose_print(string, verbosity):
+    if CURRENT_VERBOSITY >= verbosity:
+        import inspect
+        print(''.join(['-'] * len(inspect.stack())) + ' ' + string)
+
+
 
 class RecordFlags(IntEnum):
     RECORD_FLAG_EMPTY = 0
