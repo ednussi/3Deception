@@ -1,5 +1,6 @@
 import argparse
 from collections import Counter
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -651,7 +652,15 @@ def extract_features(
         data_fs = utils.normalize_pd_df(data_fs, norm)
 
     verbose_print('Precomputing all features...', 0)
-    all_features = utils.get_all_features(data_fs, raw_path).fillna(0.0)
+    pickle_path = path.join('pickles', 'all_features.{}.pickle'.format(raw_path.replace('/','_')))
+
+    # check if features of this raw input were already extracted
+    if path.isfile(pickle_path):
+        all_features = pickle.load(open(pickle_path, 'rb'))
+    else:
+        all_features = utils.get_all_features(data_fs, raw_path).fillna(0.0)
+        if not path.isfile(pickle_path):
+            pickle.dump(all_features, open(pickle_path, 'wb'))
 
     # For each fold
     master_fold_list = []

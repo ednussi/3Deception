@@ -7,10 +7,10 @@ from scipy.stats import randint
 from sklearn import svm
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit; from joblib import Parallel, delayed; import multiprocessing
 
 from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
-    SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN
+    SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN, verbose_print
 
 
 def prepare_classifiers():
@@ -479,7 +479,7 @@ def cv_method_all_classifiers(folds, data_df, method, metric=None):
 
 
 def cv_method_linear_svm_by_data(folds, method, metric=None):
-    if method == 'SP':
+    if method in ['SP', 'SSP', 'QSP']:
         target_true = 1
         target_col = 'session_type'
     else:
@@ -504,7 +504,9 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
     # print('-- Classifier: {}'.format(classifier['clf'].__class__.__name__))
 
     # iterate over all test options
-    for fold in folds:  # fold is [([(train1_1, val1_1), ...], test1), ...]
+    for i, fold in enumerate(folds):  # fold is [([(train1_1, val1_1), ...], test1), ...]
+
+        verbose_print("In fold {} from {}".format(i+1, len(folds)), 5)
 
         train_val_data_with_target = fold[0][0][0].append(fold[0][0][1], ignore_index=True)
         train_val_data = train_val_data_with_target.iloc[:, len(META_COLUMNS):].values
@@ -514,37 +516,9 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
         test_data = test_data_with_target.iloc[:, len(META_COLUMNS):].values
         test_target = test_data_with_target[target_col] == target_true
 
-        cv_results = []
+        num_cores = multiprocessing.cpu_count()
 
-        for _ in range(50):
-
-            c_param = pd.np.random.exponential(scale=100)  # generate c parameter
-            clf = svm.SVC(C=c_param, kernel='linear')
-
-            cv_train_scores, cv_val_scores = [], []
-
-            # iterate over all train/val subfolds
-            for train, val in fold[0]:
-
-                train_data = train.iloc[:, len(META_COLUMNS):].values
-                train_target = train[target_col] == target_true
-
-                val_data = val.iloc[:, len(META_COLUMNS):].values
-                val_target = val[target_col] == target_true
-
-                # train classifier
-                clf.fit(train_data, train_target)
-                cv_train_scores.append(clf.score(val_data, val_target))
-                cv_val_scores.append(clf.score(val_data, val_target))
-
-            cv_iter_result = {
-                'c_param': c_param,
-                'mean_train_score': pd.np.array(cv_train_scores).mean(),
-                'mean_val_score': pd.np.array(cv_val_scores).mean()
-            }
-
-            cv_results.append(cv_iter_result)
-            # TODO: need to also add types etc etc, see which fields are in use later
+        cv_results = Parallel(n_jobs=num_cores)(delayed(random_search_linear_svm_by_data)(fold, j, target_col, target_true) for j in range(50))
 
         cv_results = pd.DataFrame(cv_results)
 
@@ -561,6 +535,33 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
         results.append(fold_best_result)
 
     return results
+
+
+def random_search_linear_svm_by_data(fold, j, target_col, target_true):
+    verbose_print("Iteration {} from 50".format(j + 1), 6)
+    c_param = pd.np.random.exponential(scale=100)  # generate c parameter
+    clf = svm.SVC(C=c_param, kernel='linear')
+    cv_train_scores, cv_val_scores = [], []
+    # iterate over all train/val subfolds
+    for train, val in fold[0]:
+        train_data = train.iloc[:, len(META_COLUMNS):].values
+        train_target = train[target_col] == target_true
+
+        val_data = val.iloc[:, len(META_COLUMNS):].values
+        val_target = val[target_col] == target_true
+
+        # train classifier
+        clf.fit(train_data, train_target)
+        cv_train_scores.append(clf.score(val_data, val_target))
+        cv_val_scores.append(clf.score(val_data, val_target))
+    cv_iter_result = {
+        'c_param': c_param,
+        'mean_train_score': pd.np.array(cv_train_scores).mean(),
+        'mean_val_score': pd.np.array(cv_val_scores).mean()
+    }
+
+    return cv_iter_result
+    # TODO: need to also add types etc etc, see which fields are in use later
 
 
 def cv_all_methods_all_classifiers(data_path, metric=None, take_sessions=None):

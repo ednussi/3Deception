@@ -10,7 +10,6 @@ from . import moments, discrete_states, dynamic, misc
 from constants import *
 import pickle
 
-
 SKIP_COLUMNS = len(META_COLUMNS)
 ANSWER_FLAGS = [RecordFlags.RECORD_FLAG_ANSWER_TRUE, RecordFlags.RECORD_FLAG_ANSWER_FALSE]
 
@@ -188,7 +187,7 @@ def pca_global(df, dim):
     data_reduced = pca.fit_transform(data)
 
     # return to DataFrame of proper size
-    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(data_reduced)], axis=1, ignore_index=True)
+    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(data_reduced, index=df.index)], axis=1)
 
     return reduced
 
