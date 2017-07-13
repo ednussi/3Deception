@@ -11,7 +11,7 @@ from sklearn import svm
 from sklearn.metrics import auc, roc_curve, accuracy_score
 from sklearn.model_selection import learning_curve
 from features import utils
-from learn.utils import cv_method_all_classifiers, prepare_folds
+from learn.utils import cv_method_linear_svm_by_data, prepare_folds
 from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_SELECTION_METHODS, META_COLUMNS, \
     TARGET_COLUMN, RecordFlags, SUBJECTS
 
@@ -852,81 +852,22 @@ def extract_features(
 def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_sessions=None,
               timestamp=''):
     # folded_features structure:
-    #   folded_features = [x1..xN]
-    #     xi = (train_val_df, test_df)
-    # each [train_val|test]_df contains all metadata columns
+    #   folded_features = [([(train_df_1_1, val_df_1_1), ...], test_df_1), ...]
+    # each [train|val|test]_df contains all metadata columns
 
-    # convert folded_features to single dataframe and fold indices for cv_method_all_classifiers
-
-    # dataframe: combining one train_df with its val_df and test_df gives all the data
-
-    features_df = pd.DataFrame(columns=folded_features[0][0].columns)
-    for f in folded_features:
-        train_val = f[0]
-        # train = train_val.shape[0]/4
-        # val =
-        # test = f[1]
-        # meta
-
-
-
-
-    features_df = folded_features[0][0]  # train + validation
-    features_df = features_df.append(folded_features[0][1])  # test
-
-    features_df.reset_index(inplace=True, drop=True)
-
-    folds, features_df = prepare_folds(features_df, method, take_sessions)
-
-    # print("Cross validating all learners...")
-    results = cv_method_all_classifiers(folds, features_df, method, metric)
+    print("Cross validating all learners...")
+    results = cv_method_linear_svm_by_data(folded_features, method, metric)
 
     temp_list = []
     pp_params = parse_preprocessing_params(fpstr)
 
-    for x in results:
-        temp_df = pd.DataFrame(x['cv_results'].cv_results_)
-        temp_df['best_mean_val_score'] = x['best_mean_val_score']
-        temp_df['train_types'] = str(x['train_types']).replace(',', '')
-        temp_df['val_type'] = str(x['val_type']).replace(',', '')
-        temp_df['test_type'] = str(x['test_type']).replace(',', '')
-        temp_df['best_estimator_train_score'] = x['best_estimator_train_score']
-        temp_df['best_estimator_test_score'] = x['best_estimator_test_score']
-        temp_df['au_method'] = pp_params['au-method']
-        temp_df['au_top_n'] = pp_params['au-top-n']
-        temp_df['fe_method'] = pp_params['fe-method']
-        temp_df['fe_top_n'] = pp_params['fe-top-n']
-        temp_df['learning_method'] = pp_params['learning-method']
-        temp_df['pca_dim'] = pp_params['pca-dim']
-        temp_df['pca_method'] = pp_params['pca-method']
-        temp_df['norm'] = pp_params['norm']
-
-        temp_list.append(temp_df.join(pd.DataFrame([method] * len(temp_df), columns=['method'])))
-
-    results_df = pd.concat(temp_list)
+    results_df = pd.DataFrame(results)
 
     results_path = path.join(path.dirname(raw_path),
                              'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
 
     with open(results_path, 'a') as f:
         results_df.to_csv(f, header=False)
-
-    #    a1 = results_df[results_df.test_type == '[1]']
-    #    a2 = results_df[results_df.test_type == '[2]']
-    #    a3 = results_df[results_df.test_type == '[3]']
-    #    a4 = results_df[results_df.test_type == '[4]']
-    #    a5 = results_df[results_df.test_type == '[5]']
-
-    #    print(a1.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
-    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    #    print(a2.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
-    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    #    print(a3.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
-    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    #    print(a4.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
-    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
-    #    print(a5.sort_values(['mean_test_score'], ascending=False).head(1).loc[:,
-    # ['mean_train_score', 'mean_test_score', 'best_estimator_test_score']])
 
     return results_df
 
@@ -1003,6 +944,7 @@ if __name__ == "__main__":
 
             for features_top_n in range(18, 80, 2):
                 for pca_dimension in range(17, 30):
+                    pass
 
 
 
@@ -1094,9 +1036,9 @@ if __name__ == "__main__":
 
     elif args.draw_plots:
         if args.raw_path is not None and args.results_path is not None:
-            plot_learning_curve_single_subject(args.raw_path, args.results_path)
+            plot_learning_curves_single_subject(args.raw_path, args.results_path)
             plot_roc_curve_single_subject(args.raw_path, args.results_path)
-            plot_params_dist(args.raw_path, args.results_path)
+            plot_params_dist_single_subject(args.raw_path, args.results_path)
 
         else:
             plot_all_learning_curves(args.learning_method)
@@ -1122,7 +1064,7 @@ if __name__ == "__main__":
             args.norm
         )
 
-        ext_features, folds = extract_features(
+        folded_features = extract_features(
             args.raw_path,
             args.au_selection_method,
             args.au_top_n,
@@ -1138,7 +1080,7 @@ if __name__ == "__main__":
 
         cv_method(
             args.raw_path,
-            ext_features,
+            folded_features,
             args.learning_method,
             args.metric,
             features_params_string,
