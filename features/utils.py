@@ -188,8 +188,7 @@ def pca_global(df, dim):
     data_reduced = pca.fit_transform(data)
 
     # return to DataFrame of proper size
-    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(data_reduced)], axis=1)
-    reduced.index = df.index
+    reduced = pd.concat([df.iloc[:, :len(META_COLUMNS)], pd.DataFrame(data_reduced)], axis=1, ignore_index=True)
 
     return reduced
 
@@ -267,32 +266,26 @@ def dimension_reduction(pca_dimension, pca_method, top_features):
 
 
 def get_all_features_by_groups(raw_df, raw_path=None):
-    print("Splitting answers... ", end="")
+    verbose_print("Splitting answers... ", 4)
     answers_dfs = split_df_to_answers(raw_df)
-    print("Done.")
 
-    print("Quantizing... ", end="")
+    verbose_print("Quantizing... ", 4)
     quantized_answers_dfs = quantize(answers_dfs, n_clusters=4, raw_path=raw_path)
-    print("Done.")
 
     # remove unneeded indices
     answers_dfs = list(map(lambda t: t[1], answers_dfs))
 
-    print("Moments... ", end="")
+    verbose_print("Moments... ", 4)
     all_moments = moments.moments(answers_dfs)
-    print("Done.")
 
-    print("Discrete... ", end="")
+    verbose_print("Discrete... ", 4)
     all_discrete = discrete_states.discrete_states(quantized_answers_dfs)
-    print("Done.")
 
-    print("Dynamic... ", end="")
+    verbose_print("Dynamic... ", 4)
     all_dynamic = dynamic.dynamic(quantized_answers_dfs)
-    print("Done.")
 
-    print("Miscellaneous... ", end="")
+    verbose_print("Miscellaneous... ", 4)
     all_misc = misc.misc(answers_dfs)
-    print("Done.")
 
     return all_moments, all_discrete, all_dynamic, all_misc
 
@@ -492,15 +485,17 @@ def get_top_au2(raw_df, test_df, au, au_num, method):
 
     return top_features_pd, test_top_features_pd
 
+
 def partition(lst):
     n = 4  # number of groups
     division = len(lst) / n
     return [len(lst[round(division * i):round(division * (i + 1))]) for i in range(n)]
 
 
-def get_top_features_precomputed(top_AU_df, features_names, raw_path=None):
-    all_features = get_all_features(top_AU_df, raw_path)
+def get_top_features_precomputed(df, features_names, raw_path=None):
+    all_features = get_all_features(df, raw_path)
     return return_top_by_features(all_features, features_names).fillna(0.0)
+
 
 def get_top_features(top_AU, feature_selection_method, features_top_n, learning_method, raw_path=None):
     if feature_selection_method == 'all':
