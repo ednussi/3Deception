@@ -933,6 +933,13 @@ if __name__ == "__main__":
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
                      learning_method, metric, take_sessions, norm):
 
+            PCA_RANGE = [25] #range(15, 25)
+            FEATURES_RANGE = [25] #range(25, 80, 5)
+            AU_RANGE = [51]
+
+
+
+
             print('Start Mega Run')
             print('Loading CSV...',end='')
             raw_df = pd.read_csv(raw_path)
@@ -942,63 +949,210 @@ if __name__ == "__main__":
             folds, data_fs = prepare_folds(raw_df, learning_method, take_sessions)
             print('Done')
 
-            for features_top_n in range(18, 80, 2):
-                for pca_dimension in range(17, 30):
-                    pass
+            print('Get top AU to be use in fold')
+
+            for i, fold in enumerate(folds):
+                print('In fold {} out of {}'.format(i + 1, len(folds)))
+
+                train = fold['train']
+                val = fold['val']
+                test = fold['test']
+
+                # first train + val indices cover all of the train+val data for this fold
+                not_test_indices = [x for x in train[0]['indices']] + [x for x in val[0]['indices']]
+                train_val_df = data_fs.iloc[not_test_indices, :]
 
 
+                for au_top_n in AU_RANGE:
+
+                    # Get AU to use in this fold
+                    print('Get top AU to be use in fold')
+                    train_val_au_names = utils.get_top_by_method(train_val_df, au_selection_method, au_top_n,
+                                                                 feature_selection_method)
+                    top_au_train_val = utils.return_top_by_features(train_val_df, train_val_au_names.keys())
+
+                    if norm != 'NO':
+                        top_au_train_val = utils.normalize_pd_df(top_au_train_val, norm)
+
+                    for f_n,features_top_n in enumerate(FEATURES_RANGE):
+                        print('In feature {} out of {}'.format(f_n, FEATURES_RANGE))
+
+                        # Get top Features to use this fold
+                        print('Get top Features to be use in fold')
+                        top_features_train_val = utils.get_top_features(top_au_train_val, feature_selection_method,
+                                                                        features_top_n,
+                                                                        learning_method, raw_path)
+                        train_val_features_names = top_features_train_val.columns[len(META_COLUMNS):]
+
+                        #_______________________RUN FOR TRAIN & FOLD________________________
+                        print('Using top AU,Features to run on Train & Val')
+                        for p_n,pca_dimension in enumerate(PCA_RANGE):
+                            print('In pca dim {} out of {}'.format(p_n, len(PCA_RANGE)))
+
+                            print('Using top AU,Features to run on Train & Val')
+                            subfold_train_val_list = []
+                            for j in range(len(fold['train'])):
+                                print('In subfold {} out of {}'.format(j + 1, len(fold['train'])))
+
+                                fold_sub_train_ind = train[j]['indices']
+                                fold_sub_val_ind = val[j]['indices']
+
+                                fold_train_df = data_fs.iloc[fold_sub_train_ind, :]
+                                fold_val_df = data_fs.iloc[fold_sub_val_ind, :]
+
+                                top_au_train = utils.return_top_by_features(fold_train_df, train_val_au_names.keys())
+                                top_au_val = utils.return_top_by_features(fold_val_df, train_val_au_names.keys())
+
+                                if norm != 'NO':
+                                    top_au_train = utils.normalize_pd_df(top_au_train, norm)
+                                    top_au_val = utils.normalize_pd_df(top_au_val, norm)
+
+                                top_features_train = utils.get_top_features_precomputed(top_au_train,
+                                                                                        train_val_features_names, raw_path)
+                                top_features_val = utils.get_top_features_precomputed(top_au_val, train_val_features_names,
+                                                                                      raw_path)
+
+                                if learning_method == 'QSP':
+                                    pca_dimension = 10
+
+                                if pca_dimension != features_top_n and pca_method is not None:
+                                    pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+
+                                    # Combine train and val for PCA
+                                    top_features_train_val = top_features_train.append(top_features_val,
+                                                                                       ignore_index=True)
+                                    top_features_train_val = utils.dimension_reduction(pca_dimension, pca_method,
+                                                                                       top_features_train_val)
+
+                                    # Seperate and save
+                                    top_features_train = top_features_train_val.iloc[:len(top_features_train), :]
+                                    top_features_val = top_features_train_val.iloc[len(top_features_val) + 1:, :]
+
+                                subfold_train_val_list.append((top_features_train, top_features_val))
 
 
+                                #_______________________NAMES________________________
+                                features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}]' \
+                                                         '[pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
+                                    path.basename(raw_path),
+                                    au_selection_method,
+                                    au_top_n,
+                                    feature_selection_method,
+                                    features_top_n,
+                                    pca_dimension,
+                                    pca_method,
+                                    learning_method,
+                                    norm
+                                )
+
+                                # Paths Names:
+                                features_path = path.join(path.dirname(raw_path),
+                                                          "[fold{}][features]{}".format(i, features_params_string))
+                                au_cor_path = path.join(path.dirname(raw_path),
+                                                        "[fold{}][au-correlation]".format(i, features_params_string))
+                                features_cor_path = path.join(path.dirname(raw_path),
+                                                              "[fold{}][features-correlation]".format(i,features_params_string))
+
+                            # _______________________RUN FOR TEST________________________
+                            print('Using top AU,Features to run on Test')
+
+                            test_indices = [x for x in test['indices']]
+                            test_df = data_fs.iloc[test_indices, :]
+
+                            print("Choosing Top AU with method:", au_selection_method)
+                            top_au_test = utils.return_top_by_features(test_df, train_val_au_names.keys())
+
+                            if norm != 'NO':
+                                print("Normalizing with {} method...".format(norm))
+                            top_au_test = utils.normalize_pd_df(top_au_test, norm)
+
+                            print("Extracting features with method:", feature_selection_method)
+                            top_features_test = utils.get_top_features_precomputed(top_au_test,
+                                                                                   train_val_features_names,
+                                                                                   raw_path)
+
+                            print(
+                                "Saving top AU and Features to {} , {} ...".format(au_cor_path, features_cor_path))
+                            utils.get_corr_(top_au_test, au_top_n, au_selection_method).to_csv(au_cor_path)
+                            utils.get_corr_(top_features_test, features_top_n, feature_selection_method).to_csv(
+                                features_cor_path)
+
+                            print("Running PCA...")
+                            if learning_method == 'QSP':
+                                pca_dimension = min(top_features_train_val.shape[0], top_features_test.shape[0])
+
+                            if pca_method is not None:
+                                pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+                            top_features_test = utils.dimension_reduction(pca_dimension, pca_method,
+                                                                          top_features_test)
+                            top_features_test.to_csv(pca_path)
+
+                            # _______________________EXTRACT FEATURES ENDS HERE________________________
+                            cv_method_expected_arg = (subfold_train_val_list, top_features_test)
+                            ext_features = cv_method_expected_arg
+                            try:
+                                cv_method(
+                                    raw_path,
+                                    ext_features,
+                                    learning_method,
+                                    metric,
+                                    features_params_string,
+                                    take_sessions,
+                                    str(timestamp)
+                                )
+                            except Exception as e:
+                                print('----\t[Error]\t' + str(e))
+
+                            print("Finished One Set of Parameters")
+            print("Finished one fold")
 
 
+            # raw_df = pd.read_csv(args.raw_path)
+            #
+            # for au_top_n in range(51, 41, -1):
+            #     top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
+            #
+            #     for features_top_n in range(18, 31):
+            #         top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
+            #                                               learning_method, raw_path)
+            #
+            #         if pca_method == PCA_METHODS['global']:
+            #             pca_options = range(18, 31)
+            #         else:
+            #             pca_options = range(3, 6)
+            #
+            #         for pca_dim in pca_options:
+            #             try:
+            #
+            #                 ext_features = utils.dimension_reduction(pca_dim, pca_method, top_features)
+            #
+            #                 features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}]' \
+            #                                          '[pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
+            #                     path.basename(raw_path),
+            #                     au_selection_method,
+            #                     au_top_n,
+            #                     feature_selection_method,
+            #                     features_top_n,
+            #                     pca_dim,
+            #                     pca_method,
+            #                     learning_method,
+            #                     norm
+            #                 )
+            #
+            #                 cv_method(
+            #                     raw_path,
+            #                     ext_features,
+            #                     learning_method,
+            #                     metric,
+            #                     features_params_string,
+            #                     take_sessions,
+            #                     str(timestamp)
+            #                 )
+            #             except Exception as e:
+            #                 print('----\t[Error]\t' + str(e))
 
 
-
-            raw_df = pd.read_csv(args.raw_path)
-
-            for au_top_n in range(51, 41, -1):
-                top_au = utils.get_top_au(raw_df, au_selection_method, au_top_n, learning_method)
-
-                for features_top_n in range(18, 31):
-                    top_features = utils.get_top_features(top_au, feature_selection_method, features_top_n,
-                                                          learning_method, raw_path)
-
-                    if pca_method == PCA_METHODS['global']:
-                        pca_options = range(18, 31)
-                    else:
-                        pca_options = range(3, 6)
-
-                    for pca_dim in pca_options:
-                        try:
-
-                            ext_features = utils.dimension_reduction(pca_dim, pca_method, top_features)
-
-                            features_params_string = '[{}][au-method={}][au-top-n={}][fe-method={}][fe-top-n={}]' \
-                                                     '[pca-dim={}][pca-method={}][learning-method={}][norm={}]'.format(
-                                path.basename(raw_path),
-                                au_selection_method,
-                                au_top_n,
-                                feature_selection_method,
-                                features_top_n,
-                                pca_dim,
-                                pca_method,
-                                learning_method,
-                                norm
-                            )
-
-                            cv_method(
-                                raw_path,
-                                ext_features,
-                                learning_method,
-                                metric,
-                                features_params_string,
-                                take_sessions,
-                                str(timestamp)
-                            )
-                        except Exception as e:
-                            print('----\t[Error]\t' + str(e))
-
-
+        #### NOT MEGA RUN ####
         if args.au_selection_method is None:
             print('No AU selection method provided')
             pass
