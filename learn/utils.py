@@ -197,6 +197,8 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
     #         })
 
     elif method.startswith('SSP'):
+        raise Exception("Current implementation of SSP doesn't split the train/val indices right. Must do manually.")
+
         sessions_with_types = data_fs.loc[:, ['session', 'session_type']].drop_duplicates()
         session_pairs = product(sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_truth']].index,
                                 sessions_with_types[sessions_with_types.session_type == SESSION_TYPES['say_lies']].index)
@@ -215,7 +217,8 @@ def prepare_folds(data_df, method='4v1_A', take_sessions=None):
                 'types': data_fs.session_type.unique().tolist()  # all session types are in train and in test
             }
 
-            rs = ShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+            # TODO rs doesn't split session-wise
+            rs = ShuffleSplit(n_splits=10, test_size=0.25, random_state=42)
 
             train_val_df = data_fs[~data_fs[SESSION_COLUMN].astype(int).isin(test_sessions)]
 
@@ -535,13 +538,10 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
 
         fold_best_result['best_estimator_train_score'] = best_estimator.score(train_val_data, train_val_target)
         fold_best_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
-        fold_best_result['test_q_type'] = test_data_with_target['question_type'].unique()
-        fold_best_result['train_q_type'] = fold[0][0][0]['question_type'].unique()
-        fold_best_result['val_q_type'] = fold[0][0][1]['question_type'].unique()
-        fold_best_result['sesssion_train_type'] = fold[0][0][0]['session_type'].unique()
-        fold_best_result['sesssion_val_type'] = fold[0][0][1]['session_type'].unique()
-        fold_best_result['sesssion_test_type'] = fold[1]['session_type'].unique()
-
+        fold_best_result['question_test_type'] = test_data_with_target['question_type'].unique()
+        fold_best_result['question_test_number'] = test_data_with_target['question'].unique()
+        fold_best_result['session_test_type'] = test_data_with_target['session_type'].unique()
+        fold_best_result['session_test_number'] = test_data_with_target['session'].unique()
 
         results.append(fold_best_result)
 
@@ -563,8 +563,9 @@ def random_search_linear_svm_by_data(fold, j, target_col, target_true):
 
         # train classifier
         clf.fit(train_data, train_target)
-        cv_train_scores.append(clf.score(val_data, val_target))
+        cv_train_scores.append(clf.score(train_data, train_target))
         cv_val_scores.append(clf.score(val_data, val_target))
+
     cv_iter_result = {
         'c_param': c_param,
         'mean_train_score': pd.np.array(cv_train_scores).mean(),

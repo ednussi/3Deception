@@ -757,10 +757,10 @@ def extract_features(
 
         verbose_print("Running PCA...", 1)
         if pca_method is not None:
-            pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
+            # pca_path = path.join(path.dirname(raw_path), "pca_" + path.basename(raw_path))
 
             top_features_test = utils.dimension_reduction(pca_dimension, pca_method, top_features_test)
-            top_features_test.to_csv(pca_path)
+            # top_features_test.to_csv(pca_path)
 
         master_fold_list.append((subfold_train_val_list, top_features_test))
         verbose_print("Finished fold", 1)
@@ -873,16 +873,19 @@ def cv_method(raw_path, folded_features, method, metric=None, fpstr='', take_ses
     verbose_print("Cross validating all learners...", 0)
     results = cv_method_linear_svm_by_data(folded_features, method, metric)
 
-    temp_list = []
     pp_params = parse_preprocessing_params(fpstr)
 
+    for x in results:
+        x['au_method'] = pp_params['au-method']
+        x['au_top_n'] = pp_params['au-top-n']
+        x['fe_method'] = pp_params['fe-method']
+        x['fe_top_n'] = pp_params['fe-top-n']
+        x['learning_method'] = pp_params['learning-method']
+        x['pca_dim'] = pp_params['pca-dim']
+        x['pca_method'] = pp_params['pca-method']
+        x['norm'] = pp_params['norm']
+
     results_df = pd.DataFrame(results)
-
-    results_path = path.join(path.dirname(raw_path),
-                             'results.{}.{}.{}.csv'.format(timestamp, pp_params['learning-method'], pp_params['norm']))
-
-    with open(results_path, 'a') as f:
-        results_df.to_csv(f, header=False)
 
     return results_df
 
@@ -948,12 +951,11 @@ if __name__ == "__main__":
         def mega_run(raw_path, au_selection_method, feature_selection_method, pca_method,
                      learning_method, metric, take_sessions, norm):
 
-            PCA_RANGE = [25] #range(15, 25)
+            all_dfs = []
+
+            PCA_RANGE = [10,11] #range(15, 25)
             FEATURES_RANGE = [25] #range(25, 80, 5)
             AU_RANGE = [51]
-
-
-
 
             print('Start Mega Run')
             print('Loading CSV...',end='')
@@ -971,7 +973,6 @@ if __name__ == "__main__":
             all_features = utils.get_all_features(data_fs, raw_path).fillna(0.0)
             print('Done')
 
-            master_fold_list = []
             for i, fold in enumerate(folds):
                 print('In fold {} out of {}'.format(i + 1, len(folds)))
 
@@ -999,6 +1000,8 @@ if __name__ == "__main__":
                                                        .columns[len(META_COLUMNS):].values.tolist()
 
                         for p_n,pca_dimension in enumerate(PCA_RANGE):
+                            master_fold_list = []
+
                             print('In pca dim {} out of {}'.format(p_n + 1, len(PCA_RANGE)))
 
                             # RUN FOR TEST
@@ -1088,7 +1091,7 @@ if __name__ == "__main__":
                             # _______________________EXTRACT FEATURES ENDS HERE________________________
                             ext_features = master_fold_list
                             try:
-                                cv_method(
+                                all_dfs.append(cv_method(
                                     raw_path,
                                     ext_features,
                                     learning_method,
@@ -1096,16 +1099,17 @@ if __name__ == "__main__":
                                     features_params_string,
                                     take_sessions,
                                     str(timestamp)
-                                )
+                                ))
                             except Exception as e:
                                 print('----\t[Error]\t' + str(e))
                             print("Finished one fold")
 
-
-
                         print("Finished Extract Features")
 
+            results_path = path.join(path.dirname(args.raw_path), 'results.{}.{}.csv'.format(learning_method, norm))
 
+            with open(results_path, 'a') as f:
+                pd.concat(all_dfs, axis=1).to_csv(f)
 
         #### NOT MEGA RUN ####
         if args.au_selection_method is None:
@@ -1187,7 +1191,7 @@ if __name__ == "__main__":
             args.norm
         )
 
-        cv_method(
+        results_df = cv_method(
             args.raw_path,
             folded_features,
             args.learning_method,
@@ -1195,6 +1199,14 @@ if __name__ == "__main__":
             features_params_string,
             args.take_sessions
         )
+
+        pp_params = parse_preprocessing_params(features_params_string)
+
+        results_path = path.join(path.dirname(args.raw_path),
+                                 'results.{}.{}.csv'.format(pp_params['learning-method'], pp_params['norm']))
+
+        with open(results_path, 'a') as f:
+            results_df.to_csv(f)
 
 #
 # """
