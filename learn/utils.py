@@ -525,7 +525,8 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
 
         cv_results = pd.DataFrame(cv_results)
 
-        fold_best_result = cv_results.sort_values(['mean_val_score'], ascending=False).head(1)
+        #TODO sort by diff between mean_val_score and mean_train_score
+        fold_best_result = cv_results.sort_values(['mean_val_score'], ascending=False).head(1) #sort by mean_val_score
         fold_best_result = {x[0]: x[1].values.tolist()[0] for x in dict(fold_best_result).items()}
         best_c_param = fold_best_result['c_param']
 
@@ -534,6 +535,13 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
 
         fold_best_result['best_estimator_train_score'] = best_estimator.score(train_val_data, train_val_target)
         fold_best_result['best_estimator_test_score'] = best_estimator.score(test_data, test_target)
+        fold_best_result['test_q_type'] = test_data_with_target['question_type'].unique()
+        fold_best_result['train_q_type'] = fold[0][0][0]['question_type'].unique()
+        fold_best_result['val_q_type'] = fold[0][0][1]['question_type'].unique()
+        fold_best_result['sesssion_train_type'] = fold[0][0][0]['session_type'].unique()
+        fold_best_result['sesssion_val_type'] = fold[0][0][1]['session_type'].unique()
+        fold_best_result['sesssion_test_type'] = fold[1]['session_type'].unique()
+
 
         results.append(fold_best_result)
 
