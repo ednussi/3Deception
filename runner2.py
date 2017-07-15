@@ -18,13 +18,9 @@ from constants import PCA_METHODS, SPLIT_METHODS, AU_SELECTION_METHODS, FEATURE_
 
 """
 Example Running Command:
-python3 runner.py -i 3deception-data/lilach/lilach.csv -a top -an 24 -f all -fn 80 -pm global -p 8 -lm 4v1_A
 
-Arguments:
--i questionnaire/data/alon/fs_shapes.not_quantized.csv -a top -A 51 -f all -F 34 -p global -P 20 -l SP -n max
+python runner2.py -i questionnaire/data/alon/fs_shapes.not_quantized.csv -atop -A51 -fall -F80 -pglobal -P20 -lSP -nmax
 
-Mega Runner:
-python3 runner.py -i 3deception-data/lilach/lilach.csv -n zero-one -a top -f all -pm global -MR
 """
 
 
