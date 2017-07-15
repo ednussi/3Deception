@@ -7,7 +7,9 @@ from scipy.stats import randint
 from sklearn import svm
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import ShuffleSplit; from joblib import Parallel, delayed; import multiprocessing
+from sklearn.model_selection import ShuffleSplit
+from joblib import Parallel, delayed
+import multiprocessing
 
 from constants import SESSION_TYPES, SPLIT_METHODS, SESSION_TYPE_COLUMN, QUESTION_TYPES, QUESTION_TYPE_COLUMN, \
     SESSION_COLUMN, META_COLUMNS, TARGET_COLUMN, RecordFlags, ANSWER_INDEX_COLUMN, QUESTION_COLUMN, verbose_print
@@ -519,6 +521,7 @@ def cv_folds_linear_svm_by_data(folds, target_col, target_true, metric=None, met
         num_cores = multiprocessing.cpu_count()
 
         cv_results = Parallel(n_jobs=num_cores)(delayed(random_search_linear_svm_by_data)(fold, j, target_col, target_true) for j in range(50))
+        # cv_results = [random_search_linear_svm_by_data(fold, j, target_col, target_true) for j in range(50)]
 
         cv_results = pd.DataFrame(cv_results)
 
