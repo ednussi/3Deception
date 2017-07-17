@@ -69,7 +69,7 @@ def quantize(answer_dfs, n_clusters, raw_path=None):
 
             for au in q.iloc[:, SKIP_COLUMNS:]:
                 q.loc[:, au] = sk_cluster \
-                    .KMeans(n_clusters=n_clusters, random_state=1, n_jobs=10) \
+                    .KMeans(n_clusters=n_clusters, random_state=1, n_jobs=16) \
                     .fit_predict(np.reshape(q[au].values, (-1, 1)))
 
             all_answer_quantized_dfs.append((i, q))
