@@ -4,9 +4,10 @@ CURRENT_VERBOSITY = 100
 
 
 def verbose_print(string, verbosity):
-    if CURRENT_VERBOSITY >= verbosity:
-        import inspect
-        print(''.join(['-'] * len(inspect.stack())) + ' ' + string)
+    import inspect
+    stack_size = len(inspect.stack())
+    if CURRENT_VERBOSITY >= stack_size:
+        print(''.join(['-'] * stack_size) + ' ' + string)
 
 
 
