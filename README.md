@@ -117,19 +117,17 @@ In this part, question type refers to one of five types of questions that were p
 In order to perform cross-validation, starting with single subject data set of 200 samples and 638 features, we used 2 split 
 :
 
-1. **1.**** Question left-out (SP):**
-  1. **a.** Choose question type for test set (1 out of 5)
-  2. **b.** Choose question type for validation set (1 out of 4 remaining)
-  3. **c.** Use remaining question types as train set (3)
-
+1. Question left-out (SP):
+  * Choose question type for test set (1 out of 5)
+  * Choose question type for validation set (1 out of 4 remaining)
+  * Use remaining question types as train set (3)
 This was repeated for all combinations of train/validation/test question types to get 20 folds train/validation folds for all test question types
 
-1. **2.**** Question/Session left-out (QSP):**
-  1. **a.** Split 4 recorded sessions to two pairs (train and test) such that in each pair there are sessions of both types
-  2. **b.** In the test pair, choose question type for test set (1 out of 5)
-  3. **c.** In the train pair, choose question type for validation set (1 out of 4 remaining, excluding the test one)
-  4. **d.** Use remaining question types as training set (3)
-
+2. Question/Session left-out (QSP):
+  * Split 4 recorded sessions to two pairs (train and test) such that in each pair there are sessions of both types
+  * In the test pair, choose question type for test set (1 out of 5)
+  * In the train pair, choose question type for validation set (1 out of 4 remaining, excluding the test one)
+  * Use remaining question types as training set (3)
 Naturally, there is a possible bias of the algorithm based on the position of session in the interview process, as the person may tire in later sessions, and this state is consistent for all answers in that session. QSP split method is aimed to eliminate this bias, by only testing the answers from sessions that were never seen in the training process.
 
 In all split methods, the target label is chosen such that our classifier determines if the current answer that is being shown to the subject is the critical item (truthful answer).
