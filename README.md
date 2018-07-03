@@ -50,9 +50,10 @@ This part required research and consideration of known psychological effects whi
 Record a 3D video stream of the interview process, using Apple PrimeSense Carmine 1.09.
 
 * Data Analysis
-Apply statistical and signal processing methods on the acquired data to extract relevant features and produce a classifier which given a video record will decide if the received response corresponds to deception or not. An overview of the predictive model is presented in Figure 2
+Apply statistical and signal processing methods on the acquired data to extract relevant features and produce a classifier which given a video record will decide if the received response corresponds to deception or not. An overview of the predictive model is presented in figure 2
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure2.PNG)
+
 Figure 2: Algorithm components overview
 
 ### Interview
@@ -75,6 +76,7 @@ Studies show that we have strong reactions to things we hold dear, are close to 
 After each question there were 3 answered that followed - a buffer item followed by random ordered critical and control answers. The questions appeared in sessions. Each session was composed of all of the 5 types of questions repeated 5 times in random order [6]. At the beginning of every session the subject were instructed to tell only truth or only lie for that entire session. There were 4 sessions, 2 for truth-telling and 2 for lie-telling summing up for a total of 200 samples tagged. As seen in figure 3, at the end we had for each question type 4 types of responds: &quot;Yes for truth&quot;, and &quot;No for truth&quot; that were produced from the truth sessions and &quot;Yes for lie&quot; and &quot;No for lie&quot; that were produced from the lie session. Meaning that 200 samples were divided into 10 samples of each kind of answer.
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure3.PNG)
+
 Figure 3
 
 ### Interview design
@@ -164,14 +166,17 @@ Our dataset consists of 9 recorded interviews. In _Figure 1_, test accuracy of p
 Some question types answers are consistently harder to predict (e.g. month of birth) over all subjects than others (e.g. surname). Interestingly, country of birth prediction accuracy is highly variated over the subjects. We propose that this is due to difference in personal relation of the subject to the question.
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure4.PNG)
+
 Figure 1: Test accuracy on question type per subject when trained on 4 other types
 
 Overall success could be measured by the mean accuracies over all question types as shown in  _Figure 2_. Mean accuracy over all subjections is 70% (standard deviation = 2.75%). ROC curves of final classifier were produced and displayed on _Figure 3_.
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure5.PNG)
+
 Figure 2: Average accuracy per subject
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure6.PNG)
+
 Figure 3: Receiver Operator Characteristics
 
 Additionally, we present prediction accuracies for two halves of the dataset: in _Figure 4_ the classifier was trained and tested only on answers where the subject says &quot;Yes&quot;, while in _Figure 5_ - only on those where the subject says &quot;No&quot;. It may be noticed that in both cases the average accuracy is higher than on the combined &quot;Yes&quot;/&quot;No&quot; task in previous figures, which is intuitive, as these tasks involve only one type of response and we reduced the problem and trained the classifier from a smaller hypothesis space. In _Figure 6 the_ average accuracy over all question types for &quot;Yes&quot; part is shown: 77% (std=7%), for &quot;Not&quot; part is 73% (std=6%).
@@ -179,12 +184,15 @@ Additionally, we present prediction accuracies for two halves of the dataset: in
 These types of classifiers give us the ability to predict whether a &quot;Yes&quot; or &quot;No&quot; answer is a response to being exposed to the truth. Despite being less general, they might have more practical value.
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure7.PNG)
+
 Figure 4: Test accuracy for &quot;Yes&quot; answers
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure8.PNG)
+
 Figure 5: Test accuracy for &quot;No&quot; answers
 
 ![](https://github.com/ednussi/3deception/blob/master/display/figure9.PNG)
+
 Figure 6: Average accuracy over all question types
 
 for &quot;Yes&quot; and &quot;No&quot; parts of the dataset
