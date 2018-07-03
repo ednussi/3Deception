@@ -53,7 +53,11 @@ Record a 3D video stream of the interview process, using Apple PrimeSense Carmin
 Apply statistical and signal processing methods on the acquired data to extract relevant features and produce a classifier which given a video record will decide if the received response corresponds to deception or not. An overview of the predictive model is presented in _Figure 2._
 
 ![Picture 2](https://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+
+
+
 Figure 2: Algorithm components overview
+
 ### Interview
 Since our project involves 3D camera recordings in order to build personal classifier for detecting deception, it was up to us to obtain appropriate dataset due to lack of such open sources. We had to plan the process of acquiring the data to details and take into account various psychological aspects we human are subjects to.
 ### Participants
@@ -121,6 +125,7 @@ In order to perform cross-validation, starting with single subject data set of 2
   * Choose question type for test set (1 out of 5)
   * Choose question type for validation set (1 out of 4 remaining)
   * Use remaining question types as train set (3)
+
 This was repeated for all combinations of train/validation/test question types to get 20 folds train/validation folds for all test question types
 
 2. Question/Session left-out (QSP):
@@ -128,6 +133,7 @@ This was repeated for all combinations of train/validation/test question types t
   * In the test pair, choose question type for test set (1 out of 5)
   * In the train pair, choose question type for validation set (1 out of 4 remaining, excluding the test one)
   * Use remaining question types as training set (3)
+
 Naturally, there is a possible bias of the algorithm based on the position of session in the interview process, as the person may tire in later sessions, and this state is consistent for all answers in that session. QSP split method is aimed to eliminate this bias, by only testing the answers from sessions that were never seen in the training process.
 
 In all split methods, the target label is chosen such that our classifier determines if the current answer that is being shown to the subject is the critical item (truthful answer).
